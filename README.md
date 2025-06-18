@@ -9,7 +9,7 @@ The *Hybrid Groups* project provides:
 - Integrations with 3rd party platforms like Slack or GitHub
 
 > [!NOTE]
-> This project is under early, active development.
+> This project is a development preview and not ready for production yet.
 
 ## Overview
 
