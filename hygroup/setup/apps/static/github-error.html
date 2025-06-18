@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub App Creation Failed</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h1>GitHub App Creation Failed</h1>
+            </div>
+
+            <div class="error-section">
+                <p class="error-message">{{ error_message }}</p>
+            </div>
+
+            <div class="form-actions">
+                <a href="/github-app"
+                   class="btn btn-primary">
+                    Try Again
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

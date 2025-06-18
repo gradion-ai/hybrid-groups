@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slack App Creation</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m0 0v10a2 2 0 002 2h6a2 2 0 002-2V8M9 12h6m-6 4h6"></path>
+                </svg>
+                <h1>Create Slack App</h1>
+            </div>
+
+            <div class="info-section" id="initial-info-section">
+                <p>Create a Slack app using the <a target="_blank" href="https://api.slack.com/reference/manifests">Manifest Flow</a>. This will automatically configure your app with the required permissions and settings.</p>
+            </div>
+
+            <div id="phase-1-container">
+                <form id="slack-app-create-form">
+                    <div id="create-form-error" class="form-error">
+                        <p class="form-error-message" id="create-form-error-message"></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="app_name">App Name</label>
+                        <input type="text"
+                               id="app_name"
+                               name="app_name"
+                               required
+                               placeholder="My Slack App">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="config_token">App Configuration Token</label>
+                        <input type="text"
+                               id="config_token"
+                               name="config_token"
+                               required
+                               placeholder="xoxe...">
+                        <p class="help-text">Get an App Configuration Token from <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a></p>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button"
+                                id="create-app-button"
+                                disabled
+                                class="btn btn-primary">
+                            Create Slack App
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="phase-2-container" style="display: none;">
+                <div class="info-section">
+                    <h2>App Created Successfully!</h2>
+                    <div class="info-item">
+                        <span class="info-label">App ID:</span>
+                        <span class="info-value" id="app-id-display"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">App Name:</span>
+                        <span class="info-value" id="app-name-display"></span>
+                    </div>
+                    <div class="info-item" style="margin-top: 30px;">
+                        <p style="color: white;">Follow the instructions below to complete the setup.</p>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h2>Next Steps</h2>
+                    <p>Follow the instructions below to create an App-Level Token and install the app to your workspace.</p>
+                </div>
+
+                <form id="slack-app-complete-form">
+                    <div id="complete-form-error" class="form-error">
+                        <p class="form-error-message" id="complete-form-error-message"></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="app_token">App-Level Token</label>
+                        <input type="text"
+                               id="app_token"
+                               name="app_token"
+                               required
+                               placeholder="xapp-">
+                        <p class="help-text">Go to the <a href="#" target="_blank" id="app-level-tokens-link">Slack App-Level Tokens section</a> and generate an App-Level Token with scope <b style="color: white;">connections:write</b>.</p>
+                        <details>
+                            <summary style="cursor: pointer; color: white; margin-bottom: 10px;">More details</summary>
+                            <img src="/static/images/slack_app_level_token.png" alt="App-Level Tokens" style="width: 100%; height: auto; margin-bottom: 10px;">
+                        </details>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bot_token">Bot User OAuth Token</label>
+                        <input type="text"
+                               id="bot_token"
+                               name="bot_token"
+                               required
+                               placeholder="xoxb-">
+                        <p class="help-text">Go to the <a href="#" target="_blank" id="oauth-permissions-link">Slack Install App section</a> and install the app to your workspace to get the Bot User OAuth Token.</p>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button"
+                                id="complete-setup-button"
+                                disabled
+                                class="btn btn-success">
+                            Complete Setup
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="success-container" style="display: none;">
+                <div class="success-section">
+                    <h2>Setup Complete!</h2>
+                    <p class="success-message">Your Slack app has been configured successfully. Credentials have been saved to your .env file.</p>
+                    <div class="info-item">
+                        <span class="info-label">App User ID:</span>
+                        <span class="info-value" id="app-user-id-display"></span>
+                    </div>
+                </div>
+                <div class="status-message">
+                    Server will shut down automatically...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/setup-slack-app.js"></script>
+</body>
+</html>

@@ -129,7 +129,7 @@ Running MCP servers with a user's private API tokens requires user registration.
 
 - Username and password
 - Environment variables to be stored as user secrets (encrypted tokens)
-- Slack and GitHub usernames for mapping them to the registered username
+- Slack member ID and GitHub username for mapping them to the registered username
 
 After user registration and running the example application server with the `--user-registry` option,
 
@@ -150,7 +150,91 @@ With the `--user-registry` option set, the application server now uses the store
 
 ### Platform integrations
 
-...
+#### Slack
+
+The Slack integration enables multi-user, multi-agent conversations in Slack threads. Each thread creates a separate group session that persists across application server restarts.
+
+The Slack integration works through a dedicated [Slack app](https://api.slack.com/docs/apps) that creates an *app agent* which can be used directly or that delegates to other agents in the agent registry.
+
+Set up the Slack app by following the [Slack integration guide](docs/slack-integration-guide.md). The name that is assigned to the Slack app becomes the name of the Slack *app agent*. Once installed in a Slack workspace, users can interact with the *app agent* and other registered agents in Slack threads.
+
+> [!NOTE]
+> For the following, we assume an *app agent* named `Gradion Agent`.
+
+To start a conversation, add the *app agent* to any channel and mention it with a query as shown it the example below. This creates a new Slack thread (= new group session) where the *app agent* and all registered agents become available as group members. Within a thread, users can interact with agents in two ways:
+
+* mention the *app agent* (e.g. `@Gradion Agent`) for general queries or handoffs to specialized agents, or
+* directly mention any registered agent by it's name as defined in the agent registry (e.g. `@weather`).
+
+In agent responses, the agent name is shown next to a bot icon. The following example shows the *app agent* handling a weather query, handing off to a `weather` agent:
+
+<img src="docs/images/slack_example.png" alt="Slack Example" width="800">
+
+##### Usage
+
+To run the example application server with the simplified setup described in [getting started](#getting-started) using the `slack` gateway, run:
+
+```shell
+python examples/app_server.py --gateway slack
+```
+
+To enable [private user channels](#private-user-channels) and use private API tokens, follow the steps in the section [user registration](#user-registration), provide your Slack member ID during registration and run the following commands:
+
+```shell
+# start server
+python examples/app_server.py --gateway slack --user-channel --user-registry
+
+# in another terminal
+python examples/user_channel.py --username {REGISTERED_USERNAME}
+```
+
+> [!TIP]
+> To find your Slack member ID, open your user profile in the Slack desktop or web app, click the three dots (More options), and select "Copy Member ID".
+
+#### GitHub
+
+The GitHub integration enables multi-user, multi-agent conversations within GitHub issues and pull requests. Each issue or pull request creates its own group session that persists across server restarts.
+
+The GitHub integration works through a dedicated [GitHub App](https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/about-creating-github-apps) that creates an *app agent* which can be used directly or that delegates to other agents in the agent registry.
+
+Set up the GitHub App by following the [GitHub integration guide](docs/github-integration-guide.md). The name that is assigned to the GitHub App becomes the name of the GitHub *app agent*. Once installed in a repository, users can interact with the *app agent* and other registered agents in issues and pull requests.
+
+> [!NOTE]
+> For the following, we assume an *app agent* named `gradion-agent`.
+
+To start a conversation, mention the *app agent* or any other registered agent in an issue or pull request from a repository where the app is installed. This creates a new group session. The GitHub integration supports two interaction patterns:
+
+* mention the *app agent* (e.g. `@gradion-agent`) for general queries or handoffs to specialized agents, or
+* directly mention any registered agent using the format `@app-agent-name/agent-name`, where `agent-name` is the name of the agent in the agent registry (e.g. `@gradion-agent/weather`).
+
+Agent responses are labeled with the agent's name in brackets (e.g. `[weather]` in the example below). The following example demonstrates the *app agent* receiving a weather query and handing off to the `weather` agent:
+
+<img src="docs/images/github_example.png" alt="GitHub Example" width="800">
+
+##### Usage
+
+To enable the GitHub integration, ensure that webhook events from GitHub are forwarded to the local gateway.
+The following example assumes usage of [smee.io](https://smee.io) during [setup](docs/github-integration-guide.md) and a locally running [smee-client](https://www.npmjs.com/package/smee-client).
+
+```
+smee -u https://smee.io/{CHANNEL_ID} -t http://127.0.0.1:8000/api/v1/github-webhook
+```
+
+To run the application server using the `github` gateway with the simplified setup described in [getting started](#getting-started) run:
+
+```shell
+python examples/app_server.py --gateway github
+```
+
+To enable [private user channels](#private-user-channels) and use private API tokens, follow the steps in the section [user registration](#user-registration), provide your GitHub username during registration and run the following commands:
+
+```shell
+# start server
+python examples/app_server.py --gateway github --user-channel --user-registry
+
+# in another terminal
+python examples/user_channel.py --username {REGISTERED_USERNAME}
+```
 
 ## Library usage
 

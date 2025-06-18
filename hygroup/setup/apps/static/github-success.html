@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub App Created Successfully</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h1>GitHub App Created Successfully!</h1>
+            </div>
+
+            <div class="info-section">
+                <h2>App Details</h2>
+                <div class="info-item">
+                    <span class="info-label">App Name:</span>
+                    <span class="info-value">{{ app_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Organization:</span>
+                    <span class="info-value">{{ organization }}</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>Saved Files</h2>
+                <div class="info-item">
+                    <span class="info-label">Environment Variables:</span>
+                    <span class="info-value">{{ env_file_path }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Private Key:</span>
+                    <span class="info-value">{{ private_key_path }}</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h2>Next Steps</h2>
+                <p>Your GitHub App has been created and credentials have been saved. To start using it, you need to install it on your repositories.</p>
+                <a href="{{ installation_url }}"
+                   class="btn btn-primary"
+                   target="_blank">
+                    Install GitHub App
+                </a>
+            </div>
+
+            <div class="info-section" id="installation-section">
+                <h2>Installation ID (Optional)</h2>
+                <p>After installing the GitHub App on your repositories, you can optionally enter the Installation ID here. If you skip this step, you'll need to manually add GITHUB_APP_INSTALLATION_ID to your .env file later.</p>
+                <div class="input-group">
+                    <input type="text"
+                           id="installation-id"
+                           placeholder="e.g., 12345678">
+                    <button id="complete-btn"
+                            class="btn btn-success">
+                        Complete
+                    </button>
+                </div>
+                <p class="help-text">You can find the Installation ID in the GitHub App installation URL or settings.</p>
+            </div>
+
+            <div class="status-message">
+                <p id="status-message">
+                    The server will shut down when you click "Complete" above.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const completeBtn = document.getElementById('complete-btn');
+            const installationIdInput = document.getElementById('installation-id');
+            const statusMessage = document.getElementById('status-message');
+
+            completeBtn.addEventListener('click', async function() {
+                const installationId = installationIdInput.value.trim();
+
+                completeBtn.disabled = true;
+                completeBtn.innerHTML = '<span class="spinner"></span>Processing...';
+
+                try {
+                    const response = await fetch('/api/v1/github-app/complete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            installation_id: installationId || null
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+
+                        if (data.installation_id_saved) {
+                            statusMessage.innerHTML = '<span class="success-message">Installation ID saved to .env file! Server shutting down...</span>';
+                        } else {
+                            statusMessage.innerHTML = '<span style="color: #fbbf24;">Server shutting down. Please manually add GITHUB_APP_INSTALLATION_ID to your .env file.</span>';
+                        }
+
+                        document.getElementById('installation-section').style.display = 'none';
+
+                    } else {
+                        throw new Error('Failed to complete registration');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    statusMessage.innerHTML = '<span class="error-message">Error completing registration. You may need to manually add the Installation ID to your .env file.</span>';
+                    completeBtn.disabled = false;
+                    completeBtn.textContent = 'Complete';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
