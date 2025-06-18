@@ -1,11 +1,13 @@
 import argparse
 import asyncio
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from hygroup.agent.default import AgentSettings, DefaultAgentRegistry, HandoffAgent
 from hygroup.gateway import Gateway
+from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway
 from hygroup.gateway.terminal import LocalTerminalGateway, RemoteTerminalGateway
 from hygroup.session import SessionManager
@@ -57,6 +59,22 @@ async def main(args):
 
     gateway: Gateway
     match args.gateway:
+        case "github":
+            github_app_id = int(os.environ["GITHUB_APP_ID"])
+            github_installation_id = int(os.environ["GITHUB_APP_INSTALLATION_ID"])
+            github_private_key_path = Path(os.environ["GITHUB_APP_PRIVATE_KEY_PATH"])
+            github_private_key = open(github_private_key_path, "r").read()
+            github_app_username = os.environ["GITHUB_APP_USERNAME"]
+            user_mapping[github_app_username] = "gradion"
+
+            gateway = GithubGateway(
+                session_manager=manager,
+                user_mapping=user_mapping,
+                github_app_id=github_app_id,
+                github_installation_id=github_installation_id,
+                github_private_key=github_private_key,
+                github_app_username=github_app_username,
+            )
         case "slack":
             app_id = os.environ["SLACK_APP_ID"]
             user_mapping[app_id] = "gradion"
@@ -85,7 +103,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gateway", type=str, default="terminal", choices=["slack", "terminal"])
+    parser.add_argument("--gateway", type=str, default="terminal", choices=["github", "slack", "terminal"])
     parser.add_argument("--user-channel", action="store_true", default=False)
     parser.add_argument("--user-registry", action="store_true", default=False)
     parser.add_argument("--session-id", type=str, default=None, help="session id for terminal gateway")
