@@ -20,13 +20,3 @@ Additional commands are:
 invoke code-check
 invoke cc  # alias
 ```
-
-## Available MCP Tools for Development
-
-When developing with this codebase, you have access to the following MCP tools:
-
-### Context7 MCP Server
-Use the `context7` MCP server to fetch the latest documentation for any library. This is particularly useful when:
-- Working with external dependencies
-- Needing up-to-date API references
-- Understanding library usage patterns
