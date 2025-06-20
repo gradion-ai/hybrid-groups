@@ -20,6 +20,16 @@ def test(c, cov=False):
     _run_pytest(c, "tests", cov)
 
 
+@task(aliases=["ut"])
+def unit_test(c, cov=False):
+    _run_pytest(c, "tests/unit", cov)
+
+
+@task(aliases=["it"])
+def integration_test(c, cov=False):
+    _run_pytest(c, "tests/integration", cov)
+
+
 def _run_pytest(c, test_dir, cov=False):
     c.run(f"pytest -xsv {test_dir} {_pytest_cov_options(cov)}", pty=_use_pty())
 

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from hygroup.agent.default.agent import AgentSettings
 from hygroup.agent.default.registry import DefaultAgentRegistry
-from tests.example_tools import current_time, get_weather_forecast
+from tests.integration.example_tools import current_time, get_weather_forecast
 
 # Load environment variables
 load_dotenv()
@@ -17,12 +17,12 @@ load_dotenv()
 def test_serialize_regular_function():
     """Test serializing a regular function returns correct module and function name."""
     serialized = AgentSettings.serialize_tool(get_weather_forecast)
-    assert serialized == {"module": "tests.example_tools", "function": "get_weather_forecast"}
+    assert serialized == {"module": "tests.integration.example_tools", "function": "get_weather_forecast"}
 
 
 def test_deserialize_existing_function():
     """Test deserializing an existing function works correctly."""
-    tool_dict = {"module": "tests.example_tools", "function": "get_weather_forecast"}
+    tool_dict = {"module": "tests.integration.example_tools", "function": "get_weather_forecast"}
     deserialized = AgentSettings.deserialize_tool(tool_dict)
     assert deserialized is get_weather_forecast
     assert callable(deserialized)
@@ -40,12 +40,12 @@ def test_deserialize_nonexistent_module(capsys):
 
 def test_deserialize_nonexistent_function(capsys):
     """Test deserializing with non-existent function prints error and returns None."""
-    tool_dict = {"module": "tests.example_tools", "function": "nonexistent_function"}
+    tool_dict = {"module": "tests.integration.example_tools", "function": "nonexistent_function"}
     deserialized = AgentSettings.deserialize_tool(tool_dict)
 
     assert deserialized is None
     captured = capsys.readouterr()
-    assert "Error importing tool tests.example_tools.nonexistent_function:" in captured.out
+    assert "Error importing tool tests.integration.example_tools.nonexistent_function:" in captured.out
 
 
 def test_agent_settings_to_dict():
@@ -54,7 +54,7 @@ def test_agent_settings_to_dict():
 
     data = settings.to_dict()
 
-    assert data["tools"] == [{"module": "tests.example_tools", "function": "get_weather_forecast"}]
+    assert data["tools"] == [{"module": "tests.integration.example_tools", "function": "get_weather_forecast"}]
     assert data["model"] == "openai:gpt-4"
     assert data["instructions"] == "Weather assistant"
 
@@ -65,7 +65,7 @@ def test_agent_settings_from_dict():
         "model": "openai:gpt-4",
         "instructions": "Weather assistant",
         "tools": [
-            {"module": "tests.example_tools", "function": "get_weather_forecast"},
+            {"module": "tests.integration.example_tools", "function": "get_weather_forecast"},
             {"module": "nonexistent.module", "function": "fake_function"},  # This should be filtered out
         ],
         "human_feedback": True,
@@ -190,8 +190,11 @@ async def test_full_workflow_with_multiple_tools():
         # Retrieve config
         config = await registry.get_config("multi_tool")
         assert len(config["settings"]["tools"]) == 2
-        assert {"module": "tests.example_tools", "function": "get_weather_forecast"} in config["settings"]["tools"]
-        assert {"module": "tests.example_tools", "function": "current_time"} in config["settings"]["tools"]
+        assert {
+            "module": "tests.integration.example_tools",
+            "function": "get_weather_forecast",
+        } in config["settings"]["tools"]
+        assert {"module": "tests.integration.example_tools", "function": "current_time"} in config["settings"]["tools"]
 
         # Create agent from registry
         agent = await registry.create_agent("multi_tool")
