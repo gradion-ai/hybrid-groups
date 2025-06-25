@@ -1,5 +1,6 @@
 import logging
 import os
+from asyncio import Lock
 from dataclasses import dataclass
 
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
@@ -16,10 +17,45 @@ from hygroup.session import Session, SessionManager
 class SlackThread:
     channel: str
     session: Session
+    lock: Lock = Lock()
 
     @property
     def id(self) -> str:
         return self.session.id
+
+    async def handle_message(self, msg: dict):
+        if self.session.contains(msg["id"]):
+            return
+
+        if msg["receiver_resolved"] in await self.session.agent_names():
+            await self._invoke_agent(
+                query=msg["text"],
+                sender=msg["sender_resolved"],
+                receiver=msg["receiver_resolved"],
+                thread_refs=msg["thread_refs"],
+                message_id=msg["id"],
+            )
+        else:
+            await self.session.update(
+                Message(
+                    sender=msg["sender_resolved"],
+                    receiver=msg["receiver_resolved"],
+                    text=msg["text"],
+                    id=msg["id"],
+                )
+            )
+
+    async def _invoke_agent(
+        self,
+        query: str,
+        sender: str,
+        receiver: str,
+        thread_refs: list[str],
+        message_id: str | None = None,
+    ):
+        threads = await self.session.manager.load_threads(thread_refs)
+        request = AgentRequest(query=query, sender=sender, threads=threads, id=message_id)
+        await self.session.invoke(request=request, receiver=receiver)
 
 
 class SlackGateway(Gateway):
@@ -49,13 +85,8 @@ class SlackGateway(Gateway):
         self._app.message("")(self.handle_slack_message)
 
         # Suppress "unhandled request" log messages
-        logging.getLogger("slack_bolt.AsyncApp").setLevel(logging.ERROR)
-
-    def resolve_core_user_id(self, slack_user_id: str) -> str:
-        return self._slack_user_mapping.get(slack_user_id, slack_user_id)
-
-    def resolve_slack_user_id(self, core_user_id: str) -> str:
-        return self._core_user_mapping.get(core_user_id, core_user_id)
+        self.logger = logging.getLogger("slack_bolt.AsyncApp")
+        self.logger.setLevel(logging.ERROR)
 
     async def start(self, join: bool = True):
         if join:
@@ -66,7 +97,7 @@ class SlackGateway(Gateway):
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         thread = self._threads[session_id]
 
-        receiver_resolved = self.resolve_slack_user_id(receiver)
+        receiver_resolved = self._resolve_slack_user_id(receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
         await self._post_slack_message(
@@ -84,24 +115,7 @@ class SlackGateway(Gateway):
         )
 
     async def handle_slack_message(self, message):
-        """Handle message from Slack user."""
-        channel = message["channel"]
-
-        # Slack id of the user who sent the message
-        sender = message["user"]
-        # Resolve sender to internal user name
-        sender_resolved = self.resolve_core_user_id(sender)
-
-        # Extract receiver (leading mention, if any) and remaining text
-        receiver, text = extract_mention(message["text"])
-        # Resolve receiver to internal user or agent name
-        receiver_resolved = None if receiver is None else self.resolve_core_user_id(receiver)
-
-        # Replace all mentions in text with internal user and agent names
-        text = replace_all_mentions(text, self.resolve_core_user_id)
-
-        # Extract thread ids (format: thread:thread_id) from text.
-        thread_refs = extract_thread_references(text)
+        msg = self._parse_slack_message(message)
 
         if "thread_ts" in message:
             thread_id = message["thread_ts"]
@@ -109,49 +123,105 @@ class SlackGateway(Gateway):
 
             if not thread:
                 if session := await self.session_manager.load_session(id=thread_id):
-                    thread = self.register_thread(channel_id=channel, session=session)
-                    session.sync()
+                    thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
                 else:
+                    session = self.session_manager.create_session(id=thread_id)
+                    thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
+
+                async with thread.lock:
+                    history = await self._load_thread_history(
+                        channel=msg["channel"],
+                        thread_ts=thread_id,
+                    )
+                    for entry in history:
+                        await thread.handle_message(entry)
                     return
 
-            if receiver_resolved in await thread.session.agent_names():
-                # invoke agent identified by receiver_resolved
-                await self.invoke_agent(
-                    query=text,
-                    sender=sender_resolved,
-                    receiver=receiver_resolved,
-                    thread_refs=thread_refs,
-                    thread=thread,
-                )
-            else:
-                # a known or unknown user is mentioned or it's simply a plain message without a mention
-                await thread.session.update(Message(sender=sender_resolved, receiver=receiver_resolved, text=text))
-        elif self.app_id == receiver:
-            # create a new session and turn on sync
-            session = self.session_manager.create_session(id=message["ts"])
-            session.sync()
+            async with thread.lock:
+                await thread.handle_message(msg)
 
-            # register new session as Slack thread in gateway
-            thread = self.register_thread(channel_id=channel, session=session)
+        elif msg["receiver"] == self.app_id or msg["receiver_resolved"] in await self._registered_agent_names():
+            session = self.session_manager.create_session(id=msg["id"])
+            thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
 
-            # invoke agent associated with the slack app
-            await self.invoke_agent(
-                query=text,
-                sender=sender_resolved,
-                receiver=receiver_resolved,  # type: ignore
-                thread_refs=thread_refs,
-                thread=thread,
-            )
+            async with thread.lock:
+                await thread.handle_message(msg)
 
-    async def invoke_agent(self, query: str, sender: str, receiver: str, thread_refs: list[str], thread: SlackThread):
-        threads = await self.session_manager.load_threads(thread_refs)
-        request = AgentRequest(query=query, sender=sender, threads=threads)
-        await thread.session.invoke(request=request, receiver=receiver)
+    async def _registered_agent_names(self) -> set[str]:
+        if self.session_manager.agent_registry:
+            return await self.session_manager.agent_registry.registered_names()
+        return set()
 
-    def register_thread(self, channel_id: str, session: Session) -> SlackThread:
+    def _register_slack_thread(self, channel_id: str, session: Session) -> SlackThread:
         session.set_gateway(self)
+        session.sync()
         self._threads[session.id] = SlackThread(
             channel=channel_id,
             session=session,
         )
         return self._threads[session.id]
+
+    def _resolve_core_user_id(self, slack_user_id: str) -> str:
+        return self._slack_user_mapping.get(slack_user_id, slack_user_id)
+
+    def _resolve_slack_user_id(self, core_user_id: str) -> str:
+        return self._core_user_mapping.get(core_user_id, core_user_id)
+
+    def _parse_slack_message(self, message: dict) -> dict:
+        sender = message["user"]
+        sender_resolved = self._resolve_core_user_id(sender)
+        receiver, text = extract_mention(message["text"])
+        receiver_resolved = None if receiver is None else self._resolve_core_user_id(receiver)
+        text = replace_all_mentions(text, self._resolve_core_user_id)
+        thread_refs = extract_thread_references(text)
+        return {
+            "id": message["ts"],
+            "channel": message.get("channel"),
+            "sender": sender,
+            "sender_resolved": sender_resolved,
+            "receiver": receiver,
+            "receiver_resolved": receiver_resolved,
+            "text": text,
+            "thread_refs": thread_refs,
+        }
+
+    async def _load_thread_history(self, channel: str, thread_ts: str) -> list[dict]:
+        """Load all messages from a Slack thread.
+
+        Args:
+            channel: The channel ID where the thread exists
+            thread_ts: The timestamp of the thread parent message
+
+        Returns:
+            List of Message objects sorted by timestamp (oldest first)
+        """
+        msgs = []
+        cursor = None
+
+        try:
+            while True:
+                params = {"channel": channel, "ts": thread_ts, "limit": 200}
+
+                if cursor:
+                    params["cursor"] = cursor
+
+                response = await self._client.conversations_replies(**params)
+
+                for message in response["messages"]:
+                    # Skip bot messages and messages without a user
+                    if message.get("subtype") == "bot_message" or "user" not in message:
+                        continue
+
+                    msg = self._parse_slack_message(message)
+                    msgs.append(msg)
+
+                if not response.get("has_more", False):
+                    break
+
+                cursor = response["response_metadata"]["next_cursor"]
+
+            return msgs
+
+        except Exception as e:
+            self.logger.error(f"Error loading thread history: {e}")
+            return []

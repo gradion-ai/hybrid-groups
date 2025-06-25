@@ -225,6 +225,7 @@ class Session:
                 sender=request.sender,
                 receiver=receiver,
                 text=request.query,
+                id=request.id,
             )
             # notify others about this request
             await self.update(message)
@@ -236,6 +237,9 @@ class Session:
                     receiver=request.sender,
                 )
             )
+
+    def contains(self, id: str) -> bool:
+        return any(message.id == id for message in self._messages)
 
     def sync(self, interval: float = 3.0):
         if self._task is None:
