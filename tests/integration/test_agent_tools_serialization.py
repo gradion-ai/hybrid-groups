@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from dotenv import load_dotenv
+from pydantic_ai.settings import ModelSettings
 
 from hygroup.agent.default.agent import AgentSettings
 from hygroup.agent.default.registry import DefaultAgentRegistry
@@ -101,7 +102,7 @@ def test_round_trip_serialization():
 async def test_registry_stores_and_retrieves_tools():
     """Test that registry properly stores and retrieves agents with tools."""
     api_key = os.getenv("OPENAI_API_KEY")
-    model_settings: dict[str, Any] = {"api_key": api_key} if api_key else {}
+    model_settings: ModelSettings = ModelSettings(api_key=api_key) if api_key else ModelSettings()
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"
@@ -131,7 +132,7 @@ async def test_registry_stores_and_retrieves_tools():
 async def test_registry_handles_missing_tools_gracefully(capsys):
     """Test that registry handles missing tools gracefully when loading."""
     api_key = os.getenv("OPENAI_API_KEY")
-    model_settings: dict[str, Any] = {"api_key": api_key} if api_key else {}
+    model_settings: ModelSettings = ModelSettings(api_key=api_key) if api_key else ModelSettings()
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"

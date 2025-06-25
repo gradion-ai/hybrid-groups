@@ -46,7 +46,7 @@ class AgentSettings:
     model: str  # FIXME: make union type ....
     instructions: str
     human_feedback: bool = True
-    model_settings: dict[str, Any] = field(default_factory=dict)
+    model_settings: ModelSettings | None = None
     mcp_settings: Sequence[MCPSettings] = field(default_factory=list)
     tools: Sequence[Callable] = field(default_factory=list)
 
@@ -118,7 +118,7 @@ class AgentBase(Generic[D], Agent):
         self.agent: AgentImpl[None, D] = AgentImpl(
             model=settings.model,
             system_prompt=settings.instructions,
-            model_settings=ModelSettings(**settings.model_settings),
+            model_settings=settings.model_settings,
             output_type=output_type,
         )
 
