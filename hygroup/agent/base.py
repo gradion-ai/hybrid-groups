@@ -11,6 +11,7 @@ class Message:
     receiver: str | None
     text: str
     handoffs: dict[str, str] | None = None
+    id: str | None = None
 
 
 @dataclass
@@ -24,6 +25,7 @@ class AgentRequest(ABC):
     query: str
     sender: str
     threads: list[Thread] = field(default_factory=list)
+    id: str | None = None
 
 
 @dataclass
