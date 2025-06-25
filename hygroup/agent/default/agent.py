@@ -9,7 +9,7 @@ from typing import Any, AsyncIterator, Callable, Generic, Optional, Sequence, Ty
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent as AgentImpl
-from pydantic_ai.mcp import MCPServer, MCPServerHTTP, MCPServerStdio
+from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
 from pydantic_ai.messages import ModelMessagesTypeAdapter
 from pydantic_ai.settings import ModelSettings
 from pydantic_core import to_jsonable_python
@@ -38,7 +38,7 @@ class MCPSettings:
         if "command" in self.server_config:
             return MCPServerStdio(**self.server_config)
         else:
-            return MCPServerHTTP(**self.server_config)
+            return MCPServerStreamableHTTP(**self.server_config)
 
 
 @dataclass
@@ -230,7 +230,7 @@ class AgentBase(Generic[D], Agent):
                         if updated:
                             backups.append((server, "env", dict(server.env)))
                             server.env = new_env
-                    case MCPServerHTTP() if server.headers is not None:
+                    case MCPServerStreamableHTTP() if server.headers is not None:
                         new_headers, updated = resolve_config_variables(server.headers, config_values)
                         if updated:
                             backups.append((server, "headers", dict(server.headers)))
