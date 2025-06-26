@@ -3,9 +3,12 @@ import asyncio
 import os
 from pathlib import Path
 
+import uvicorn
 from dotenv import load_dotenv
 
 from hygroup.agent.default import DefaultAgentRegistry
+from hygroup.api.app import create_app
+from hygroup.api.config import ApiServerSettings
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway
@@ -84,7 +87,28 @@ async def main(args):
                 username="martin",
             )
 
-    await gateway.start(join=True)
+    api_server = None
+    if user_registry is not None:
+        settings = ApiServerSettings()
+
+        api_config = uvicorn.Config(
+            app=create_app(
+                settings,
+                user_registry,
+            ),
+            host="0.0.0.0",
+            port=settings.api_port,
+            log_config=str(settings.log_config_path),
+            log_level=settings.log_level.lower(),
+            reload=False,
+        )
+
+        api_server = uvicorn.Server(api_config)
+
+    if api_server is not None:
+        await asyncio.gather(api_server.serve(), gateway.start(join=True))
+    else:
+        await gateway.start(join=True)
 
 
 if __name__ == "__main__":

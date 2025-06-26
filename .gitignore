@@ -9,3 +9,43 @@ __pycache__
 .data
 .claude/
 .secrets/
+
+workspace/
+
+# next.js
+web/.next/
+web/out/
+web/node_modules/
+
+# typescript
+web/*.tsbuildinfo
+web/next-env.d.ts
+
+# build outputs
+web/build
+web/build/Release
+
+# logs
+web/logs
+web/*.log
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+web/.pnpm-debug.log*
+
+# env files
+web/.env
+web/.env.local
+web/.env.development.local
+web/.env.test.local
+web/.env.production.local
+web/.env.development
+web/.env.production
+
+# package managers
+web/.npm
+web/.yarn-integrity
+web/*.tgz
+web/.node_repl_history
+web/.eslintcache
+web/.lock-wscript
