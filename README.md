@@ -148,6 +148,31 @@ python examples/user_channel.py --username martin
 
 With the `--user-registry` option set, the application server now uses the stored secrets of registered users as user-specific API tokens for MCP servers.
 
+### Web management interface
+
+Hybrid Groups provides a web-based API and UI for managing the platform. Currently, it supports managing [registered users](#user-registration).
+
+> [!NOTE]
+> The web management interface will be extended in future updates to provide the functionality of the current CLI tools for:
+> * user registration,
+> * agent registration,
+> * private user channels
+>
+> and more.
+
+#### Starting the application services
+
+Use [Docker Compose](https://docs.docker.com/compose/) to start the application containers for the web API and UI:
+
+```shell
+docker-compose up
+```
+
+On first run, both containers are built. The web management interface will be available at http://localhost:3000 and the API at http://localhost:8000.
+
+> [!NOTE]
+> The web API shares the user registry with the [example application server](#start-application-server). When running both services simultaneously, restart the application server after making user changes through the management UI for changes to take effect. This limitation will be removed in a future update.
+
 ### Platform integrations
 
 #### Slack
@@ -217,7 +242,7 @@ To enable the GitHub integration, ensure that webhook events from GitHub are for
 The following example assumes usage of [smee.io](https://smee.io) during [setup](docs/github-integration-guide.md) and a locally running [smee-client](https://www.npmjs.com/package/smee-client).
 
 ```
-smee -u https://smee.io/{CHANNEL_ID} -t http://127.0.0.1:8000/api/v1/github-webhook
+smee -u https://smee.io/{CHANNEL_ID} -t http://127.0.0.1:9011/api/v1/github-webhook
 ```
 
 To run the application server using the `github` gateway with the simplified setup described in [getting started](#getting-started) run:

@@ -9,3 +9,43 @@ __pycache__
 .data
 .claude/
 .secrets/
+
+workspace/
+
+# next.js
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+
+# typescript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# build outputs
+frontend/build
+frontend/build/Release
+
+# logs
+frontend/logs
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+
+# env files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/.env.development
+frontend/.env.production
+
+# package managers
+frontend/.npm
+frontend/.yarn-integrity
+frontend/*.tgz
+frontend/.node_repl_history
+frontend/.eslintcache
+frontend/.lock-wscript

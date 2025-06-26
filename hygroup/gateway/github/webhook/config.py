@@ -4,7 +4,7 @@ from hygroup import PROJECT_ROOT_PATH
 
 
 class AppSettings(BaseSettings):
-    api_port: int = 8000
+    github_webhook_api_port: int = 9011
 
     github_app_webhook_secret: str
 

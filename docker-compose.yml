@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend-api:
+    build:
+        context: .
+        dockerfile: docker/Dockerfile
+    volumes:
+      - .data:/app/.data
+    environment:
+      - JWT_SECRET_KEY=D2PlHCQhJZV1khuCxb53X3d8Z0FRXg7ghKEcAZ9JdRFYP-xaQycZvi-6eqiTOJMY8jR9a0_3I1OdJCt2LSbNdQ
+      - USER_REGISTRY_PATH=/app/.data/users/registry.json
+    ports:
+      - "8000:8000"
+    networks:
+      - hygroups-network
+
+  web-ui:
+    build:
+        context: ./frontend
+        dockerfile: Dockerfile
+    environment:
+      - BACKEND_API_URL=http://backend-api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-api
+    networks:
+      - hygroups-network
+
+networks:
+  hygroups-network:
+    driver: bridge

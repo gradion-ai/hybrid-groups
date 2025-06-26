@@ -40,6 +40,18 @@ class UserRegistry(ABC):
     @abstractmethod
     def get_secrets(self, username: str) -> dict[str, str]: ...
 
+    @abstractmethod
+    def get_secret(self, username: str, key: str) -> str: ...
+
+    @abstractmethod
+    def get_mappings(self, username: str) -> dict[str, str]: ...
+
+    @abstractmethod
+    async def set_secret(self, username: str, key: str, value: str): ...
+
+    @abstractmethod
+    async def delete_secret(self, username: str, key: str): ...
+
 
 class RequestHandler(ABC):
     @abstractmethod

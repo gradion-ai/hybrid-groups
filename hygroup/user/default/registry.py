@@ -21,6 +21,7 @@ class DefaultUserRegistry(UserRegistry):
             registry_path: Path to the registry file
         """
         self._users: dict[str, User] = {}
+        self._encryption_keys: dict[str, bytes] = {}
         self.registry_path = Path(registry_path)
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
         self.db = TinyDB(str(self.registry_path), indent=2)
@@ -83,6 +84,51 @@ class DefaultUserRegistry(UserRegistry):
         UserQuery = Query()
         await arun(self.db.upsert, doc, UserQuery.name == user.name)
 
+    async def _update_user(self, user: User):
+        """Save user to disk using cached encryption key.
+
+        Args:
+            user: User object with name and secrets
+
+        Raises:
+            UserNotAuthenticatedError: If no cached encryption key exists
+        """
+        if user.name not in self._encryption_keys or user.name not in self._users:
+            raise UserNotAuthenticatedError(f"No cached encryption key for user '{user.name}'")
+
+        # Get cached key
+        key = self._encryption_keys[user.name]
+        f = Fernet(key)
+
+        # Get existing user document to preserve password hash and get salt
+        UserQuery = Query()
+        existing_doc = await arun(self.db.get, UserQuery.name == user.name)
+        if existing_doc is None:
+            raise UserNotAuthenticatedError(f"User '{user.name}' not found in database")
+
+        # Get salt from existing document
+        salt = base64.b64decode(existing_doc["salt"])
+
+        # Encrypt all secrets
+        encrypted_secrets = {}
+        for secret_name, secret_value in user.secrets.items():
+            encrypted = f.encrypt(secret_value.encode("utf-8"))
+            # Store salt + encrypted data as base64
+            payload = salt + encrypted
+            encrypted_secrets[secret_name] = base64.b64encode(payload).decode("utf-8")
+
+        # Create document for TinyDB, preserving password hash
+        doc = {
+            "name": existing_doc["name"],
+            "password_hash": existing_doc["password_hash"],
+            "encrypted_secrets": encrypted_secrets,
+            "salt": existing_doc["salt"],
+            "mappings": user.mappings,
+        }
+
+        # Update document
+        await arun(self.db.upsert, doc, UserQuery.name == user.name)
+
     async def authenticate(self, username: str, password: str) -> bool:
         """Authenticate a user and load their decrypted secrets into memory.
 
@@ -131,6 +177,11 @@ class DefaultUserRegistry(UserRegistry):
         user = User(name=username, secrets=decrypted_secrets, mappings=mappings)
         self._users[username] = user
 
+        # Cache the encryption key for password-free secret updates
+        salt = base64.b64decode(user_doc["salt"])
+        key = self._derive_key(password, salt)
+        self._encryption_keys[username] = key
+
         return True
 
     def get_secrets(self, username: str) -> dict[str, str]:
@@ -151,6 +202,24 @@ class DefaultUserRegistry(UserRegistry):
         user = self._users[username]
         return user.secrets.copy()
 
+    def get_mappings(self, username: str) -> dict[str, str]:
+        """Get all mappings for an authenticated user.
+
+        Args:
+            username: Username to get mappings for
+
+        Returns:
+            Dictionary of all mappings (gateway-username pairs)
+
+        Raises:
+            UserNotAuthenticatedError: If user is not authenticated
+        """
+        if username not in self._users:
+            raise UserNotAuthenticatedError(f"User '{username}' is not authenticated")
+
+        user = self._users[username]
+        return user.mappings.copy()
+
     def get_secret(self, username: str, key: str) -> str:
         """Get a decrypted secret for an authenticated user.
 
@@ -170,42 +239,46 @@ class DefaultUserRegistry(UserRegistry):
             raise KeyError(f"Secret '{key}' not found for user '{username}'")
         return secrets[key]
 
-    async def set_secret(self, username: str, key: str, value: str, password: str):
-        """Set a secret for an authenticated user.
+    async def set_secret(self, username: str, key: str, value: str):
+        """Set a secret for an authenticated user using cached encryption key.
 
         Args:
             username: Username to set secret for
             key: Secret key to set
             value: Secret value to store
-            password: User's password for re-encryption
 
         Raises:
-            NotAuthenticatedError: If user is not authenticated
+            UserNotAuthenticatedError: If user is not authenticated or no cached key
         """
         if username not in self._users:
             raise UserNotAuthenticatedError(f"User '{username}' is not authenticated")
+
+        if username not in self._encryption_keys:
+            raise UserNotAuthenticatedError(f"No cached encryption key for user '{username}'")
 
         # Update secret in memory
         user = self._users[username]
         user.secrets[key] = value
 
-        # Re-encrypt and save to TinyDB
-        await self.save_user(user, password)
+        # Re-encrypt and save to TinyDB using cached key
+        await self._update_user(user)
 
-    async def delete_secret(self, username: str, key: str, password: str):
-        """Delete a secret for an authenticated user.
+    async def delete_secret(self, username: str, key: str):
+        """Delete a secret for an authenticated user using cached encryption key.
 
         Args:
             username: Username to delete secret for
             key: Secret key to delete
-            password: User's password for re-encryption
 
         Raises:
-            NotAuthenticatedError: If user is not authenticated
+            UserNotAuthenticatedError: If user is not authenticated or no cached key
             KeyError: If secret key doesn't exist
         """
         if username not in self._users:
             raise UserNotAuthenticatedError(f"User '{username}' is not authenticated")
+
+        if username not in self._encryption_keys:
+            raise UserNotAuthenticatedError(f"No cached encryption key for user '{username}'")
 
         user = self._users[username]
         if key not in user.secrets:
@@ -214,8 +287,8 @@ class DefaultUserRegistry(UserRegistry):
         # Remove secret from memory
         del user.secrets[key]
 
-        # Re-encrypt and save to TinyDB
-        await self.save_user(user, password)
+        # Re-encrypt and save to TinyDB using cached key
+        await self._update_user(user)
 
     async def get_mapping(self, gateway: str) -> dict[str, str]:
         """Get the mapping for a specific gateway from the database.
@@ -247,6 +320,7 @@ class DefaultUserRegistry(UserRegistry):
         """
         if username in self._users:
             del self._users[username]
+            self._encryption_keys.pop(username, None)
             return True
         return False
 
