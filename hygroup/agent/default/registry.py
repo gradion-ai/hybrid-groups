@@ -35,9 +35,14 @@ class DefaultAgentRegistry(AgentRegistry):
         else:
             return DefaultAgent(name=name, settings=settings)
 
-    async def registered_names(self) -> set[str]:
+    async def get_registered_names(self) -> set[str]:
         descriptions = await self.get_descriptions()
         return set(descriptions.keys())
+
+    async def get_descriptions(self) -> dict[str, str]:
+        """Return a dictionary of agent names and their descriptions."""
+        docs = await arun(self.db.all)
+        return {doc["name"]: doc["description"] for doc in docs}
 
     async def get_config(self, name: str) -> dict[str, Any]:
         """Return the configuration for an agent."""
@@ -78,22 +83,3 @@ class DefaultAgentRegistry(AgentRegistry):
 
     async def remove_configs(self):
         await arun(self.db.drop_tables)
-
-    async def get_descriptions(self) -> dict[str, str]:
-        """Return a dictionary of agent names and their descriptions."""
-        docs = await arun(self.db.all)
-        return {doc["name"]: doc["description"] for doc in docs}
-
-    async def get_registered_agents(self) -> str:
-        """Get a list of registered agents in the format:
-
-        - [agent name 1]: [agent description 1]
-        - [agent name 2]: [agent description 2]
-        - ...
-
-        Returns:
-            A string with the list of registered agents.
-        """
-
-        configs = await self.get_descriptions()
-        return "\n".join([f"- {name}: {description}" for name, description in configs.items()])

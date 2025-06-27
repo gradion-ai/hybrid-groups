@@ -72,7 +72,7 @@ def format_input(
 
 
 def format_message(message: Message) -> str:
-    return MESSAGE_TEMPLATE.format(text=message.text, sender=message.sender, receiver=message.receiver)
+    return MESSAGE_TEMPLATE.format(text=message.text, sender=message.sender, receiver=message.receiver or "")
 
 
 def example():
@@ -86,7 +86,7 @@ def example():
             session_id="thread1",
             messages=[
                 Message(sender="user2", receiver="agent1", text="Can you help me?"),
-                Message(sender="agent1", receiver="user2", text="Of course!"),
+                Message(sender="agent1", receiver=None, text="Of course!"),
             ],
         )
     ]

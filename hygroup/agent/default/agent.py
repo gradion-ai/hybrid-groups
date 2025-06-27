@@ -9,7 +9,7 @@ from typing import Any, AsyncIterator, Callable, Generic, Optional, Sequence, Ty
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent as AgentImpl
-from pydantic_ai.mcp import MCPServer, MCPServerHTTP, MCPServerStdio
+from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
 from pydantic_ai.messages import ModelMessagesTypeAdapter
 from pydantic_ai.settings import ModelSettings
 from pydantic_core import to_jsonable_python
@@ -38,15 +38,15 @@ class MCPSettings:
         if "command" in self.server_config:
             return MCPServerStdio(**self.server_config)
         else:
-            return MCPServerHTTP(**self.server_config)
+            return MCPServerStreamableHTTP(**self.server_config)
 
 
 @dataclass
 class AgentSettings:
-    model: str  # FIXME: make union type ....
+    model: str
     instructions: str
     human_feedback: bool = True
-    model_settings: dict[str, Any] = field(default_factory=dict)
+    model_settings: ModelSettings | None = None
     mcp_settings: Sequence[MCPSettings] = field(default_factory=list)
     tools: Sequence[Callable] = field(default_factory=list)
 
@@ -118,7 +118,7 @@ class AgentBase(Generic[D], Agent):
         self.agent: AgentImpl[None, D] = AgentImpl(
             model=settings.model,
             system_prompt=settings.instructions,
-            model_settings=ModelSettings(**settings.model_settings),
+            model_settings=settings.model_settings,
             output_type=output_type,
         )
 
@@ -230,7 +230,7 @@ class AgentBase(Generic[D], Agent):
                         if updated:
                             backups.append((server, "env", dict(server.env)))
                             server.env = new_env
-                    case MCPServerHTTP() if server.headers is not None:
+                    case MCPServerStreamableHTTP() if server.headers is not None:
                         new_headers, updated = resolve_config_variables(server.headers, config_values)
                         if updated:
                             backups.append((server, "headers", dict(server.headers)))
