@@ -149,7 +149,7 @@ class SlackGateway(Gateway):
 
     async def _registered_agent_names(self) -> set[str]:
         if self.session_manager.agent_registry:
-            return await self.session_manager.agent_registry.registered_names()
+            return await self.session_manager.agent_registry.get_registered_names()
         return set()
 
     def _register_slack_thread(self, channel_id: str, session: Session) -> SlackThread:

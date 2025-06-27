@@ -113,4 +113,21 @@ class AgentRegistry(ABC):
     async def create_agent(self, name: str) -> Agent: ...
 
     @abstractmethod
-    async def registered_names(self) -> set[str]: ...
+    async def get_registered_names(self) -> set[str]: ...
+
+    @abstractmethod
+    async def get_descriptions(self) -> dict[str, str]: ...
+
+    async def get_registered_agents(self) -> str:
+        """Get a list of registered agents in the format:
+
+        - [agent name 1]: [agent description 1]
+        - [agent name 2]: [agent description 2]
+        - ...
+
+        Returns:
+            A string with the list of registered agents.
+        """
+
+        configs = await self.get_descriptions()
+        return "\n".join([f"- {name}: {description}" for name, description in configs.items()])

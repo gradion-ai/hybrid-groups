@@ -6,6 +6,7 @@ from typing import Any, Iterator
 
 import pytest
 from dotenv import load_dotenv
+from pydantic_ai.settings import ModelSettings
 
 from hygroup.agent.default import AgentSettings, DefaultAgent, DefaultAgentRegistry, HandoffAgent, MCPSettings
 
@@ -34,9 +35,9 @@ def api_key() -> str | None:
 
 
 @pytest.fixture
-def model_settings(api_key) -> dict[str, Any]:
+def model_settings(api_key) -> ModelSettings:
     """Provide model settings with API key if available."""
-    return {"api_key": api_key} if api_key else {}
+    return ModelSettings(api_key=api_key) if api_key else ModelSettings()
 
 
 @pytest.fixture

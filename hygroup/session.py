@@ -14,6 +14,8 @@ from hygroup.agent import (
     AgentRegistry,
     AgentRequest,
     AgentResponse,
+    AgentSelector,
+    AgentSelectorSettings,
     FeedbackRequest,
     Message,
     PermissionRequest,
@@ -111,7 +113,11 @@ class Session:
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
 
-        self._task: Task | None = None
+        self._sync_task: Task | None = None
+        self._agent_selector: AgentSelector | None = None
+
+        if self.agent_registry:
+            self._agent_selector = AgentSelector(registry=self.agent_registry, settings=self.manager.selector_settings)
 
     @property
     def gateway(self) -> Gateway:
@@ -127,7 +133,7 @@ class Session:
         names = set(self._agents.keys())
 
         if self.agent_registry:
-            names |= await self.agent_registry.registered_names()
+            names |= await self.agent_registry.get_registered_names()
 
         return names
 
@@ -196,15 +202,40 @@ class Session:
             session_id=self.id,
         )
 
+    async def select(self, message: Message):
+        from dataclasses import asdict
+
+        if self._agent_selector is None:
+            return
+
+        print("Message:")
+        print(json.dumps(asdict(message), indent=2))
+
+        agent_names = await self.agent_names()
+
+        if message.sender == "system" or message.sender in agent_names or message.receiver in agent_names:
+            # we don't select an agent, just add the message to the selector's history
+            await self._agent_selector.add(message)
+            return
+
+        selection = await self._agent_selector.run(message)
+
+        print("Selection:")
+        print(json.dumps(selection.model_dump(), indent=2))
+
+        if selection.agent_name in agent_names and selection.query:
+            request = AgentRequest(query=selection.query, sender=message.sender)
+            await self.invoke(request, selection.agent_name)
+
     async def update(self, message: Message):
         self._messages.append(message)
 
-        if not self.group:
-            return
+        if self.group:
+            for agent_name, agent in self._agents.items():
+                if agent_name not in [message.sender, message.receiver]:
+                    await agent.update(message)
 
-        for agent_name, agent in self._agents.items():
-            if agent_name not in [message.sender, message.receiver]:
-                await agent.update(message)
+        create_task(self.select(message))
 
     async def invoke(self, request: AgentRequest, receiver: str):
         if not self._user_authenticated(request.sender):
@@ -242,8 +273,8 @@ class Session:
         return any(message.id == id for message in self._messages)
 
     def sync(self, interval: float = 3.0):
-        if self._task is None:
-            self._task = create_task(self._sync(interval))
+        if self._sync_task is None:
+            self._sync_task = create_task(self._sync(interval))
 
     async def _sync(self, interval: float):
         if not await self.manager.session_saved(self.id):
@@ -282,6 +313,7 @@ class SessionManager:
         user_registry: UserRegistry | None = None,
         permission_store: PermissionStore | None = None,
         request_handler: RequestHandler | None = None,
+        selector_settings: AgentSelectorSettings | None = None,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_factory = agent_factory
@@ -289,6 +321,7 @@ class SessionManager:
         self.user_registry = user_registry
         self.permission_store = permission_store
         self.request_handler = request_handler
+        self.selector_settings = selector_settings
 
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)

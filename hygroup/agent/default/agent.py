@@ -43,7 +43,7 @@ class MCPSettings:
 
 @dataclass
 class AgentSettings:
-    model: str  # FIXME: make union type ....
+    model: str
     instructions: str
     human_feedback: bool = True
     model_settings: ModelSettings | None = None
