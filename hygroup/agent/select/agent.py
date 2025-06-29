@@ -15,6 +15,7 @@ from pydantic_ai.models.google import GoogleModelSettings
 
 from hygroup.agent.base import AgentRegistry, Message
 from hygroup.agent.select.prompt import SYSTEM_PROMPT, format_message
+from hygroup.agent.utils import model_from_dict
 
 
 class AgentSelection(BaseModel):
@@ -25,7 +26,7 @@ class AgentSelection(BaseModel):
 @dataclass
 class AgentSelectorSettings:
     instructions: str = SYSTEM_PROMPT
-    model: str = "gemini-2.5-flash"
+    model: str | dict = "gemini-2.5-flash"
     model_settings: ModelSettings = field(
         default_factory=lambda: GoogleModelSettings(
             max_tokens=512,
@@ -45,8 +46,13 @@ class AgentSelector:
         self.registry = registry
         self.settings = settings or AgentSelectorSettings()
 
+        if isinstance(self.settings.model, dict):
+            model = model_from_dict(self.settings.model)
+        else:
+            model = self.settings.model
+
         self._agent = Agent(
-            model=self.settings.model,
+            model=model,
             model_settings=self.settings.model_settings,
             system_prompt=self.settings.instructions,
             output_type=AgentSelection,
