@@ -3,6 +3,8 @@ from hygroup.agent.base import (
     AgentRegistry,
     AgentRequest,
     AgentResponse,
+    ConfirmationRequest,
+    ConfirmationResponse,
     FeedbackRequest,
     Message,
     PermissionRequest,

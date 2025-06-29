@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 import pytest_asyncio
 
-from hygroup.agent import FeedbackRequest, PermissionRequest
+from hygroup.agent import ConfirmationRequest, FeedbackRequest, PermissionRequest
 from hygroup.user.base import RequestHandler
 from hygroup.user.default.channel import RequestClient, RequestServer
 
@@ -16,8 +16,10 @@ class MockRequestHandler(RequestHandler):
     def __init__(self):
         self.permission_calls = []
         self.feedback_calls = []
+        self.confirmation_calls = []
         self.permission_response = 1  # Default: grant once
         self.feedback_response = "test response"  # Default response
+        self.confirmation_response = (True, None)  # Default: confirm with no comment
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
         """Handle permission request and store call details."""
@@ -39,6 +41,16 @@ class MockRequestHandler(RequestHandler):
             {"question": request.question, "sender": sender, "receiver": receiver, "session_id": session_id}
         )
         request.respond(self.feedback_response)
+
+    async def handle_confirmation_request(
+        self, request: ConfirmationRequest, sender: str, receiver: str, session_id: str
+    ):
+        """Handle confirmation request and store call details."""
+        self.confirmation_calls.append(
+            {"query": request.query, "sender": sender, "receiver": receiver, "session_id": session_id}
+        )
+        confirmed, comment = self.confirmation_response
+        request.respond(confirmed, comment)
 
 
 @pytest.fixture
