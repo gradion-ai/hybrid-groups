@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.messages import (
+    ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
@@ -12,6 +13,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models import ModelSettings
 from pydantic_ai.models.google import GoogleModelSettings
+from pydantic_core import to_jsonable_python
 
 from hygroup.agent.base import AgentRegistry, Message
 from hygroup.agent.select.prompt import SYSTEM_PROMPT, format_message
@@ -118,3 +120,11 @@ class AgentSelector:
                 ModelRequest(parts=[tool_ret]),
             ]
         )
+
+    def get_state(self):
+        """Get the serialized state of the selector agent."""
+        return to_jsonable_python(self._history)
+
+    def set_state(self, state):
+        """Set the state of the selector agent from serialized data."""
+        self._history = ModelMessagesTypeAdapter.validate_python(state)
