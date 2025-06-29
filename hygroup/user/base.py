@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from hygroup.agent import FeedbackRequest, PermissionRequest
+from hygroup.agent import ConfirmationRequest, FeedbackRequest, PermissionRequest
 
 
 class UserAlreadyExistsError(Exception):
@@ -55,6 +55,15 @@ class RequestHandler(ABC):
     async def handle_feedback_request(
         self,
         request: FeedbackRequest,
+        sender: str,
+        receiver: str,
+        session_id: str,
+    ): ...
+
+    @abstractmethod
+    async def handle_confirmation_request(
+        self,
+        request: ConfirmationRequest,
         sender: str,
         receiver: str,
         session_id: str,

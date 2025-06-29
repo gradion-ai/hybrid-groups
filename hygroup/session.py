@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from asyncio import Queue, Task, create_task, sleep
+from asyncio import Future, Queue, Task, create_task, sleep
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -16,6 +16,7 @@ from hygroup.agent import (
     AgentResponse,
     AgentSelector,
     AgentSelectorSettings,
+    ConfirmationRequest,
     FeedbackRequest,
     Message,
     PermissionRequest,
@@ -224,8 +225,21 @@ class Session:
         print(json.dumps(selection.model_dump(), indent=2))
 
         if selection.agent_name in agent_names and selection.query:
-            request = AgentRequest(query=selection.query, sender=message.sender)
-            await self.invoke(request, selection.agent_name)
+            confirmation_request = ConfirmationRequest(query=selection.query, ftr=Future())
+            await self.request_handler.handle_confirmation_request(
+                confirmation_request,
+                sender=selection.agent_name,
+                receiver=message.sender,
+                session_id=self.id,
+            )
+
+            # blocks until confirmation_request.respond() is called
+            confirmation_response = await confirmation_request.response()
+            if not confirmation_response.confirmed:
+                return
+
+            agent_request = AgentRequest(query=selection.query, sender=message.sender)
+            await self.invoke(agent_request, selection.agent_name)
 
     async def update(self, message: Message):
         self._messages.append(message)

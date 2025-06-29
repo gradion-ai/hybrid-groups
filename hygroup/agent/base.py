@@ -80,6 +80,24 @@ class FeedbackRequest:
         self.ftr.set_result(text)
 
 
+@dataclass
+class ConfirmationResponse:
+    confirmed: bool
+    comment: str | None = None
+
+
+@dataclass
+class ConfirmationRequest:
+    query: str
+    ftr: Future
+
+    async def response(self) -> ConfirmationResponse:
+        return await self.ftr
+
+    def respond(self, confirmed: bool, comment: str | None = None):
+        self.ftr.set_result(ConfirmationResponse(confirmed=confirmed, comment=comment))
+
+
 class Agent(ABC):
     def __init__(self, name: str):
         self.name = name
