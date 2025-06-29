@@ -288,6 +288,8 @@ class Session:
             "messages": [asdict(message) for message in self._messages],
             "agents": {name: adapter.get_state() for name, adapter in self._agents.items()},
         }
+        if self._agent_selector:
+            state_dict["selector"] = self._agent_selector.get_state()
         await self.manager.save_session_state(self.id, state_dict)
 
     async def load(self):
@@ -297,6 +299,10 @@ class Session:
         for name, state in state_dict["agents"].items():
             if name in self._agents:
                 self._agents[name].set_state(state)
+
+        # restore selector agent state
+        if self._agent_selector and "selector" in state_dict:
+            self._agent_selector.set_state(state_dict["selector"])
 
         # restore thread messages
         self._messages = [Message(**message) for message in state_dict["messages"]]
