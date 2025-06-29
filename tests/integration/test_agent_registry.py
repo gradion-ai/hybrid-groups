@@ -237,3 +237,203 @@ async def test_persistence_across_factory_instances(test_agents_dir: Path, defau
 
     agent = await factory2.create_agent("persistent-agent")
     assert agent.name == "persistent-agent"
+
+
+@pytest.mark.asyncio
+async def test_model_as_dict_basic(registry: DefaultAgentRegistry, mcp_stdio_settings: MCPSettings):
+    """Test registering and creating an agent with model as a dictionary."""
+    model_dict = {
+        "class": "pydantic_ai.models.openai.OpenAIModel",
+        "args": {
+            "model_name": "gpt-3.5-turbo",
+        },
+    }
+
+    settings = AgentSettings(
+        model=model_dict,
+        instructions="Test agent with dict model",
+        human_feedback=True,
+        mcp_settings=[mcp_stdio_settings],
+    )
+
+    await registry.add_config(
+        name="dict-model-agent", description="Agent with dictionary model config", settings=settings, handoff=False
+    )
+
+    descriptions = await registry.get_descriptions()
+    assert "dict-model-agent" in descriptions
+
+    agent = await registry.create_agent("dict-model-agent")
+    assert isinstance(agent, DefaultAgent)
+    assert agent.name == "dict-model-agent"
+    assert agent.settings.instructions == "Test agent with dict model"
+
+
+@pytest.mark.asyncio
+async def test_model_as_dict_with_provider(registry: DefaultAgentRegistry, mcp_http_settings: MCPSettings):
+    """Test agent with model dict containing custom provider configuration."""
+    model_dict = {
+        "class": "pydantic_ai.models.openai.OpenAIModel",
+        "args": {
+            "model_name": "llama3.1:8b-instruct-fp16",
+            "provider": {
+                "class": "pydantic_ai.providers.openai.OpenAIProvider",
+                "args": {
+                    "base_url": "http://localhost:11434/v1",
+                },
+            },
+        },
+    }
+
+    settings = AgentSettings(
+        model=model_dict,
+        instructions="Local LLM agent",
+        human_feedback=False,
+        mcp_settings=[mcp_http_settings],
+    )
+
+    await registry.add_config(
+        name="local-llm-agent",
+        description="Agent using local LLM with custom provider",
+        settings=settings,
+        handoff=True,
+    )
+
+    agent = await registry.create_agent("local-llm-agent")
+    assert isinstance(agent, HandoffAgent)
+    assert agent.settings.human_feedback is False
+
+
+@pytest.mark.asyncio
+async def test_model_dict_persistence(registry: DefaultAgentRegistry, test_agents_dir: Path):
+    """Test that model dict configuration persists correctly across registry instances."""
+    registry_path = Path(test_agents_dir) / "registry.json"
+
+    model_dict = {
+        "class": "pydantic_ai.models.openai.OpenAIModel",
+        "args": {
+            "model_name": "gpt-4",
+            "provider": {
+                "class": "pydantic_ai.providers.openai.OpenAIProvider",
+                "args": {"base_url": "https://api.custom-openai.com/v1", "api_key": "test-key-123"},
+            },
+        },
+    }
+
+    settings = AgentSettings(
+        model=model_dict,
+        instructions="Persistent dict model agent",
+        human_feedback=True,
+        model_settings={"temperature": 0.5},
+    )
+
+    # Create agent with first registry instance
+    registry1 = DefaultAgentRegistry(registry_path)
+    await registry1.add_config(
+        name="persist-dict-agent", description="Test persistence of dict models", settings=settings, handoff=False
+    )
+
+    # Load with second registry instance
+    registry2 = DefaultAgentRegistry(registry_path)
+    agent = await registry2.create_agent("persist-dict-agent")
+
+    # Verify model dict was preserved
+    assert isinstance(agent.settings.model, dict)
+    assert agent.settings.model["class"] == "pydantic_ai.models.openai.OpenAIModel"
+    assert agent.settings.model["args"]["model_name"] == "gpt-4"
+    assert agent.settings.model["args"]["provider"]["class"] == "pydantic_ai.providers.openai.OpenAIProvider"
+    assert agent.settings.model["args"]["provider"]["args"]["base_url"] == "https://api.custom-openai.com/v1"
+
+
+@pytest.mark.asyncio
+async def test_mixed_model_types(registry: DefaultAgentRegistry):
+    """Test registry can handle both string and dict model configurations simultaneously."""
+    # Agent with string model
+    string_settings = AgentSettings(
+        model="gpt-3.5-turbo",
+        instructions="String model agent",
+        human_feedback=True,
+    )
+
+    # Agent with dict model
+    dict_settings = AgentSettings(
+        model={"class": "pydantic_ai.models.openai.OpenAIModel", "args": {"model_name": "gpt-4"}},
+        instructions="Dict model agent",
+        human_feedback=False,
+    )
+
+    await registry.add_config(
+        name="string-agent", description="Agent with string model", settings=string_settings, handoff=False
+    )
+
+    await registry.add_config(
+        name="dict-agent", description="Agent with dict model", settings=dict_settings, handoff=True
+    )
+
+    # Verify both agents exist
+    descriptions = await registry.get_descriptions()
+    assert len(descriptions) == 2
+    assert "string-agent" in descriptions
+    assert "dict-agent" in descriptions
+
+    # Create and verify string model agent
+    string_agent = await registry.create_agent("string-agent")
+    assert isinstance(string_agent, DefaultAgent)
+    assert isinstance(string_agent.settings.model, str)
+    assert string_agent.settings.model == "gpt-3.5-turbo"
+
+    # Create and verify dict model agent
+    dict_agent = await registry.create_agent("dict-agent")
+    assert isinstance(dict_agent, HandoffAgent)
+    assert isinstance(dict_agent.settings.model, dict)
+
+
+@pytest.mark.asyncio
+async def test_complex_model_dict_with_all_settings(registry: DefaultAgentRegistry, api_key: str | None):
+    """Test agent with complex model dict including all possible settings."""
+    model_dict = {
+        "class": "pydantic_ai.models.openai.OpenAIModel",
+        "args": {
+            "model_name": "gpt-4-turbo",
+            "provider": {
+                "class": "pydantic_ai.providers.openai.OpenAIProvider",
+                "args": {
+                    "base_url": "https://api.openai.com/v1",
+                    "api_key": api_key or "test-api-key",
+                },
+            },
+        },
+    }
+
+    mcp_settings = [
+        MCPSettings(server_config={"command": "test-mcp", "args": ["--verbose"]}, session_scope=True),
+        MCPSettings(server_config={"url": "http://mcp.example.com"}, session_scope=False),
+    ]
+
+    settings = AgentSettings(
+        model=model_dict,
+        instructions="Complex agent with all settings",
+        human_feedback=True,
+        model_settings={
+            "temperature": 0.7,
+            "max_tokens": 2000,
+            "top_p": 0.9,
+            "frequency_penalty": 0.5,
+            "presence_penalty": 0.5,
+        },
+        mcp_settings=mcp_settings,
+    )
+
+    await registry.add_config(
+        name="complex-dict-agent",
+        description="Agent with complex dictionary model configuration",
+        settings=settings,
+        handoff=True,
+    )
+
+    agent = await registry.create_agent("complex-dict-agent")
+    assert isinstance(agent, HandoffAgent)
+    assert len(agent.settings.mcp_settings) == 2
+    assert agent.settings.model_settings is not None
+    assert agent.settings.model_settings["temperature"] == 0.7
+    assert agent.settings.model_settings["max_tokens"] == 2000

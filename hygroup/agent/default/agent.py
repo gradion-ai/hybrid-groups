@@ -25,6 +25,7 @@ from hygroup.agent.base import (
 )
 from hygroup.agent.default.prompt import InputFormatter, format_input
 from hygroup.agent.default.utils import resolve_config_variables
+from hygroup.agent.utils import model_from_dict
 
 D = TypeVar("D")
 
@@ -43,7 +44,7 @@ class MCPSettings:
 
 @dataclass
 class AgentSettings:
-    model: str
+    model: str | dict
     instructions: str
     human_feedback: bool = True
     model_settings: ModelSettings | None = None
@@ -114,9 +115,14 @@ class AgentBase(Generic[D], Agent):
         self.settings = settings
         self.input_formatter = input_formatter
 
+        if isinstance(settings.model, dict):
+            model = model_from_dict(settings.model)
+        else:
+            model = settings.model
+
         # delegate agent
         self.agent: AgentImpl[None, D] = AgentImpl(
-            model=settings.model,
+            model=model,
             system_prompt=settings.instructions,
             model_settings=settings.model_settings,
             output_type=output_type,
