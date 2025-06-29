@@ -31,9 +31,9 @@ class AgentSelectorSettings:
     model: str | dict = "gemini-2.5-flash"
     model_settings: ModelSettings = field(
         default_factory=lambda: GoogleModelSettings(
-            max_tokens=512,
+            max_tokens=1024,
             google_thinking_config={
-                "thinking_budget": -1,
+                "thinking_budget": 512,
             },
         )
     )

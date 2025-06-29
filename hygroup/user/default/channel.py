@@ -33,8 +33,8 @@ class ConsoleHandler(RequestHandler):
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
         await aprint("\n--- Permission Request ---")
-        await aprint(f"Sender: {sender}")
         await aprint(f"Session: {session_id}")
+        await aprint(f"Agent: {sender}")
         await aprint(f"Action: {request.call}")
 
         if self.default_permission_response is not None:
@@ -68,8 +68,8 @@ class ConsoleHandler(RequestHandler):
 
     async def handle_feedback_request(self, request: FeedbackRequest, sender: str, receiver: str, session_id: str):
         await aprint("\n--- Feedback Request ---")
-        await aprint(f"Sender: {sender}")
         await aprint(f"Session: {session_id}")
+        await aprint(f"Agent: {sender}")
         await aprint(f"Question: {request.question}")
 
         resp = await ainput("Answer: ")
@@ -79,8 +79,8 @@ class ConsoleHandler(RequestHandler):
         self, request: ConfirmationRequest, sender: str, receiver: str, session_id: str
     ):
         await aprint("\n--- Confirmation Request ---")
-        await aprint(f"Sender: {sender}")
         await aprint(f"Session: {session_id}")
+        await aprint(f"Agent: {sender}")
         await aprint(f"Query: {request.query}")
 
         if self.default_confirmation_response is not None:
@@ -114,7 +114,7 @@ class RichConsoleHandler(RequestHandler):
         question_color: str = "white",
         confirmation_color: str = "magenta",
         query_color: str = "white",
-        sender_color: str = "green",
+        agent_color: str = "green",
         session_color: str = "cyan",
         error_color: str = "red",
     ):
@@ -131,7 +131,7 @@ class RichConsoleHandler(RequestHandler):
         self.question_color = question_color
         self.confirmation_color = confirmation_color
         self.query_color = query_color
-        self.sender_color = sender_color
+        self.agent_color = agent_color
         self.session_color = session_color
         self.error_color = error_color
 
@@ -140,12 +140,19 @@ class RichConsoleHandler(RequestHandler):
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
         await arun(
-            self.console.print, f"\n🔐 [bold {self.permission_color}]Permission Request[/bold {self.permission_color}]"
+            self.console.print,
+            f"\n🔐 [bold {self.permission_color}]Permission Request[/bold {self.permission_color}]",
         )
         await arun(
-            self.console.print, f"[{self.session_color}]Session:[/{self.session_color}] {session_id}", highlight=False
+            self.console.print,
+            f"[{self.session_color}]Session:[/{self.session_color}] {session_id}",
+            highlight=False,
         )
-        await arun(self.console.print, f"[{self.sender_color}]Sender:[/{self.sender_color}] {sender}", highlight=False)
+        await arun(
+            self.console.print,
+            f"[{self.agent_color}]Agent:[/{self.agent_color}] {sender}",
+            highlight=False,
+        )
 
         # Render action as Python code panel
         syntax = Syntax(request.call, "python", theme="monokai", line_numbers=True)
@@ -189,12 +196,19 @@ class RichConsoleHandler(RequestHandler):
 
     async def handle_feedback_request(self, request: FeedbackRequest, sender: str, receiver: str, session_id: str):
         await arun(
-            self.console.print, f"\n💬 [bold {self.feedback_color}]Feedback Request[/bold {self.feedback_color}]"
+            self.console.print,
+            f"\n💬 [bold {self.feedback_color}]Feedback Request[/bold {self.feedback_color}]",
         )
         await arun(
-            self.console.print, f"[{self.session_color}]Session:[/{self.session_color}] {session_id}", highlight=False
+            self.console.print,
+            f"[{self.session_color}]Session:[/{self.session_color}] {session_id}",
+            highlight=False,
         )
-        await arun(self.console.print, f"[{self.sender_color}]Sender:[/{self.sender_color}] {sender}", highlight=False)
+        await arun(
+            self.console.print,
+            f"[{self.agent_color}]Agent:[/{self.agent_color}] {sender}",
+            highlight=False,
+        )
         await arun(
             self.console.print,
             f"[{self.question_color}]Question:[/{self.question_color}] {request.question}",
@@ -213,10 +227,15 @@ class RichConsoleHandler(RequestHandler):
             f"\n✅ [bold {self.confirmation_color}]Confirmation Request[/bold {self.confirmation_color}]",
         )
         await arun(
-            self.console.print, f"[{self.session_color}]Session:[/{self.session_color}] {session_id}", highlight=False
+            self.console.print,
+            f"[{self.session_color}]Session:[/{self.session_color}] {session_id}",
+            highlight=False,
         )
-        await arun(self.console.print, f"[{self.sender_color}]Sender:[/{self.sender_color}] {sender}", highlight=False)
-
+        await arun(
+            self.console.print,
+            f"[{self.agent_color}]Agent:[/{self.agent_color}] {sender}",
+            highlight=False,
+        )
         await arun(
             self.console.print,
             f"[{self.question_color}]Query:[/{self.question_color}] {request.query}",
@@ -227,13 +246,13 @@ class RichConsoleHandler(RequestHandler):
             return request.respond(self.default_confirmation_response, None)
 
         while True:
-            resp = await arun(Prompt.ask, "\n[bold]Confirm?[/bold]", choices=["y", "n"], default="y")
+            resp = await arun(Prompt.ask, "\n[bold]Run agent?[/bold]", choices=["y", "n"], default="y")
 
             if resp.lower() in ["y", "n"]:
                 confirmed = resp.lower() == "y"
                 comment = await arun(Prompt.ask, "Comment [dim](optional)[/dim]", default="")
                 request.respond(confirmed, comment if comment else None)
-                await arun(self.console.print, f"Response {'confirmed' if confirmed else 'rejected'}")
+                await arun(self.console.print, "Confirmed" if confirmed else "Rejected")
                 break
 
 
