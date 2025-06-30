@@ -63,13 +63,8 @@ class SlackGateway(Gateway):
         self,
         session_manager: SessionManager,
         user_mapping: dict[str, str] = {},
-        app_id: str = "U08LHFS3SE9",
     ):
-        if app_id not in user_mapping:
-            raise ValueError(f"app_id {app_id} not in user_mapping")
-
         self.session_manager = session_manager
-        self.app_id = app_id
 
         # maps from slack user id to core user id
         self._slack_user_mapping = user_mapping

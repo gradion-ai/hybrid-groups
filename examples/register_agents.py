@@ -1,7 +1,8 @@
 import asyncio
 
+from examples.app_server import agent_registry, get_registered_agents
 from examples.weather import get_weather_forecast
-from hygroup.agent.default import AgentSettings, DefaultAgentRegistry, MCPSettings
+from hygroup.agent.default import AgentSettings, MCPSettings
 
 BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved, or if you need more info from the user to solve the problem.
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
@@ -19,6 +20,11 @@ WEATHER_AGENT_INSTRUCTIONS = """You can get weather forecasts for today or dates
 Always use the get_weather_forecast tool for any date provided, even if it is far in the future.
 For all other questions say 'I don't know'.
 Be concise."""
+
+GENERAL_AGENT_INSTRUCTIONS = """You can answer questions about available agents in the system using the get_registered_agents tool.
+If you receive a question that one of the registered agents can answer delegate to that agent. Otherwise say try to answer the question yourself.
+Never delegate to yourself, the "gradion" agent.
+"""
 
 
 def browser_agent_config():
@@ -113,13 +119,29 @@ def weather_agent_config():
     }
 
 
+def general_agent_config():
+    agent_settings = AgentSettings(
+        model="openai:gpt-4.1",
+        instructions=GENERAL_AGENT_INSTRUCTIONS,
+        mcp_settings=[],
+        tools=[get_registered_agents],
+    )
+
+    return {
+        "name": "general",
+        "description": "An agent that can answer questions about available agents in the system and delegate to them if appropriate. Can answer general questions if no other agent is appropriate.",
+        "settings": agent_settings,
+        "handoff": True,
+    }
+
+
 async def main():
-    registry = DefaultAgentRegistry()
-    await registry.remove_configs()
-    await registry.add_config(**browser_agent_config())
-    await registry.add_config(**search_agent_config())
-    await registry.add_config(**scrape_agent_config())
-    await registry.add_config(**weather_agent_config())
+    await agent_registry.remove_configs()
+    await agent_registry.add_config(**browser_agent_config())
+    await agent_registry.add_config(**search_agent_config())
+    await agent_registry.add_config(**scrape_agent_config())
+    await agent_registry.add_config(**weather_agent_config())
+    await agent_registry.add_config(**general_agent_config())
 
 
 if __name__ == "__main__":
