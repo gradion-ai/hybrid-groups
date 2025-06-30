@@ -140,7 +140,7 @@ class SlackGateway(Gateway):
             async with thread.lock:
                 await thread.handle_message(msg)
 
-        elif msg["receiver"] == self.app_id or msg["receiver_resolved"] in await self._registered_agent_names():
+        else:
             session = self.session_manager.create_session(id=msg["id"])
             thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
 

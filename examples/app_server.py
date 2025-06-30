@@ -37,7 +37,10 @@ async def main(args):
         request_handler = RequestServer(user_registry)
         await request_handler.start(join=False)
     else:
-        request_handler = RichConsoleHandler(default_permission_response=1)
+        request_handler = RichConsoleHandler(
+            default_permission_response=1,
+            default_confirmation_response=True,
+        )
 
     def create_agents():
         agent_settings = AgentSettings(
