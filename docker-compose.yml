@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  hygroup-web:
+    build:
+        context: ./web
+        dockerfile: Dockerfile
+    environment:
+      - BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:8000}
+    network_mode: host

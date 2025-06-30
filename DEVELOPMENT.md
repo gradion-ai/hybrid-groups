@@ -45,3 +45,62 @@ Run tests:
 ```bash
 pytest -s tests
 ```
+
+## Web management interface
+
+The project includes a web-based management interface. To set it up:
+
+### Prerequisites
+
+Install Node.js 20.x (LTS version) from the [official website](https://nodejs.org/). Verify installation:
+
+```bash
+node --version
+npm --version
+```
+
+### Setup
+
+Navigate to the `web` directory and configure the environment:
+
+```bash
+cd web
+cp .env.development.example .env.development
+cp .env.production.example .env.production
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+### Run the web UI
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The web interface will be available at http://localhost:3000
+
+### Run the web API
+
+The web interface uses the API implemented in [hygroup/api](hygroup/api/). Start the API server using:
+
+```bash
+python examples/app_server.py --user-registry ...
+```
+
+### Code quality checks
+
+Enforce coding conventions and check for Typescript errors:
+
+```bash
+# Code linting
+npm run lint
+
+# TypeScript compilation check
+npx tsc --noEmit
+```

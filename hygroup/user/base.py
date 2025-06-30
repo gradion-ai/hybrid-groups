@@ -23,6 +23,9 @@ class User:
     mappings: dict[str, str] = field(default_factory=dict)
     """The gateway mappings for the user. The key is the gateway name, the value is the gateway username."""
 
+    encryption_key: bytes | None = None
+    """The encryption key for the user. If None, the user is not authenticated."""
+
 
 class UserRegistry(ABC):
     @abstractmethod
@@ -39,6 +42,18 @@ class UserRegistry(ABC):
 
     @abstractmethod
     def get_secrets(self, username: str) -> dict[str, str]: ...
+
+    @abstractmethod
+    def get_secret(self, username: str, key: str) -> str: ...
+
+    @abstractmethod
+    def get_mappings(self, username: str) -> dict[str, str]: ...
+
+    @abstractmethod
+    async def set_secret(self, username: str, key: str, value: str): ...
+
+    @abstractmethod
+    async def delete_secret(self, username: str, key: str): ...
 
 
 class RequestHandler(ABC):

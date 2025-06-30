@@ -88,7 +88,7 @@ class GithubGateway(Gateway):
         self._webhooks_app_config = uvicorn.Config(
             self._webhooks_app,
             host="0.0.0.0",
-            port=self._webhooks_app_settings.api_port,
+            port=self._webhooks_app_settings.github_webhook_api_port,
             log_config=str(self._webhooks_app_settings.log_config_path),
             log_level=self._webhooks_app_settings.log_level.lower(),
             reload=False,
