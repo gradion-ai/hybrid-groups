@@ -46,7 +46,7 @@ class MCPSettings:
 class AgentSettings:
     model: str | dict
     instructions: str
-    human_feedback: bool = True
+    human_feedback: bool = False
     model_settings: ModelSettings | None = None
     mcp_settings: Sequence[MCPSettings] = field(default_factory=list)
     tools: Sequence[Callable] = field(default_factory=list)
