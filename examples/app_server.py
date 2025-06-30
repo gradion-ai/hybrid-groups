@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from hygroup.agent.default import AgentSettings, DefaultAgentRegistry, HandoffAgent
+from hygroup.agent.default import DefaultAgentRegistry
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway
@@ -19,17 +19,17 @@ from hygroup.user.default import (
     RichConsoleHandler,
 )
 
-GRADION_AGENT_INSTRUCTIONS = """You are a helpful assistant that delegates queries to other agents if possible.
-To get a list of registered agents, use the get_registered_agents tool which returns their names and description.
-If the description of an agent seems appropriate for answering the query, handoff to that agent.
-Otherwise, try to answer the query yourself."""
+agent_registry = DefaultAgentRegistry()
+
+
+async def get_registered_agents():
+    return await agent_registry.get_registered_agents()
 
 
 async def main(args):
     permission_store = DefaultPermissionStore() if args.user_channel else None
     request_handler: RequestHandler
 
-    agent_registry = DefaultAgentRegistry()
     user_registry = DefaultUserRegistry() if args.user_registry else None
     user_mapping = await user_registry.get_mapping(args.gateway) if user_registry is not None else {}
 
@@ -42,18 +42,7 @@ async def main(args):
             default_confirmation_response=True,
         )
 
-    def create_agents():
-        agent_settings = AgentSettings(
-            model="openai:gpt-4.1",
-            instructions=GRADION_AGENT_INSTRUCTIONS,
-        )
-        gradion = HandoffAgent(name="gradion", settings=agent_settings)
-        gradion.tool(requires_permission=False)(agent_registry.get_registered_agents)
-
-        return [gradion]
-
     manager = SessionManager(
-        agent_factory=create_agents,
         agent_registry=agent_registry,
         user_registry=user_registry,
         permission_store=permission_store,
@@ -79,13 +68,9 @@ async def main(args):
                 github_app_username=github_app_username,
             )
         case "slack":
-            app_id = os.environ["SLACK_APP_ID"]
-            user_mapping[app_id] = "gradion"
-
             gateway = SlackGateway(
                 session_manager=manager,
                 user_mapping=user_mapping,
-                app_id=app_id,
             )
         case "terminal":
             gateway = RemoteTerminalGateway(

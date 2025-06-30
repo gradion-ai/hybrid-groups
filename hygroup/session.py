@@ -328,7 +328,7 @@ AgentFactory = Callable[[], list[Agent]]
 class SessionManager:
     def __init__(
         self,
-        agent_factory: AgentFactory,
+        agent_factory: AgentFactory | None = None,
         agent_registry: AgentRegistry | None = None,
         user_registry: UserRegistry | None = None,
         permission_store: PermissionStore | None = None,
@@ -350,8 +350,9 @@ class SessionManager:
         session = Session(id=id, manager=self)
         factory = agent_factory or self.agent_factory
 
-        for agent in factory():
-            session.add_agent(agent)
+        if factory is not None:
+            for agent in factory():
+                session.add_agent(agent)
 
         return session
 
