@@ -369,3 +369,6 @@ class DefaultAgent(AgentBase[str]):
 
     def _text(self, data: str) -> str:
         return data
+
+
+AgentFactory = Callable[[], AgentBase]

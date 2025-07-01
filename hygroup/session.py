@@ -4,7 +4,7 @@ import uuid
 from asyncio import Future, Queue, Task, create_task, sleep
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import aiofiles
 import aiofiles.os
@@ -103,7 +103,7 @@ class Session:
     ):
         self.id = id or str(uuid.uuid4())
         self.group = group
-        self.manager = manager or SessionManager(agent_factory=lambda: [])
+        self.manager = manager or SessionManager()
 
         self.agent_registry = self.manager.agent_registry
         self.user_registry = self.manager.user_registry
@@ -319,13 +319,9 @@ class Session:
         self._messages = [Message(**message) for message in state_dict["messages"]]
 
 
-AgentFactory = Callable[[], list[Agent]]
-
-
 class SessionManager:
     def __init__(
         self,
-        agent_factory: AgentFactory | None = None,
         agent_registry: AgentRegistry | None = None,
         user_registry: UserRegistry | None = None,
         permission_store: PermissionStore | None = None,
@@ -333,7 +329,6 @@ class SessionManager:
         selector_settings: AgentSelectorSettings | None = None,
         root_dir: Path = Path(".data", "sessions"),
     ):
-        self.agent_factory = agent_factory
         self.agent_registry = agent_registry
         self.user_registry = user_registry
         self.permission_store = permission_store
@@ -343,20 +338,13 @@ class SessionManager:
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
-    def create_session(self, id: str | None = None, agent_factory: AgentFactory | None = None) -> Session:
-        session = Session(id=id, manager=self)
-        factory = agent_factory or self.agent_factory
+    def create_session(self, id: str | None = None) -> Session:
+        return Session(id=id, manager=self)
 
-        if factory is not None:
-            for agent in factory():
-                session.add_agent(agent)
-
-        return session
-
-    async def load_session(self, id: str, agent_factory: AgentFactory | None = None) -> Session | None:
+    async def load_session(self, id: str) -> Session | None:
         if not await self.session_saved(id):
             return None
-        session = self.create_session(id, agent_factory)
+        session = self.create_session(id)
         await session.load()
         return session
 
