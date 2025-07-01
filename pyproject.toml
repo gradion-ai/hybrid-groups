@@ -33,6 +33,7 @@ tinydb = "^4.8.2"
 bcrypt = "^4.3.0"
 cryptography = "^45.0.3"
 rich = "^14.0.0"
+markdown-to-mrkdwn = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 invoke = "^2.2"

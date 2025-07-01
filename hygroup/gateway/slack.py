@@ -3,13 +3,14 @@ import os
 from asyncio import Lock
 from dataclasses import dataclass
 
+from markdown_to_mrkdwn import SlackMarkdownConverter
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
 from hygroup.agent import AgentRequest, AgentResponse, Message
 from hygroup.gateway.base import Gateway
-from hygroup.gateway.utils import extract_mention, extract_thread_references, format_response, replace_all_mentions
+from hygroup.gateway.utils import extract_mention, extract_thread_references, replace_all_mentions
 from hygroup.session import Session, SessionManager
 
 
@@ -74,6 +75,7 @@ class SlackGateway(Gateway):
         self._app = AsyncApp(token=os.environ["SLACK_BOT_TOKEN"])
         self._client = AsyncWebClient(token=os.environ["SLACK_BOT_TOKEN"])
         self._handler = AsyncSocketModeHandler(self._app, os.environ["SLACK_APP_TOKEN"])
+        self._converter = SlackMarkdownConverter()
         self._threads: dict[str, SlackThread] = {}
 
         # register event handlers
@@ -95,15 +97,28 @@ class SlackGateway(Gateway):
         receiver_resolved = self._resolve_slack_user_id(receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
-        await self._post_slack_message(
-            thread, f"{receiver_resolved_formatted} {format_response(response.text, response.handoffs)}", sender
-        )
+        response_text = response.text
+        if response.handoffs:
+            response_text += "\n\n**Handoffs:**"
+            for agent, query in response.handoffs.items():
+                response_text += f"\n- `{agent}`: {query}"
+
+        await self._post_slack_message(thread, f"{receiver_resolved_formatted} {response_text}", sender)
 
     async def _post_slack_message(self, thread: SlackThread, text: str, sender: str, **kwargs):
         await self._client.chat_postMessage(
             channel=thread.channel,
             thread_ts=thread.id,
             text=text,
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": self._converter.convert(text),
+                    },
+                },
+            ],
             username=sender,
             icon_emoji=":robot_face:",
             **kwargs,
