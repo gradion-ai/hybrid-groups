@@ -1781,6 +1781,18 @@ rtd = ["jupyter_sphinx", "mdit-py-plugins", "myst-parser", "pyyaml", "sphinx", "
 testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
 
 [[package]]
+name = "markdown-to-mrkdwn"
+version = "0.2.0"
+description = "A library to convert Markdown to Slack's mrkdwn format"
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "markdown_to_mrkdwn-0.2.0-py3-none-any.whl", hash = "sha256:14116baab3f7219c7c56553e03922e556328a4b8c693ea6c3fbfa5d3ce0912de"},
+    {file = "markdown_to_mrkdwn-0.2.0.tar.gz", hash = "sha256:2476dc8481f70d7e2ad7018afa82db964d2aaebd9870cd15bfa6125a24aee57b"},
+]
+
+[[package]]
 name = "markupsafe"
 version = "3.0.2"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -4531,4 +4543,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11,<3.14"
-content-hash = "7c6619eb607e141cb61c00e972a1560886cd530b0ab67948987983636fc8c9fc"
+content-hash = "8cb53a794551e5650b6277c2539dea31424cd84f070691723d927ac26d7d4f50"
