@@ -2,8 +2,9 @@ from typing import Callable, Sequence
 
 from hygroup.agent.base import AgentRequest, Message, Thread
 
-QUERY_TEMPLATE = """The following query is from "{sender}" to "{receiver}" (your name):
-<query>
+QUERY_TEMPLATE = """You are the receiver of the following query:
+
+<query sender="{sender}" receiver="{receiver}">
 {query}
 </query>
 
