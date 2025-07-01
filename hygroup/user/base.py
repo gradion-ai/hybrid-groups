@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from hygroup.agent import ConfirmationRequest, FeedbackRequest, PermissionRequest
+from hygroup.agent import AgentSelectionConfirmationRequest, FeedbackRequest, PermissionRequest
 
 
 class UserAlreadyExistsError(Exception):
@@ -63,7 +63,7 @@ class RequestHandler(ABC):
     @abstractmethod
     async def handle_confirmation_request(
         self,
-        request: ConfirmationRequest,
+        request: AgentSelectionConfirmationRequest,
         sender: str,
         receiver: str,
         session_id: str,

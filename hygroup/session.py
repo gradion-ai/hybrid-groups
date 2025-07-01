@@ -14,9 +14,9 @@ from hygroup.agent import (
     AgentRegistry,
     AgentRequest,
     AgentResponse,
+    AgentSelectionConfirmationRequest,
     AgentSelector,
     AgentSelectorSettings,
-    ConfirmationRequest,
     FeedbackRequest,
     Message,
     PermissionRequest,
@@ -204,14 +204,10 @@ class Session:
         )
 
     async def select(self, message: Message):
-        from dataclasses import asdict
-
         if self._agent_selector is None:
             return
 
-        print("Message:")
-        print(json.dumps(asdict(message), indent=2))
-
+        # agent names currently available in registry
         agent_names = await self.agent_names()
 
         if message.sender == "system" or message.sender in agent_names or message.receiver in agent_names:
@@ -219,23 +215,24 @@ class Session:
             await self._agent_selector.add(message)
             return
 
-        selection = await self._agent_selector.run(message)
+        selection_result = await self._agent_selector.run(message)
+        selection = selection_result.selection
 
-        print("Selection:")
-        print(json.dumps(selection.model_dump(), indent=2))
-
-        if selection.agent_name in agent_names and selection.query:
-            confirmation_request = ConfirmationRequest(query=selection.query, ftr=Future())
+        if selection.agent_name in agent_names or selection.agent_name is None:
+            confirmation_request = AgentSelectionConfirmationRequest(
+                selection_result=selection_result,
+                ftr=Future(),
+            )
             await self.request_handler.handle_confirmation_request(
                 confirmation_request,
-                sender=selection.agent_name,
+                sender="selector",
                 receiver=message.sender,
                 session_id=self.id,
             )
 
             # blocks until confirmation_request.respond() is called
             confirmation_response = await confirmation_request.response()
-            if not confirmation_response.confirmed:
+            if not confirmation_response.confirmed or selection.agent_name is None or selection.query is None:
                 return
 
             agent_request = AgentRequest(query=selection.query, sender=message.sender)

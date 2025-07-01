@@ -5,101 +5,24 @@ from asyncio import Future
 from typing import Any, Dict
 
 import uvicorn
-from aioconsole import ainput, aprint
+from aioconsole import aprint
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic_core import to_jsonable_python
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.syntax import Syntax
 
-from hygroup.agent import ConfirmationRequest, FeedbackRequest, PermissionRequest
+from hygroup.agent import (
+    AgentSelection,
+    AgentSelectionConfirmationRequest,
+    AgentSelectionResult,
+    FeedbackRequest,
+    PermissionRequest,
+)
 from hygroup.user import RequestHandler, UserNotAuthenticatedError, UserRegistry
 from hygroup.utils import arun
-
-
-class ConsoleHandler(RequestHandler):
-    def __init__(
-        self,
-        upper_bound: int = 3,
-        default_permission_response: int | None = None,
-        default_confirmation_response: bool | None = None,
-    ):
-        if not 1 <= upper_bound <= 3:
-            raise ValueError("upper_bound must be in [1, 3]")
-        self.upper_bound = upper_bound
-        self.default_permission_response = default_permission_response
-        self.default_confirmation_response = default_confirmation_response
-
-    async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
-        await aprint("\n--- Permission Request ---")
-        await aprint(f"Session: {session_id}")
-        await aprint(f"Agent: {sender}")
-        await aprint(f"Action: {request.call}")
-
-        if self.default_permission_response is not None:
-            return request.respond(self.default_permission_response)
-
-        while True:
-            # Create descriptive prompt showing what each option means
-            await aprint("\nGrant permission for this action?")
-            await aprint("[0] Deny")
-            await aprint("[1] Allow once (default)")
-            if self.upper_bound > 1:
-                await aprint("[2] Allow for session")
-            if self.upper_bound > 2:
-                await aprint("[3] Allow always")
-
-            resp = await ainput("Choose option (1): ")
-            match resp:
-                case "0":
-                    request.deny()
-                case "1" | "":
-                    request.grant_once()
-                case "2" if self.upper_bound > 1:
-                    request.grant_session()
-                case "3" if self.upper_bound > 2:
-                    request.grant_always()
-                case _:
-                    valid_options = list(range(self.upper_bound + 1))
-                    await aprint(f"Invalid input '{resp}'. Please choose from {valid_options}.")
-                    continue
-            break
-
-    async def handle_feedback_request(self, request: FeedbackRequest, sender: str, receiver: str, session_id: str):
-        await aprint("\n--- Feedback Request ---")
-        await aprint(f"Session: {session_id}")
-        await aprint(f"Agent: {sender}")
-        await aprint(f"Question: {request.question}")
-
-        resp = await ainput("Answer: ")
-        request.respond(resp)
-
-    async def handle_confirmation_request(
-        self, request: ConfirmationRequest, sender: str, receiver: str, session_id: str
-    ):
-        await aprint("\n--- Confirmation Request ---")
-        await aprint(f"Session: {session_id}")
-        await aprint(f"Agent: {sender}")
-        await aprint(f"Query: {request.query}")
-
-        if self.default_confirmation_response is not None:
-            return request.respond(self.default_confirmation_response, None)
-
-        while True:
-            resp = await ainput("\nConfirm? [y/n] (y): ")
-            match resp.lower():
-                case "y" | "yes" | "":
-                    comment = await ainput("Comment (optional): ")
-                    request.respond(True, comment if comment else None)
-                    break
-                case "n" | "no":
-                    comment = await ainput("Comment (optional): ")
-                    request.respond(False, comment if comment else None)
-                    break
-                case _:
-                    await aprint(f"Invalid input '{resp}'. Please enter 'y' or 'n'.")
-                    continue
 
 
 class RichConsoleHandler(RequestHandler):
@@ -117,6 +40,7 @@ class RichConsoleHandler(RequestHandler):
         agent_color: str = "green",
         session_color: str = "cyan",
         error_color: str = "red",
+        thoughts_color: str = "bright_black",
     ):
         if not 1 <= upper_bound <= 3:
             raise ValueError("upper_bound must be in [1, 3]")
@@ -134,6 +58,7 @@ class RichConsoleHandler(RequestHandler):
         self.agent_color = agent_color
         self.session_color = session_color
         self.error_color = error_color
+        self.thoughts_color = thoughts_color
 
         # Initialize Rich console
         self.console = Console()
@@ -150,14 +75,14 @@ class RichConsoleHandler(RequestHandler):
         )
         await arun(
             self.console.print,
-            f"[{self.agent_color}]Agent:[/{self.agent_color}] {sender}",
+            f"[{self.agent_color}]Sender:[/{self.agent_color}] {sender}",
             highlight=False,
         )
 
         # Render action as Python code panel
         syntax = Syntax(request.call, "python", theme="monokai", line_numbers=True)
-        code_panel = Panel.fit(syntax, title="[bold]Action[/bold]", title_align="left", border_style=self.action_color)
-        await arun(self.console.print, code_panel)
+        panel = Panel.fit(syntax, title="[bold]Action[/bold]", title_align="left", border_style=self.action_color)
+        await arun(self.console.print, panel)
 
         if self.default_permission_response is not None:
             return request.respond(self.default_permission_response)
@@ -206,7 +131,7 @@ class RichConsoleHandler(RequestHandler):
         )
         await arun(
             self.console.print,
-            f"[{self.agent_color}]Agent:[/{self.agent_color}] {sender}",
+            f"[{self.agent_color}]Sender:[/{self.agent_color}] {sender}",
             highlight=False,
         )
         await arun(
@@ -220,7 +145,7 @@ class RichConsoleHandler(RequestHandler):
         await arun(self.console.print, "Answer submitted")
 
     async def handle_confirmation_request(
-        self, request: ConfirmationRequest, sender: str, receiver: str, session_id: str
+        self, request: AgentSelectionConfirmationRequest, sender: str, receiver: str, session_id: str
     ):
         await arun(
             self.console.print,
@@ -233,24 +158,46 @@ class RichConsoleHandler(RequestHandler):
         )
         await arun(
             self.console.print,
-            f"[{self.agent_color}]Agent:[/{self.agent_color}] {sender}",
+            f"[{self.agent_color}]Sender:[/{self.agent_color}] {sender}",
+            highlight=False,
+        )
+        for thought in request.selection_result.thoughts:
+            markdown = Markdown(thought)
+            panel = Panel.fit(
+                markdown,
+                title="Thinking",
+                title_align="left",
+                border_style=self.thoughts_color,
+                style=self.thoughts_color,
+            )
+            await arun(self.console.print, panel, highlight=False)
+        await arun(
+            self.console.print,
+            f"[{self.agent_color}]Agent:[/{self.agent_color}] {request.selection_result.selection.agent_name or '(none)'}",
             highlight=False,
         )
         await arun(
             self.console.print,
-            f"[{self.question_color}]Query:[/{self.question_color}] {request.query}",
+            f"[{self.query_color}]Query:[/{self.query_color}] {request.selection_result.selection.query or '(none)'}",
             highlight=False,
         )
 
         if self.default_confirmation_response is not None:
             return request.respond(self.default_confirmation_response, None)
 
+        if request.selection_result.selection.agent_name is None:
+            request.respond(confirmed=True, comment=None)
+            return
+
         while True:
             resp = await arun(Prompt.ask, "\n[bold]Run agent?[/bold]", choices=["y", "n"], default="y")
+            resp = resp.lower()
 
-            if resp.lower() in ["y", "n"]:
-                confirmed = resp.lower() == "y"
-                comment = await arun(Prompt.ask, "Comment [dim](optional)[/dim]", default="")
+            if resp in ["y", "n"]:
+                confirmed = resp == "y"
+                comment = None
+                if not confirmed:
+                    comment = await arun(Prompt.ask, "Comment [dim](optional)[/dim]", default="")
                 request.respond(confirmed, comment if comment else None)
                 await arun(self.console.print, "Confirmed" if confirmed else "Rejected")
                 break
@@ -263,7 +210,7 @@ class RequestServer(RequestHandler):
         self.port = port
 
         self._connections: Dict[str, WebSocket] = {}
-        self._requests: Dict[str, PermissionRequest | FeedbackRequest | ConfirmationRequest] = {}
+        self._requests: Dict[str, PermissionRequest | FeedbackRequest | AgentSelectionConfirmationRequest] = {}
 
         self._server: uvicorn.Server | None = None
         self._task: asyncio.Task | None = None
@@ -365,7 +312,7 @@ class RequestServer(RequestHandler):
 
         elif msg_type == "confirmation_response" and request_id in self._requests:
             request = self._requests.pop(request_id)
-            if isinstance(request, ConfirmationRequest):
+            if isinstance(request, AgentSelectionConfirmationRequest):
                 request.respond(data.get("confirmed", False), data.get("comment"))
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
@@ -429,7 +376,7 @@ class RequestServer(RequestHandler):
         )
 
     async def handle_confirmation_request(
-        self, request: ConfirmationRequest, sender: str, receiver: str, session_id: str
+        self, request: AgentSelectionConfirmationRequest, sender: str, receiver: str, session_id: str
     ):
         """Called by backend to request a confirmation response from the user."""
         if receiver not in self._connections:
@@ -447,7 +394,9 @@ class RequestServer(RequestHandler):
             {
                 "type": "confirmation_request",
                 "request_id": request_id,
-                "query": request.query,
+                "query": request.selection_result.selection.query,
+                "thoughts": request.selection_result.thoughts,
+                "agent_name": request.selection_result.selection.agent_name,
                 "sender": sender,
                 "session_id": session_id,
             }
@@ -583,12 +532,20 @@ class RequestClient:
                     await self._send_message({"type": "feedback_response", "request_id": request_id, "text": text})
 
                 elif data.get("type") == "confirmation_request":
-                    # Create Future and ConfirmationRequest
+                    # Create Future and AgentSelectionConfirmationRequest
                     future_confirmation: Future = Future()
                     query = data.get("query", "")
+                    thoughts = data.get("thoughts", [])
+                    agent_name = data.get("agent_name")
+
+                    # Create AgentSelection and AgentSelectionResult
+                    selection = AgentSelection(agent_name=agent_name, query=query)
+                    selection_result = AgentSelectionResult(selection=selection, thoughts=thoughts)
 
                     # Create request object
-                    confirmation_request = ConfirmationRequest(query, future_confirmation)
+                    confirmation_request = AgentSelectionConfirmationRequest(
+                        selection_result=selection_result, ftr=future_confirmation
+                    )
 
                     # Call handler method
                     await self._handler.handle_confirmation_request(confirmation_request, sender, receiver, session_id)
