@@ -1,3 +1,4 @@
+from asyncio import Future
 from dataclasses import dataclass, field
 
 from pydantic import BaseModel
@@ -7,6 +8,7 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
+    ThinkingPart,
     ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
@@ -26,6 +28,30 @@ class AgentSelection(BaseModel):
 
 
 @dataclass
+class AgentSelectionResult:
+    selection: AgentSelection
+    thoughts: list[str] = field(default_factory=list)
+
+
+@dataclass
+class AgentSelectionConfirmationResponse:
+    confirmed: bool
+    comment: str | None = None
+
+
+@dataclass
+class AgentSelectionConfirmationRequest:
+    selection_result: AgentSelectionResult
+    ftr: Future
+
+    async def response(self) -> AgentSelectionConfirmationResponse:
+        return await self.ftr
+
+    def respond(self, confirmed: bool, comment: str | None = None):
+        self.ftr.set_result(AgentSelectionConfirmationResponse(confirmed=confirmed, comment=comment))
+
+
+@dataclass
 class AgentSelectorSettings:
     instructions: str = SYSTEM_PROMPT
     model: str | dict = "gemini-2.5-flash"
@@ -34,6 +60,7 @@ class AgentSelectorSettings:
             max_tokens=1024,
             google_thinking_config={
                 "thinking_budget": 512,
+                "include_thoughts": True,
             },
         )
     )
@@ -62,14 +89,29 @@ class AgentSelector:
         self._agent.tool_plain(registry.get_registered_agents)
         self._history = []  # type: ignore
 
-    async def run(self, message: Message) -> AgentSelection:
+    def get_state(self):
+        """Get the serialized state of the selector agent."""
+        return to_jsonable_python(self._history)
+
+    def set_state(self, state):
+        """Set the state of the selector agent from serialized data."""
+        self._history = ModelMessagesTypeAdapter.validate_python(state)
+
+    async def run(self, message: Message) -> AgentSelectionResult:
         prompt = format_message(message)
         result = await self._agent.run(
             user_prompt=prompt,
             message_history=self._history,
         )
-        self._history.extend(result.new_messages())
-        return result.output
+        thoughts = []
+        for msg in result.new_messages():
+            self._history.append(msg)
+            if isinstance(msg, ModelResponse):
+                for part in msg.parts:
+                    if isinstance(part, ThinkingPart) and part.has_content():
+                        thoughts.append(part.content)
+
+        return AgentSelectionResult(selection=result.output, thoughts=thoughts)
 
     async def add(self, message: Message):
         init = len(self._history) == 0
@@ -120,11 +162,3 @@ class AgentSelector:
                 ModelRequest(parts=[tool_ret]),
             ]
         )
-
-    def get_state(self):
-        """Get the serialized state of the selector agent."""
-        return to_jsonable_python(self._history)
-
-    def set_state(self, state):
-        """Set the state of the selector agent from serialized data."""
-        self._history = ModelMessagesTypeAdapter.validate_python(state)

@@ -3,11 +3,16 @@ from hygroup.agent.base import (
     AgentRegistry,
     AgentRequest,
     AgentResponse,
-    ConfirmationRequest,
-    ConfirmationResponse,
     FeedbackRequest,
     Message,
     PermissionRequest,
     Thread,
 )
-from hygroup.agent.select import AgentSelection, AgentSelector, AgentSelectorSettings
+from hygroup.agent.select import (
+    AgentSelection,
+    AgentSelectionConfirmationRequest,
+    AgentSelectionConfirmationResponse,
+    AgentSelectionResult,
+    AgentSelector,
+    AgentSelectorSettings,
+)
