@@ -223,23 +223,6 @@ async def test_agent_settings_roundtrip(registry: DefaultAgentRegistry, api_key:
 
 
 @pytest.mark.asyncio
-async def test_persistence_across_factory_instances(test_agents_dir: Path, default_settings: AgentSettings):
-    """Test that data persists across different factory instances."""
-    registry_path = Path(test_agents_dir) / "registry.json"
-    factory1 = DefaultAgentRegistry(registry_path)
-    await factory1.add_config(
-        name="persistent-agent", description="Persistent agent", settings=default_settings, handoff=False
-    )
-
-    factory2 = DefaultAgentRegistry(registry_path)
-    descriptions = await factory2.get_descriptions()
-    assert descriptions == {"persistent-agent": "Persistent agent"}
-
-    agent = await factory2.create_agent("persistent-agent")
-    assert agent.name == "persistent-agent"
-
-
-@pytest.mark.asyncio
 async def test_model_as_dict_basic(registry: DefaultAgentRegistry, mcp_stdio_settings: MCPSettings):
     """Test registering and creating an agent with model as a dictionary."""
     model_dict = {

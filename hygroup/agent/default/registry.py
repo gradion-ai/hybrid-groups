@@ -4,7 +4,7 @@ from typing import Any
 from tinydb import Query, TinyDB
 
 from hygroup.agent.base import AgentRegistry
-from hygroup.agent.default.agent import AgentBase, AgentSettings, DefaultAgent, HandoffAgent
+from hygroup.agent.default.agent import AgentBase, AgentFactory, AgentSettings, DefaultAgent, HandoffAgent
 from hygroup.utils import arun
 
 
@@ -17,12 +17,19 @@ class DefaultAgentRegistry(AgentRegistry):
         Args:
             registry_path: Path to the registry file
         """
+        self.factories: dict[str, dict[str, Any]] = {}
         self.registry_path = Path(registry_path)
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
         self.db = TinyDB(str(self.registry_path), indent=2)
 
+    def add_factory(self, name: str, description: str, factory: AgentFactory):
+        self.factories[name] = {"name": name, "description": description, "factory": factory}
+
     async def create_agent(self, name: str) -> AgentBase:
-        """Create an agent from config registered under `name`."""
+        """Create an agent from config or factory registered under `name`."""
+        if doc := self.factories.get(name):
+            return doc["factory"]()
+
         doc = await self.get_config(name)
 
         if doc is None:
@@ -41,8 +48,15 @@ class DefaultAgentRegistry(AgentRegistry):
 
     async def get_descriptions(self) -> dict[str, str]:
         """Return a dictionary of agent names and their descriptions."""
-        docs = await arun(self.db.all)
-        return {doc["name"]: doc["description"] for doc in docs}
+        descriptions = {}
+
+        for doc in await arun(self.db.all):
+            descriptions[doc["name"]] = doc["description"]
+
+        for name, doc in self.factories.items():
+            descriptions[name] = doc["description"]
+
+        return descriptions
 
     async def get_config(self, name: str) -> dict[str, Any]:
         """Return the configuration for an agent."""
