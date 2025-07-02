@@ -118,6 +118,9 @@ class AgentRegistry(ABC):
     @abstractmethod
     async def get_descriptions(self) -> dict[str, str]: ...
 
+    @abstractmethod
+    async def get_emoji(self, name: str) -> str | None: ...
+
     async def get_registered_agents(self) -> str:
         """Get a list of registered agents in the format:
 

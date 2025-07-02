@@ -139,7 +139,7 @@ async def test_registry_handles_missing_tools_gracefully(capsys):
         registry = DefaultAgentRegistry(registry_path)
 
         # Manually create a registry entry with a non-existent tool
-        registry.db.insert(
+        registry._tinydb.insert(
             {
                 "name": "test_agent",
                 "description": "Test agent with missing tool",

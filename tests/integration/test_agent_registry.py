@@ -82,7 +82,7 @@ async def test_factory_initialization(registry: DefaultAgentRegistry, test_agent
     expected_registry_path = test_agents_dir / "registry.json"
     assert registry.registry_path == expected_registry_path
     assert registry.registry_path.parent.exists()
-    assert hasattr(registry, "db")
+    assert hasattr(registry, "_tinydb")
 
 
 @pytest.mark.asyncio
