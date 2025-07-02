@@ -68,6 +68,14 @@ class DefaultAgentRegistry(AgentRegistry):
 
         return None
 
+    async def get_agent_configurations(self) -> dict[str, dict[str, Any]]:
+        """Return the configuration for all agents."""
+        configs = {}
+        async with self._lock:
+            for doc in await arun(self._tinydb.all):
+                configs[doc["name"]] = doc
+        return configs
+
     async def get_config(self, name: str) -> dict[str, Any]:
         """Return the configuration for an agent."""
         Agent = Query()
@@ -106,6 +114,46 @@ class DefaultAgentRegistry(AgentRegistry):
 
             # Insert document
             await arun(self._tinydb.insert, doc)
+
+    async def update_config(
+        self,
+        name: str,
+        description: str | None = None,
+        settings: AgentSettings | None = None,
+        handoff: bool | None = None,
+        emoji: str | None = None,
+    ):
+        """Update configuration for an existing agent.
+
+        Args:
+            name: Name of the agent to update
+            description: New description (optional)
+            settings: New settings (optional)
+            handoff: New handoff value (optional)
+            emoji: New emoji (optional)
+        """
+        Agent = Query()
+
+        async with self._lock:
+            # Check if agent exists
+            existing = await arun(self._tinydb.get, Agent.name == name)
+            if existing is None:
+                raise ValueError(f"No agent registered with name '{name}'")
+
+            # Build update document with only provided fields
+            update_doc: dict[str, Any] = {}
+            if description is not None:
+                update_doc["description"] = description
+            if settings is not None:
+                update_doc["settings"] = settings.to_dict()
+            if handoff is not None:
+                update_doc["handoff"] = handoff
+            if emoji is not None:
+                update_doc["emoji"] = emoji
+
+            # Only update if there are fields to update
+            if update_doc:
+                await arun(self._tinydb.update, update_doc, Agent.name == name)
 
     async def remove_config(self, name: str):
         """Remove settings for an agent."""
