@@ -67,10 +67,10 @@ class SlackGateway(Gateway):
     ):
         self.session_manager = session_manager
 
-        # maps from slack user id to core user id
+        # maps from slack user id to system user id
         self._slack_user_mapping = user_mapping
-        # maps from core user id to slack user id
-        self._core_user_mapping = {v: k for k, v in user_mapping.items()}
+        # maps from system user id to slack user id
+        self._system_user_mapping = {v: k for k, v in user_mapping.items()}
 
         self._app = AsyncApp(token=os.environ["SLACK_BOT_TOKEN"])
         self._client = AsyncWebClient(token=os.environ["SLACK_BOT_TOKEN"])
@@ -184,18 +184,18 @@ class SlackGateway(Gateway):
         )
         return self._threads[session.id]
 
-    def _resolve_core_user_id(self, slack_user_id: str) -> str:
+    def _resolve_system_user_id(self, slack_user_id: str) -> str:
         return self._slack_user_mapping.get(slack_user_id, slack_user_id)
 
-    def _resolve_slack_user_id(self, core_user_id: str) -> str:
-        return self._core_user_mapping.get(core_user_id, core_user_id)
+    def _resolve_slack_user_id(self, system_user_id: str) -> str:
+        return self._system_user_mapping.get(system_user_id, system_user_id)
 
     def _parse_slack_message(self, message: dict) -> dict:
         sender = message["user"]
-        sender_resolved = self._resolve_core_user_id(sender)
+        sender_resolved = self._resolve_system_user_id(sender)
         receiver, text = extract_mention(message["text"])
-        receiver_resolved = None if receiver is None else self._resolve_core_user_id(receiver)
-        text = replace_all_mentions(text, self._resolve_core_user_id)
+        receiver_resolved = None if receiver is None else self._resolve_system_user_id(receiver)
+        text = replace_all_mentions(text, self._resolve_system_user_id)
         thread_refs = extract_thread_references(text)
         return {
             "id": message["ts"],
