@@ -47,6 +47,7 @@ def browser_agent_config():
         "description": "An agent that can use an internet browser.",
         "settings": agent_settings,
         "handoff": False,
+        "emoji": "earth_americas",
     }
 
 
@@ -73,6 +74,7 @@ def search_agent_config():
         "description": "An agent that can search the web.",
         "settings": agent_settings,
         "handoff": False,
+        "emoji": "mag",
     }
 
 
@@ -100,6 +102,7 @@ def scrape_agent_config():
         "description": "An agent that can scrape individual web pages.",
         "settings": agent_settings,
         "handoff": False,
+        "emoji": "page_facing_up",
     }
 
 
@@ -116,6 +119,7 @@ def weather_agent_config():
         "description": "An agent that retrieve weather information for today or specific dates in the future.",
         "settings": agent_settings,
         "handoff": False,
+        "emoji": "mostly_sunny",
     }
 
 
@@ -132,6 +136,7 @@ def general_agent_config():
         "description": "An agent that can answer questions about available agents in the system and delegate to them if appropriate. Can answer general questions if no other agent is appropriate.",
         "settings": agent_settings,
         "handoff": True,
+        "emoji": "brain",
     }
 
 

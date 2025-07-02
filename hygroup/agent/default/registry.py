@@ -1,11 +1,12 @@
+import asyncio
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from tinydb import Query, TinyDB
 
 from hygroup.agent.base import AgentRegistry
 from hygroup.agent.default.agent import AgentBase, AgentFactory, AgentSettings, DefaultAgent, HandoffAgent
-from hygroup.utils import arun
+from hygroup.utils import T, arun
 
 
 class DefaultAgentRegistry(AgentRegistry):
@@ -17,17 +18,16 @@ class DefaultAgentRegistry(AgentRegistry):
         Args:
             registry_path: Path to the registry file
         """
-        self.factories: dict[str, dict[str, Any]] = {}
         self.registry_path = Path(registry_path)
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(str(self.registry_path), indent=2)
 
-    def add_factory(self, name: str, description: str, factory: AgentFactory):
-        self.factories[name] = {"name": name, "description": description, "factory": factory}
+        self._factories: dict[str, dict[str, Any]] = {}
+        self._tinydb = TinyDB(str(self.registry_path), indent=2)
+        self._lock = asyncio.Lock()
 
     async def create_agent(self, name: str) -> AgentBase:
         """Create an agent from config or factory registered under `name`."""
-        if doc := self.factories.get(name):
+        if doc := self._factories.get(name):
             return doc["factory"]()
 
         doc = await self.get_config(name)
@@ -50,18 +50,27 @@ class DefaultAgentRegistry(AgentRegistry):
         """Return a dictionary of agent names and their descriptions."""
         descriptions = {}
 
-        for doc in await arun(self.db.all):
+        for doc in await self._arun_locked(self._tinydb.all):
             descriptions[doc["name"]] = doc["description"]
 
-        for name, doc in self.factories.items():
+        for name, doc in self._factories.items():
             descriptions[name] = doc["description"]
 
         return descriptions
 
+    async def get_emoji(self, name: str) -> str | None:
+        if factory_doc := self._factories.get(name):
+            return factory_doc.get("emoji")
+
+        if config_doc := await self.get_config(name):
+            return config_doc.get("emoji")
+
+        return None
+
     async def get_config(self, name: str) -> dict[str, Any]:
         """Return the configuration for an agent."""
         Agent = Query()
-        return await arun(self.db.get, Agent.name == name)
+        return await self._arun_locked(self._tinydb.get, Agent.name == name)
 
     async def add_config(
         self,
@@ -69,12 +78,13 @@ class DefaultAgentRegistry(AgentRegistry):
         description: str,
         settings: AgentSettings,
         handoff: bool = False,
+        emoji: str | None = None,
     ):
         """Add settings for an agent."""
         Agent = Query()
 
         # Check if name already exists
-        existing = await arun(self.db.get, Agent.name == name)
+        existing = await self._arun_locked(self._tinydb.get, Agent.name == name)
         if existing is not None:
             raise ValueError(f"Agent with name '{name}' already exists")
 
@@ -82,18 +92,33 @@ class DefaultAgentRegistry(AgentRegistry):
         settings_dict = settings.to_dict()
 
         # Create document
-        doc = {"name": name, "description": description, "handoff": handoff, "settings": settings_dict}
+        doc = {"name": name, "description": description, "handoff": handoff, "settings": settings_dict, "emoji": emoji}
 
         # Insert document
-        await arun(self.db.insert, doc)
+        await self._arun_locked(self._tinydb.insert, doc)
 
     async def remove_config(self, name: str):
         """Remove settings for an agent."""
         Agent = Query()
-        removed_ids = await arun(self.db.remove, Agent.name == name)
+        removed_ids = await self._arun_locked(self._tinydb.remove, Agent.name == name)
 
         if not removed_ids:
             raise ValueError(f"No agent registered with name '{name}'")
 
     async def remove_configs(self):
-        await arun(self.db.drop_tables)
+        await self._arun_locked(self._tinydb.drop_tables)
+
+    def add_factory(self, name: str, description: str, factory: AgentFactory, emoji: str | None = None):
+        self._factories[name] = {"name": name, "description": description, "factory": factory, "emoji": emoji}
+
+    def remove_factory(self, name: str):
+        self._factories.pop(name)
+
+    def remove_factories(self):
+        self._factories.clear()
+
+    async def _arun_locked(self, func: Callable[..., T], *args, **kwargs) -> T:
+        # Lock to prevent concurrent access to TinyDB,
+        # and NOT for making registry operations atomic
+        async with self._lock:
+            return await arun(func, *args, **kwargs)

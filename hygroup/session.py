@@ -4,7 +4,7 @@ import uuid
 from asyncio import Future, Queue, Task, create_task, sleep
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import aiofiles
 import aiofiles.os
@@ -97,13 +97,13 @@ class SessionAgent:
 class Session:
     def __init__(
         self,
+        manager: "SessionManager",
         id: str | None = None,
         group: bool = True,
-        manager: Optional["SessionManager"] = None,
     ):
         self.id = id or str(uuid.uuid4())
         self.group = group
-        self.manager = manager or SessionManager()
+        self.manager = manager
 
         self.agent_registry = self.manager.agent_registry
         self.user_registry = self.manager.user_registry
@@ -322,7 +322,7 @@ class Session:
 class SessionManager:
     def __init__(
         self,
-        agent_registry: AgentRegistry | None = None,
+        agent_registry: AgentRegistry,
         user_registry: UserRegistry | None = None,
         permission_store: PermissionStore | None = None,
         request_handler: RequestHandler | None = None,
@@ -339,7 +339,7 @@ class SessionManager:
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
     def create_session(self, id: str | None = None) -> Session:
-        return Session(id=id, manager=self)
+        return Session(manager=self, id=id)
 
     async def load_session(self, id: str) -> Session | None:
         if not await self.session_saved(id):

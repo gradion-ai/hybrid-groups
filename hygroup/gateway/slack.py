@@ -91,7 +91,13 @@ class SlackGateway(Gateway):
         else:
             await self._handler.connect_async()
 
-    async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
+    async def handle_agent_response(
+        self,
+        response: AgentResponse,
+        sender: str,
+        receiver: str,
+        session_id: str,
+    ):
         thread = self._threads[session_id]
 
         receiver_resolved = self._resolve_slack_user_id(receiver)
@@ -105,7 +111,12 @@ class SlackGateway(Gateway):
 
         await self._post_slack_message(thread, f"{receiver_resolved_formatted} {response_text}", sender)
 
-    async def _post_slack_message(self, thread: SlackThread, text: str, sender: str, **kwargs):
+    async def _post_slack_message(self, thread: SlackThread, text: str, sender: str):
+        if thread.session.agent_registry:
+            emoji = await thread.session.agent_registry.get_emoji(sender)
+        else:
+            emoji = None
+
         await self._client.chat_postMessage(
             channel=thread.channel,
             thread_ts=thread.id,
@@ -120,8 +131,7 @@ class SlackGateway(Gateway):
                 },
             ],
             username=sender,
-            icon_emoji=":robot_face:",
-            **kwargs,
+            icon_emoji=f":{emoji}:" or ":robot_face:",
         )
 
     async def handle_slack_message(self, message):
