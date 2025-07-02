@@ -215,6 +215,10 @@ class Session:
             await self._agent_selector.add(message)
             return
 
+        if message.id:
+            # inform gateway that selector is about to be activated
+            await self.gateway.handle_selector_activation(message_id=message.id, session_id=self.id)
+
         selection_result = await self._agent_selector.run(message)
         selection = selection_result.selection
 
@@ -235,7 +239,7 @@ class Session:
             if not confirmation_response.confirmed or selection.agent_name is None or selection.query is None:
                 return
 
-            agent_request = AgentRequest(query=selection.query, sender=message.sender)
+            agent_request = AgentRequest(query=selection.query, sender=message.sender, id=message.id)
             await self.invoke(agent_request, selection.agent_name)
 
     async def update(self, message: Message):
@@ -259,6 +263,9 @@ class Session:
             await self._load_agent(receiver)
 
         if receiver in self._agents:
+            if request.id:
+                # inform gateway that agent is about to be activated
+                await self.gateway.handle_agent_activation(message_id=request.id, session_id=self.id)
             # get secrets of authenticated sender
             secrets = self._user_secrets(request.sender)
             # invoke receiver agent with request

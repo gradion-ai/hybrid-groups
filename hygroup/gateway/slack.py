@@ -1,6 +1,6 @@
 import logging
 import os
-from asyncio import Lock
+from asyncio import Lock, create_task
 from dataclasses import dataclass
 
 from markdown_to_mrkdwn import SlackMarkdownConverter
@@ -26,7 +26,7 @@ class SlackThread:
 
     async def handle_message(self, msg: dict):
         if self.session.contains(msg["id"]):
-            return
+            return  # idempotency
 
         if msg["receiver_resolved"] in await self.session.agent_names():
             await self._invoke_agent(
@@ -90,6 +90,14 @@ class SlackGateway(Gateway):
             await self._handler.start_async()
         else:
             await self._handler.connect_async()
+
+    async def handle_selector_activation(self, message_id: str, session_id: str):
+        thread = self._threads[session_id]
+        create_task(self._client.reactions_add(channel=thread.channel, timestamp=message_id, name="eyes"))
+
+    async def handle_agent_activation(self, message_id: str, session_id: str):
+        thread = self._threads[session_id]
+        create_task(self._client.reactions_add(channel=thread.channel, timestamp=message_id, name="robot_face"))
 
     async def handle_agent_response(
         self,

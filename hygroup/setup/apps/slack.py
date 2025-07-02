@@ -18,6 +18,7 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
                 "chat:write",
                 "chat:write.customize",
                 "channels:read",
+                "reactions:write",
             ]
         }
     },
