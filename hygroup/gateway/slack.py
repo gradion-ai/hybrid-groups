@@ -1,23 +1,32 @@
 import logging
 import os
-from asyncio import Lock, create_task
-from dataclasses import dataclass
+from asyncio import Lock
+from dataclasses import dataclass, field
+from uuid import uuid4
 
 from markdown_to_mrkdwn import SlackMarkdownConverter
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
-from hygroup.agent import AgentRequest, AgentResponse, Message
+from hygroup.agent import (
+    AgentRequest,
+    AgentResponse,
+    Message,
+    PermissionRequest,
+)
 from hygroup.gateway.base import Gateway
 from hygroup.gateway.utils import extract_mention, extract_thread_references, replace_all_mentions
 from hygroup.session import Session, SessionManager
+from hygroup.user import RequestHandler
 
 
 @dataclass
 class SlackThread:
     channel: str
     session: Session
+    permission_requests: dict[str, PermissionRequest] = field(default_factory=dict)
+    activated: bool = False
     lock: Lock = Lock()
 
     @property
@@ -59,13 +68,20 @@ class SlackThread:
         await self.session.invoke(request=request, receiver=receiver)
 
 
-class SlackGateway(Gateway):
+class SlackGateway(Gateway, RequestHandler):
     def __init__(
         self,
         session_manager: SessionManager,
         user_mapping: dict[str, str] = {},
+        handle_permission_requests: bool = False,
     ):
         self.session_manager = session_manager
+        self.delegate_handler = session_manager.request_handler
+
+        if handle_permission_requests:
+            # Gateway handles permission requests itself, delegating
+            # all other requests to the original request handler.
+            self.session_manager.request_handler = self
 
         # maps from slack user id to system user id
         self._slack_user_mapping = user_mapping
@@ -80,6 +96,10 @@ class SlackGateway(Gateway):
 
         # register event handlers
         self._app.message("")(self.handle_slack_message)
+        self._app.action("once_button")(self.handle_permission_response)
+        self._app.action("session_button")(self.handle_permission_response)
+        self._app.action("always_button")(self.handle_permission_response)
+        self._app.action("deny_button")(self.handle_permission_response)
 
         # Suppress "unhandled request" log messages
         self.logger = logging.getLogger("slack_bolt.AsyncApp")
@@ -91,21 +111,30 @@ class SlackGateway(Gateway):
         else:
             await self._handler.connect_async()
 
-    async def handle_selector_activation(self, message_id: str, session_id: str):
-        thread = self._threads[session_id]
-        create_task(self._client.reactions_add(channel=thread.channel, timestamp=message_id, name="eyes"))
+    async def handle_feedback_request(self, *args, **kwargs):
+        await self.delegate_handler.handle_feedback_request(*args, **kwargs)
 
-    async def handle_agent_activation(self, message_id: str, session_id: str):
-        thread = self._threads[session_id]
-        create_task(self._client.reactions_add(channel=thread.channel, timestamp=message_id, name="robot_face"))
+    async def handle_confirmation_request(self, *args, **kwargs):
+        await self.delegate_handler.handle_confirmation_request(*args, **kwargs)
 
-    async def handle_agent_response(
-        self,
-        response: AgentResponse,
-        sender: str,
-        receiver: str,
-        session_id: str,
-    ):
+    async def handle_agent_activation(self, agent_name: str | None, message_id: str, session_id: str):
+        thread = self._threads[session_id]
+
+        match agent_name:
+            case None:
+                emoji = "ballot_box_with_check"
+            case "selector":
+                emoji = "eyes"
+            case _:
+                emoji = "robot_face"
+
+        await self._client.reactions_add(
+            channel=thread.channel,
+            timestamp=message_id,
+            name=emoji,
+        )
+
+    async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         thread = self._threads[session_id]
 
         receiver_resolved = self._resolve_slack_user_id(receiver)
@@ -117,19 +146,29 @@ class SlackGateway(Gateway):
             for agent, query in response.handoffs.items():
                 response_text += f"\n- `{agent}`: {query}"
 
-        await self._post_slack_message(thread, f"{receiver_resolved_formatted} {response_text}", sender)
+        text = f"{receiver_resolved_formatted} {response_text}"
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": self._converter.convert(text),
+                },
+            },
+        ]
+        await self._post_slack_message(thread, text, sender, blocks=blocks)
 
-    async def _post_slack_message(self, thread: SlackThread, text: str, sender: str):
-        if thread.session.agent_registry:
-            emoji = await thread.session.agent_registry.get_emoji(sender)
-        else:
-            emoji = None
+    async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):  # type: ignore
+        corr_id = str(uuid4())
 
-        await self._client.chat_postMessage(
-            channel=thread.channel,
-            thread_ts=thread.id,
-            text=text,
-            blocks=[
+        thread = self._threads[session_id]
+        thread.permission_requests[corr_id] = request
+
+        # A more robust approach would be https://api.slack.com/methods/conversations.replies
+        # to determine if there is an active thread, but it has too restrictive rate limits.
+        if request._num_agent_responses == 0 and not thread.activated:
+            text = "Initializing :thread: ..."
+            blocks = [
                 {
                     "type": "section",
                     "text": {
@@ -137,10 +176,125 @@ class SlackGateway(Gateway):
                         "text": self._converter.convert(text),
                     },
                 },
-            ],
-            username=sender,
-            icon_emoji=f":{emoji}:" or ":robot_face:",
+            ]
+            await self._post_slack_message(thread, text, sender, blocks=blocks)
+
+            # Since multiple initial permission requests may be delivered before the first agent
+            # response, we mark the thread as activated after the first permission request in
+            # order to avoid sending multiple initialization notifications.
+            thread.activated = True
+
+        text = f"*Execute action:*\n\n```\n{request.call}\n```\n\n"
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": self._converter.convert(text),
+                },
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {  # type: ignore
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Once"},
+                        "action_id": "once_button",
+                        "value": corr_id,
+                        "style": "primary",
+                    },
+                    {  # type: ignore
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Session"},
+                        "action_id": "session_button",
+                        "value": corr_id,
+                    },
+                    {  # type: ignore
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Always"},
+                        "action_id": "always_button",
+                        "value": corr_id,
+                    },
+                    {  # type: ignore
+                        "type": "button",
+                        "text": {"type": "plain_text", "text": "Deny"},
+                        "action_id": "deny_button",
+                        "value": corr_id,
+                        "style": "danger",
+                    },
+                ],
+            },
+        ]
+
+        # ----------------------------------------------------------------------------------
+        # Setting the user argument causes the message to be sent as ephemeral message,
+        # visible only to that user. For the moment, we send all permission requests as
+        # ephemeral messages.
+        #
+        # Possible future improvement: only send ephemeral messages if request.as_user is
+        # True. This means the user is about to execute an MCP tool with its own secrets.
+        # For these permission requests, the user alone must be able to decide whether to
+        # grant or deny execution. For all other permission requests, we may let any user
+        # (or more restrictively, any admin) in the group decide whether to execute a tool
+        # or not.
+        # ----------------------------------------------------------------------------------
+
+        await self._post_slack_message(
+            thread=thread,
+            text=text,
+            sender=sender,
+            blocks=blocks,
+            user=self._resolve_slack_user_id(receiver),
         )
+
+    async def _post_slack_message(self, thread: SlackThread, text: str, sender: str, **kwargs):
+        if thread.session.agent_registry:
+            emoji = await thread.session.agent_registry.get_emoji(sender)
+        else:
+            emoji = None
+
+        emoji = emoji or "robot_face"
+
+        if "user" in kwargs:
+            coro = self._client.chat_postEphemeral
+        else:
+            coro = self._client.chat_postMessage
+
+        await coro(
+            channel=thread.channel,
+            thread_ts=thread.id,
+            text=text,
+            username=sender,
+            icon_emoji=f":{emoji}:",
+            **kwargs,
+        )
+
+    async def handle_permission_response(self, ack, body):
+        await ack()
+
+        message = body.get("message") or body["container"]
+        thread_id = message["thread_ts"]
+        thread = self._threads.get(thread_id)
+
+        if thread is None:
+            return
+
+        action = body["actions"][0]
+        cid = action.get("value")
+
+        if cid in thread.permission_requests:
+            request = thread.permission_requests.pop(cid)
+            match action["action_id"]:
+                case "once_button":
+                    request.grant_once()
+                case "session_button":
+                    request.grant_session()
+                case "always_button":
+                    request.grant_always()
+                case "deny_button":
+                    request.deny()
+                case _:
+                    raise ValueError(f"Unknown action: {action['action_id']}")
 
     async def handle_slack_message(self, message):
         msg = self._parse_slack_message(message)
@@ -228,7 +382,13 @@ class SlackGateway(Gateway):
                 if cursor:
                     params["cursor"] = cursor
 
-                response = await self._client.conversations_replies(**params)
+                try:
+                    # Rate limit: https://api.slack.com/methods/conversations.replies
+                    response = await self._client.conversations_replies(**params)
+                except Exception as e:
+                    # Log error and return. We can recover from this error later.
+                    self.logger.exception(e)
+                    return []
 
                 for message in response["messages"]:
                     # Skip bot messages and messages without a user

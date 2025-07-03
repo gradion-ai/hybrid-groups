@@ -1,12 +1,12 @@
 import asyncio
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from tinydb import Query, TinyDB
 
 from hygroup.agent.base import AgentRegistry
 from hygroup.agent.default.agent import AgentBase, AgentFactory, AgentSettings, DefaultAgent, HandoffAgent
-from hygroup.utils import T, arun
+from hygroup.utils import arun
 
 
 class DefaultAgentRegistry(AgentRegistry):
@@ -50,8 +50,9 @@ class DefaultAgentRegistry(AgentRegistry):
         """Return a dictionary of agent names and their descriptions."""
         descriptions = {}
 
-        for doc in await self._arun_locked(self._tinydb.all):
-            descriptions[doc["name"]] = doc["description"]
+        async with self._lock:
+            for doc in await arun(self._tinydb.all):
+                descriptions[doc["name"]] = doc["description"]
 
         for name, doc in self._factories.items():
             descriptions[name] = doc["description"]
@@ -70,7 +71,9 @@ class DefaultAgentRegistry(AgentRegistry):
     async def get_config(self, name: str) -> dict[str, Any]:
         """Return the configuration for an agent."""
         Agent = Query()
-        return await self._arun_locked(self._tinydb.get, Agent.name == name)
+
+        async with self._lock:
+            return await arun(self._tinydb.get, Agent.name == name)
 
     async def add_config(
         self,
@@ -83,30 +86,40 @@ class DefaultAgentRegistry(AgentRegistry):
         """Add settings for an agent."""
         Agent = Query()
 
-        # Check if name already exists
-        existing = await self._arun_locked(self._tinydb.get, Agent.name == name)
-        if existing is not None:
-            raise ValueError(f"Agent with name '{name}' already exists")
+        async with self._lock:
+            # Check if name already exists
+            existing = await arun(self._tinydb.get, Agent.name == name)
+            if existing is not None:
+                raise ValueError(f"Agent with name '{name}' already exists")
 
-        # Convert AgentSettings to dict for storage
-        settings_dict = settings.to_dict()
+            # Convert AgentSettings to dict for storage
+            settings_dict = settings.to_dict()
 
-        # Create document
-        doc = {"name": name, "description": description, "handoff": handoff, "settings": settings_dict, "emoji": emoji}
+            # Create document
+            doc = {
+                "name": name,
+                "description": description,
+                "handoff": handoff,
+                "settings": settings_dict,
+                "emoji": emoji,
+            }
 
-        # Insert document
-        await self._arun_locked(self._tinydb.insert, doc)
+            # Insert document
+            await arun(self._tinydb.insert, doc)
 
     async def remove_config(self, name: str):
         """Remove settings for an agent."""
         Agent = Query()
-        removed_ids = await self._arun_locked(self._tinydb.remove, Agent.name == name)
+
+        async with self._lock:
+            removed_ids = await arun(self._tinydb.remove, Agent.name == name)
 
         if not removed_ids:
             raise ValueError(f"No agent registered with name '{name}'")
 
     async def remove_configs(self):
-        await self._arun_locked(self._tinydb.drop_tables)
+        async with self._lock:
+            await arun(self._tinydb.drop_tables)
 
     def add_factory(self, name: str, description: str, factory: AgentFactory, emoji: str | None = None):
         self._factories[name] = {"name": name, "description": description, "factory": factory, "emoji": emoji}
@@ -116,9 +129,3 @@ class DefaultAgentRegistry(AgentRegistry):
 
     def remove_factories(self):
         self._factories.clear()
-
-    async def _arun_locked(self, func: Callable[..., T], *args, **kwargs) -> T:
-        # Lock to prevent concurrent access to TinyDB,
-        # and NOT for making registry operations atomic
-        async with self._lock:
-            return await arun(func, *args, **kwargs)

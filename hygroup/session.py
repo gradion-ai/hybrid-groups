@@ -1,5 +1,5 @@
 import json
-import os
+import logging
 import uuid
 from asyncio import Future, Queue, Task, create_task, sleep
 from dataclasses import asdict
@@ -26,6 +26,8 @@ from hygroup.gateway import Gateway
 from hygroup.user import PermissionStore, RequestHandler, UserRegistry
 from hygroup.user.default import RichConsoleHandler
 
+logger = logging.getLogger(__name__)
+
 
 class SessionAgent:
     def __init__(self, agent: Agent, session: "Session"):
@@ -48,7 +50,7 @@ class SessionAgent:
     async def update(self, message: Message):
         await self._queue.put(message)
 
-    async def invoke(self, request: AgentRequest, secrets: dict[str, str]):
+    async def invoke(self, request: AgentRequest, secrets: dict[str, str] | None = None):
         await self._queue.put((request, secrets))
 
     async def worker(self):
@@ -62,7 +64,7 @@ class SessionAgent:
                         # -------------------------------------
                         #  TODO: trace query
                         # -------------------------------------
-                        async with self.agent.request_scope(config_values=secrets):
+                        async with self.agent.request_scope(secrets=secrets):
                             async for elem in self.agent.run(
                                 request=request, updates=self._updates, threads=threads, stream=False
                             ):
@@ -107,18 +109,47 @@ class Session:
 
         self.agent_registry = self.manager.agent_registry
         self.user_registry = self.manager.user_registry
-        self.request_handler = self.manager.request_handler or RichConsoleHandler(upper_bound=1)
         self.permission_store = self.manager.permission_store
+        self.selector_settings = self.manager.selector_settings
 
-        self._gateway: Gateway | None = None
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
-
         self._sync_task: Task | None = None
-        self._agent_selector: AgentSelector | None = None
 
-        if self.agent_registry:
-            self._agent_selector = AgentSelector(registry=self.agent_registry, settings=self.manager.selector_settings)
+        self._gateway_queue: Queue = Queue()
+        self._gateway_task: Task = create_task(self._gateway_worker())
+        self._gateway: Gateway | None = None
+
+        self._request_handler_queue: Queue = Queue()
+        self._request_handler_task: Task = create_task(self._request_handler_worker())
+        self._request_handler = self.manager.request_handler
+
+        self._selector_queue: Queue = Queue()
+        self._selector_task: Task = create_task(self._selector_worker())
+        self._selector: AgentSelector = AgentSelector(
+            registry=self.agent_registry,
+            settings=self.selector_settings,
+        )
+
+    async def _gateway_worker(self):
+        # for sequential (but not atomic) execution of gateway methods
+        await self._worker(self._gateway_queue)
+
+    async def _request_handler_worker(self):
+        # for sequential (but not atomic) execution of request handler methods
+        await self._worker(self._request_handler_queue)
+
+    async def _selector_worker(self):
+        # for sequential (but not atomic) execution of select()
+        await self._worker(self._selector_queue)
+
+    async def _worker(self, queue: Queue):
+        while True:
+            coro = await queue.get()
+            try:
+                await coro
+            except Exception as e:
+                logger.exception(e)
 
     @property
     def gateway(self) -> Gateway:
@@ -130,22 +161,33 @@ class Session:
     def messages(self) -> list[Message]:
         return self._messages
 
+    def set_gateway(self, gateway: Gateway):
+        self._gateway = gateway
+
+    def add_agent(self, agent: Agent):
+        self._agents[agent.name] = SessionAgent(agent, self)
+
     async def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
-
-        if self.agent_registry:
-            names |= await self.agent_registry.get_registered_names()
-
+        names |= await self.agent_registry.get_registered_names()
         return names
+
+    async def _load_agent(self, name: str):
+        if self.agent_registry is None:
+            return
+        try:
+            self.add_agent(await self.agent_registry.create_agent(name))
+        except Exception:
+            return
 
     def _user_authenticated(self, username: str) -> bool:
         if self.user_registry is None:
             return True
         return self.user_registry.authenticated(username)
 
-    def _user_secrets(self, username: str) -> dict[str, str]:
+    def _user_secrets(self, username: str) -> dict[str, str] | None:
         if self.user_registry is None:
-            return dict(os.environ)
+            return None
         return self.user_registry.get_secrets(username)
 
     async def _get_permission(self, tool_name: str, username: str) -> int | None:
@@ -157,33 +199,32 @@ class Session:
         if self.permission_store is not None:
             await self.permission_store.set_permission(tool_name, username, self.id, response)
 
-    async def _load_agent(self, name: str):
-        if self.agent_registry is None:
-            return
-        try:
-            self.add_agent(await self.agent_registry.create_agent(name))
-        except Exception:
-            return
-
-    def add_agent(self, agent: Agent):
-        self._agents[agent.name] = SessionAgent(agent, self)
-
-    def set_gateway(self, gateway: Gateway):
-        self._gateway = gateway
+    async def _num_agent_responses(self) -> int:
+        agent_names = await self.agent_names()
+        agent_responses = [m for m in self._messages if m.sender in agent_names or m.sender == "system"]
+        return len(agent_responses)
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str):
         if permission := await self._get_permission(request.tool_name, receiver):
             request.respond(permission)
             return
 
-        await self.request_handler.handle_permission_request(request, sender, receiver, session_id=self.id)
+        # snapshot of the number of agent responses in session
+        # (relevant only for Slack gateway at the moment)
+        request._num_agent_responses = await self._num_agent_responses()
+
+        coro = self._request_handler.handle_permission_request(request, sender, receiver, session_id=self.id)
+        await self._request_handler_queue.put(coro)
+
         permission = await request.response()
 
         if permission in [2, 3]:
             await self._set_permission(request.tool_name, receiver, permission)
 
     async def handle_feedback_request(self, request: FeedbackRequest, sender: str, receiver: str):
-        await self.request_handler.handle_feedback_request(request, sender, receiver, session_id=self.id)
+        coro = self._request_handler.handle_feedback_request(request, sender, receiver, session_id=self.id)
+        await self._request_handler_queue.put(coro)
+
         await request.response()
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str):
@@ -193,18 +234,20 @@ class Session:
         for agent, query in response.handoffs.items():
             await self.invoke(request=AgentRequest(query=query, sender=receiver), receiver=agent)
 
-        await self.gateway.handle_agent_response(response, sender, receiver, session_id=self.id)
+        coro = self.gateway.handle_agent_response(response, sender, receiver, session_id=self.id)
+        await self._gateway_queue.put(coro)
 
     async def handle_system_response(self, response: str, receiver: str):
-        await self.gateway.handle_agent_response(
+        coro = self.gateway.handle_agent_response(
             response=AgentResponse(text=response, final=True),
             sender="system",
             receiver=receiver,
             session_id=self.id,
         )
+        await self._gateway_queue.put(coro)
 
     async def select(self, message: Message):
-        if self._agent_selector is None:
+        if self._selector is None:
             return
 
         # agent names currently available in registry
@@ -212,14 +255,16 @@ class Session:
 
         if message.sender == "system" or message.sender in agent_names or message.receiver in agent_names:
             # we don't select an agent, just add the message to the selector's history
-            await self._agent_selector.add(message)
+            await self._selector.add(message)
             return
 
         if message.id:
-            # inform gateway that selector is about to be activated
-            await self.gateway.handle_selector_activation(message_id=message.id, session_id=self.id)
+            coro = self.gateway.handle_agent_activation(
+                agent_name="selector", message_id=message.id, session_id=self.id
+            )
+            await self._gateway_queue.put(coro)
 
-        selection_result = await self._agent_selector.run(message)
+        selection_result = await self._selector.run(message)
         selection = selection_result.selection
 
         if selection.agent_name in agent_names or selection.agent_name is None:
@@ -227,16 +272,25 @@ class Session:
                 selection_result=selection_result,
                 ftr=Future(),
             )
-            await self.request_handler.handle_confirmation_request(
+            coro = self._request_handler.handle_confirmation_request(
                 confirmation_request,
                 sender="selector",
                 receiver=message.sender,
                 session_id=self.id,
             )
+            await self._request_handler_queue.put(coro)
 
             # blocks until confirmation_request.respond() is called
             confirmation_response = await confirmation_request.response()
+
             if not confirmation_response.confirmed or selection.agent_name is None or selection.query is None:
+                if message.id:
+                    coro = self.gateway.handle_agent_activation(
+                        agent_name=None,
+                        message_id=message.id,
+                        session_id=self.id,
+                    )
+                    await self._gateway_queue.put(coro)
                 return
 
             agent_request = AgentRequest(query=selection.query, sender=message.sender, id=message.id)
@@ -250,7 +304,8 @@ class Session:
                 if agent_name not in [message.sender, message.receiver]:
                     await agent.update(message)
 
-        create_task(self.select(message))
+        coro = self.select(message)
+        await self._selector_queue.put(coro)
 
     async def invoke(self, request: AgentRequest, receiver: str):
         if not self._user_authenticated(request.sender):
@@ -264,27 +319,29 @@ class Session:
 
         if receiver in self._agents:
             if request.id:
-                # inform gateway that agent is about to be activated
-                await self.gateway.handle_agent_activation(message_id=request.id, session_id=self.id)
+                coro = self.gateway.handle_agent_activation(
+                    agent_name=receiver,
+                    message_id=request.id,
+                    session_id=self.id,
+                )
+                await self._gateway_queue.put(coro)
+
             # get secrets of authenticated sender
             secrets = self._user_secrets(request.sender)
             # invoke receiver agent with request
             await self._agents[receiver].invoke(request, secrets)
+            # notify others about this request
             message = Message(
                 sender=request.sender,
                 receiver=receiver,
                 text=request.query,
                 id=request.id,
             )
-            # notify others about this request
             await self.update(message)
         else:
-            # make sure the gateway doesn't block us
-            create_task(
-                self.handle_system_response(
-                    response=f'Agent "{receiver}" does not exist',
-                    receiver=request.sender,
-                )
+            await self.handle_system_response(
+                response=f'Agent "{receiver}" does not exist',
+                receiver=request.sender,
             )
 
     def contains(self, id: str) -> bool:
@@ -306,8 +363,8 @@ class Session:
             "messages": [asdict(message) for message in self._messages],
             "agents": {name: adapter.get_state() for name, adapter in self._agents.items()},
         }
-        if self._agent_selector:
-            state_dict["selector"] = self._agent_selector.get_state()
+        if self._selector:
+            state_dict["selector"] = self._selector.get_state()
         await self.manager.save_session_state(self.id, state_dict)
 
     async def load(self):
@@ -319,8 +376,8 @@ class Session:
                 self._agents[name].set_state(state)
 
         # restore selector agent state
-        if self._agent_selector and "selector" in state_dict:
-            self._agent_selector.set_state(state_dict["selector"])
+        if self._selector and "selector" in state_dict:
+            self._selector.set_state(state_dict["selector"])
 
         # restore thread messages
         self._messages = [Message(**message) for message in state_dict["messages"]]
@@ -339,7 +396,7 @@ class SessionManager:
         self.agent_registry = agent_registry
         self.user_registry = user_registry
         self.permission_store = permission_store
-        self.request_handler = request_handler
+        self.request_handler = request_handler or RichConsoleHandler(upper_bound=1, default_confirmation_response=True)
         self.selector_settings = selector_settings
 
         self.root_dir = root_dir

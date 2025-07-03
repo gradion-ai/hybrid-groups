@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 
 from tinydb import Query, TinyDB
@@ -17,7 +18,9 @@ class DefaultPermissionStore(PermissionStore):
         """
         self.store_path = Path(store_path)
         self.store_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(str(self.store_path), indent=2)
+
+        self._tinydb = TinyDB(str(self.store_path), indent=2)
+        self._lock = asyncio.Lock()
 
     async def get_permission(self, tool_name: str, username: str, session_id: str) -> int | None:
         """Get permission for a tool and user, considering session context.
@@ -32,21 +35,22 @@ class DefaultPermissionStore(PermissionStore):
         """
         Query_ = Query()
 
-        # First, check for permanent permission (level 3)
-        permanent_permission = await arun(
-            self.db.get,
-            (Query_.tool_name == tool_name) & (Query_.username == username) & (Query_.session_id == None),  # noqa: E711
-        )
-        if permanent_permission:
-            return permanent_permission["permission"]
+        async with self._lock:
+            # First, check for permanent permission (level 3)
+            permanent_permission = await arun(
+                self._tinydb.get,
+                (Query_.tool_name == tool_name) & (Query_.username == username) & (Query_.session_id == None),  # noqa: E711
+            )
+            if permanent_permission:
+                return permanent_permission["permission"]
 
-        # Then check for session-specific permission (level 2)
-        session_permission = await arun(
-            self.db.get,
-            (Query_.tool_name == tool_name) & (Query_.username == username) & (Query_.session_id == session_id),
-        )
-        if session_permission:
-            return session_permission["permission"]
+            # Then check for session-specific permission (level 2)
+            session_permission = await arun(
+                self._tinydb.get,
+                (Query_.tool_name == tool_name) & (Query_.username == username) & (Query_.session_id == session_id),
+            )
+            if session_permission:
+                return session_permission["permission"]
 
         # No stored permission found
         return None
@@ -77,16 +81,17 @@ class DefaultPermissionStore(PermissionStore):
             "session_id": session_id if permission == 2 else None,
         }
 
-        # For level 3, remove any existing permissions (session or permanent) and insert new
-        if permission == 3:
-            # Remove all existing permissions for this tool/user combination
-            await arun(self.db.remove, (Query_.tool_name == tool_name) & (Query_.username == username))
-            # Insert the permanent permission
-            await arun(self.db.insert, doc)
-        elif permission == 2:
-            # For level 2, upsert based on tool/user/session combination
-            await arun(
-                self.db.upsert,
-                doc,
-                (Query_.tool_name == tool_name) & (Query_.username == username) & (Query_.session_id == session_id),
-            )
+        async with self._lock:
+            # For level 3, remove any existing permissions (session or permanent) and insert new
+            if permission == 3:
+                # Remove all existing permissions for this tool/user combination
+                await arun(self._tinydb.remove, (Query_.tool_name == tool_name) & (Query_.username == username))
+                # Insert the permanent permission
+                await arun(self._tinydb.insert, doc)
+            elif permission == 2:
+                # For level 2, upsert based on tool/user/session combination
+                await arun(
+                    self._tinydb.upsert,
+                    doc,
+                    (Query_.tool_name == tool_name) & (Query_.username == username) & (Query_.session_id == session_id),
+                )

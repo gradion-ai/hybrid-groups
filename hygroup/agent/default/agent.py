@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import os
 from abc import abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from contextvars import ContextVar
@@ -129,7 +130,8 @@ class AgentBase(Generic[D], Agent):
         )
 
         self._history = []  # type: ignore
-        self._ctx = ContextVar[asyncio.Queue]("queue")
+        self._ctx_queue = ContextVar[asyncio.Queue]("queue")
+        self._ctx_secrets = ContextVar[bool]("secrets")
 
         # references servers with patched call_tool methods
         self._session_mcp_servers: list[MCPServer] = []
@@ -159,8 +161,9 @@ class AgentBase(Generic[D], Agent):
             yield
 
     @asynccontextmanager
-    async def request_scope(self, config_values: dict[str, str] | None = None):
-        with self._configure_mcp_servers(config_values or {}):
+    async def request_scope(self, secrets: dict[str, str] | None = None):
+        self._ctx_secrets.set(secrets is not None)
+        with self._configure_mcp_servers(secrets or dict(os.environ)):
             async with self._run_mcp_servers(self._request_mcp_servers):
                 yield
 
@@ -172,7 +175,7 @@ class AgentBase(Generic[D], Agent):
         stream: bool = False,
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]:
         queue = asyncio.Queue()  # type: ignore
-        self._ctx.set(queue)
+        self._ctx_queue.set(queue)
 
         task = asyncio.create_task(self._run(request=request, updates=updates, threads=threads, stream=stream))
 
@@ -191,7 +194,7 @@ class AgentBase(Generic[D], Agent):
                         break
 
     async def _run(self, request: AgentRequest, updates: Sequence[Message], threads: Sequence[Thread], stream: bool):
-        queue = self._ctx.get()
+        queue = self._ctx_queue.get()
         agent_input = self.input_formatter(request, self.name, updates, threads)
 
         if stream:
@@ -258,7 +261,7 @@ class AgentBase(Generic[D], Agent):
 
     async def ask_user(self, question: str) -> str:
         """Ask the user for clarifications or further input if you cannot complete the task."""
-        queue = self._ctx.get()
+        queue = self._ctx_queue.get()
         request = FeedbackRequest(question=question, ftr=asyncio.Future())
         await queue.put(request)
         return await request.response()
@@ -292,7 +295,8 @@ class AgentBase(Generic[D], Agent):
 
             @wraps(call_tool)
             async def request_permission(tool_name: str, arguments: dict[str, Any]):
-                request = PermissionRequest(tool_name, (), arguments, ftr=asyncio.Future())
+                as_user = self._ctx_secrets.get(False) and not settings.session_scope
+                request = PermissionRequest(tool_name, (), arguments, asyncio.Future(), as_user)
                 return await self._request_permission(call_tool, (tool_name, arguments), {}, request)
 
             if requires_permission:
@@ -311,7 +315,7 @@ class AgentBase(Generic[D], Agent):
         return decorator
 
     async def _request_permission(self, coro, args, kwargs, request: PermissionRequest):
-        queue = self._ctx.get()
+        queue = self._ctx_queue.get()
         await queue.put(request)
 
         if await request.response():

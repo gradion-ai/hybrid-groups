@@ -191,7 +191,7 @@ async def test_session_id_none_for_permanent(store):
     from tinydb import Query
 
     Query_ = Query()
-    doc = store.db.get(
+    doc = store._tinydb.get(
         (Query_.tool_name == "bash") & (Query_.username == "alice") & (Query_.session_id == None)  # noqa: E711
     )
     assert doc is not None
@@ -214,7 +214,7 @@ async def test_permanent_permission_removes_all_existing(store):
     from tinydb import Query
 
     Query_ = Query()
-    docs = store.db.search((Query_.tool_name == "bash") & (Query_.username == "alice"))
+    docs = store._tinydb.search((Query_.tool_name == "bash") & (Query_.username == "alice"))
     assert len(docs) == 1
     assert docs[0]["permission"] == 3
     assert docs[0]["session_id"] is None
