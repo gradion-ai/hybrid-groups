@@ -70,7 +70,7 @@ class GithubGateway(Gateway):
         self._github_installation_id = github_installation_id
 
         self._github_user_mapping = user_mapping
-        self._core_user_mapping = {v: k for k, v in user_mapping.items()}
+        self._system_user_mapping = {v: k for k, v in user_mapping.items()}
 
         self._github_auth = Auth.AppAuth(
             app_id=github_app_id,
@@ -102,11 +102,11 @@ class GithubGateway(Gateway):
         if join:
             await serve_task
 
-    def _resolve_core_user_id(self, github_user_id: str) -> str:
+    def _resolve_system_user_id(self, github_user_id: str) -> str:
         return self._github_user_mapping.get(github_user_id, github_user_id)
 
-    def _resolve_github_user_id(self, core_user_id: str) -> str:
-        return self._core_user_mapping.get(core_user_id, core_user_id)
+    def _resolve_github_user_id(self, system_user_id: str) -> str:
+        return self._system_user_mapping.get(system_user_id, system_user_id)
 
     def _conversation_id(self, event: GithubEvent) -> str:
         return f"{event.repository_owner}-{event.repository_name}-{event.issue_number}"
@@ -163,14 +163,14 @@ class GithubGateway(Gateway):
                 return
 
     async def _handle_conversation_message(self, conversation: GithubConversation, message: str, username: str):
-        sender_resolved = self._resolve_core_user_id(username)
+        sender_resolved = self._resolve_system_user_id(username)
 
         receiver, text = extract_mention(message)
         receiver_resolved = (
-            None if receiver is None else self._resolve_core_user_id(self._remove_receiver_prefix(receiver))
+            None if receiver is None else self._resolve_system_user_id(self._remove_receiver_prefix(receiver))
         )
 
-        text = replace_all_mentions(text, self._resolve_core_user_id)
+        text = replace_all_mentions(text, self._resolve_system_user_id)
         thread_refs = extract_thread_references(text)
 
         if receiver_resolved in await conversation.session.agent_names():

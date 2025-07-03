@@ -42,6 +42,13 @@ class PermissionRequest:
     tool_kwargs: dict[str, Any]
     ftr: Future
 
+    # Set to True by an agent if the tool is an MCP
+    # tool, executed by a user with its own secrets.
+    as_user: bool = False
+
+    # Snapshot of the number of agent responses in session
+    _num_agent_responses: int = field(default=0, init=False)
+
     @property
     def call(self) -> str:
         args_str = ", ".join([repr(arg) for arg in self.tool_args])
@@ -89,7 +96,7 @@ class Agent(ABC):
         yield
 
     @asynccontextmanager
-    async def request_scope(self, config_values: dict[str, str] | None = None):
+    async def request_scope(self, secrets: dict[str, str] | None = None):
         yield
 
     @abstractmethod

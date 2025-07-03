@@ -27,11 +27,18 @@ async def get_registered_agents():
 
 
 async def main(args):
-    permission_store = DefaultPermissionStore() if args.user_channel else None
-    request_handler: RequestHandler
+    permission_store = DefaultPermissionStore()
 
     user_registry = DefaultUserRegistry() if args.user_registry else None
     user_mapping = await user_registry.get_mapping(args.gateway) if user_registry is not None else {}
+
+    # ---------------------------------------------------------------------------------------------------
+    # FIXME: if you activated the user registry and use slack gateway you need to authenticate here ...
+    # ---------------------------------------------------------------------------------------------------
+    # await user_registry.authenticate("username", "password")
+    # ...
+
+    request_handler: RequestHandler
 
     if args.user_channel:
         request_handler = RequestServer(user_registry)
@@ -50,6 +57,7 @@ async def main(args):
     )
 
     gateway: Gateway
+
     match args.gateway:
         case "github":
             github_app_id = int(os.environ["GITHUB_APP_ID"])
@@ -71,6 +79,7 @@ async def main(args):
             gateway = SlackGateway(
                 session_manager=manager,
                 user_mapping=user_mapping,
+                handle_permission_requests=True,
             )
         case "terminal":
             gateway = RemoteTerminalGateway(
@@ -91,7 +100,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gateway", type=str, default="terminal", choices=["github", "slack", "terminal"])
+    parser.add_argument("--gateway", type=str, default="slack", choices=["github", "slack", "terminal"])
     parser.add_argument("--user-channel", action="store_true", default=False)
     parser.add_argument("--user-registry", action="store_true", default=False)
     parser.add_argument("--session-id", type=str, default=None, help="session id for terminal gateway")
