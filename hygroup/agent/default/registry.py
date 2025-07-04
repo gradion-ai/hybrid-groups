@@ -48,19 +48,14 @@ class DefaultAgentRegistry(AgentRegistry):
 
     async def get_descriptions(self) -> dict[str, str]:
         """Return a dictionary of agent names and their descriptions."""
-        descriptions_with_emoji = await self.get_descriptions_with_emoji()
-        return {name: description for name, (description, _) in descriptions_with_emoji.items()}
-
-    async def get_descriptions_with_emoji(self) -> dict[str, tuple[str, str | None]]:
-        """Return a dictionary of agent names, their descriptions and emojis."""
         descriptions = {}
 
         async with self._lock:
             for doc in await arun(self._tinydb.all):
-                descriptions[doc["name"]] = (doc["description"], doc.get("emoji"))
+                descriptions[doc["name"]] = doc["description"]
 
         for name, doc in self._factories.items():
-            descriptions[name] = (doc["description"], doc["emoji"])
+            descriptions[name] = doc["description"]
 
         return descriptions
 
@@ -75,10 +70,13 @@ class DefaultAgentRegistry(AgentRegistry):
 
     async def get_config(self, name: str) -> dict[str, Any]:
         """Return the configuration for an agent."""
-        Agent = Query()
+        configs = await self.get_configs()
+        return configs.get(name)  # type: ignore
 
+    async def get_configs(self) -> dict[str, dict[str, Any]]:
+        """Return the configurations for all agents."""
         async with self._lock:
-            return await arun(self._tinydb.get, Agent.name == name)
+            return {agent["name"]: agent for agent in await arun(self._tinydb.all)}
 
     async def add_config(
         self,

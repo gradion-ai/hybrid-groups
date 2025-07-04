@@ -1,7 +1,7 @@
 import json
 
 from hygroup.agent.default.agent import MCPSettings
-from hygroup.gateway.slack.config.models import ValidationError
+from hygroup.gateway.slack.app_home.models import ValidationError
 
 
 class AgentValidator:

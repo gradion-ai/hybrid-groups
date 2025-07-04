@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 
-from hygroup.gateway.slack.config.agent.views import AgentViewBuilder
-from hygroup.gateway.slack.config.models import AgentListViewModel
+from hygroup.gateway.slack.app_home.agent.views import AgentViewBuilder
+from hygroup.gateway.slack.app_home.models import AgentListViewModel
 
 
 class HomeViewBuilder:
@@ -9,12 +9,12 @@ class HomeViewBuilder:
     def build_home_view(
         username: str,
         agents: List[AgentListViewModel],
-        is_admin: bool,
+        is_system_editor: bool,
     ) -> Dict[str, Any]:
         blocks = []
 
         # Welcome section
-        if is_admin:
+        if is_system_editor:
             intro_text = "This is a your Hybrid Groups home page!\nHere you can manage the configured agents and create new ones."
         else:
             intro_text = "This is a your Hybrid Groups home page!\nHere you can inspect the available agents."
@@ -40,7 +40,7 @@ class HomeViewBuilder:
         )
 
         # Agents section
-        blocks.extend(AgentViewBuilder.build_agents_section(agents, is_admin))
+        blocks.extend(AgentViewBuilder.build_agents_section(agents, is_system_editor))
 
         return {
             "type": "home",

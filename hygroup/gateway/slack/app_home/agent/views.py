@@ -1,12 +1,12 @@
 import json
 from typing import Any, Dict, List
 
-from hygroup.gateway.slack.config.models import AgentListViewModel, AgentViewModel
+from hygroup.gateway.slack.app_home.models import AgentListViewModel, AgentViewModel
 
 
 class AgentViewBuilder:
     @staticmethod
-    def build_agents_section(agents: List[AgentListViewModel], is_admin: bool) -> List[Dict[str, Any]]:
+    def build_agents_section(agents: List[AgentListViewModel], is_system_editor: bool) -> List[Dict[str, Any]]:
         blocks: List[Dict[str, Any]] = [
             {"type": "section", "text": {"type": "plain_text", "text": " "}},
             {
@@ -20,7 +20,7 @@ class AgentViewBuilder:
             {"type": "divider"},
         ]
 
-        if is_admin:
+        if is_system_editor:
             blocks.append(
                 {
                     "type": "section",
@@ -30,7 +30,7 @@ class AgentViewBuilder:
                     },
                     "accessory": {
                         "type": "button",
-                        "action_id": "config_add_agent",
+                        "action_id": "home_add_agent",
                         "text": {"type": "plain_text", "text": "Add Agent"},
                         "style": "primary",
                     },
@@ -49,7 +49,7 @@ class AgentViewBuilder:
 
         if agents:
             for agent in agents:
-                blocks.append(AgentViewBuilder.build_agent_item(agent, is_admin))
+                blocks.append(AgentViewBuilder.build_agent_item(agent, is_system_editor))
         else:
             blocks.append(
                 {
@@ -64,7 +64,7 @@ class AgentViewBuilder:
         return blocks
 
     @staticmethod
-    def build_agent_item(agent: AgentListViewModel, is_admin: bool) -> dict[str, Any]:
+    def build_agent_item(agent: AgentListViewModel, is_system_editor: bool) -> dict[str, Any]:
         overflow_options = [
             {
                 "text": {"type": "plain_text", "text": "View"},
@@ -72,7 +72,7 @@ class AgentViewBuilder:
             }
         ]
 
-        if is_admin:
+        if is_system_editor:
             overflow_options.extend(
                 [
                     {
@@ -98,7 +98,7 @@ class AgentViewBuilder:
             },
             "accessory": {
                 "type": "overflow",
-                "action_id": f"config_agent_menu:{agent.name}",
+                "action_id": f"home_agent_menu:{agent.name}",
                 "options": overflow_options,
             },
         }
@@ -173,7 +173,7 @@ class AgentViewBuilder:
     @staticmethod
     def build_agent_form_modal(agent: AgentViewModel | None = None, is_edit: bool = False) -> Dict[str, Any]:
         title = "Edit Agent" if is_edit else "Add Agent"
-        callback_id = "config_agent_edited_view" if is_edit else "config_agent_added_view"
+        callback_id = "home_agent_edited_view" if is_edit else "home_agent_added_view"
 
         blocks = []
 
@@ -350,7 +350,7 @@ class AgentViewBuilder:
     def build_agent_delete_modal(agent: AgentViewModel) -> Dict[str, Any]:
         return {
             "type": "modal",
-            "callback_id": "config_agent_delete_confirm_view",
+            "callback_id": "home_agent_delete_confirm_view",
             "title": {"type": "plain_text", "text": "Delete Agent"},
             "submit": {"type": "plain_text", "text": "Delete"},
             "close": {"type": "plain_text", "text": "Cancel"},

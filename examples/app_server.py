@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from hygroup.agent.default import DefaultAgentRegistry
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
-from hygroup.gateway.slack import SlackGateway, SlackHomeManager
+from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
 from hygroup.gateway.terminal import LocalTerminalGateway, RemoteTerminalGateway
 from hygroup.session import SessionManager
 from hygroup.user import RequestHandler
@@ -81,12 +81,12 @@ async def main(args):
                 user_mapping=user_mapping,
                 handle_permission_requests=True,
             )
-            home_manager = SlackHomeManager(
+            slack_home_handlers = SlackHomeHandlers(
                 client=gateway._client,
                 app=gateway._app,
                 agent_registry=agent_registry,
             )
-            home_manager.register_handlers()
+            slack_home_handlers.register()
         case "terminal":
             gateway = RemoteTerminalGateway(
                 session_manager=manager,

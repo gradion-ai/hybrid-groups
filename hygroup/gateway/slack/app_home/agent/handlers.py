@@ -4,26 +4,26 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from hygroup.agent.default.agent import AgentSettings
 from hygroup.agent.default.registry import DefaultAgentRegistry
-from hygroup.gateway.slack.config.agent.validator import AgentValidator
-from hygroup.gateway.slack.config.agent.views import AgentViewBuilder
-from hygroup.gateway.slack.config.models import AgentListViewModel, AgentViewModel
+from hygroup.gateway.slack.app_home.agent.validator import AgentValidator
+from hygroup.gateway.slack.app_home.agent.views import AgentViewBuilder
+from hygroup.gateway.slack.app_home.models import AgentListViewModel, AgentViewModel
 
 logger = logging.getLogger(__name__)
 
 
-class AgentConfigManager:
+class AgentConfigHandlers:
     def __init__(self, client: AsyncWebClient, agent_registry: DefaultAgentRegistry):
         self._client = client
         self._agent_registry = agent_registry
 
     async def _get_agents(self) -> list[AgentListViewModel]:
         agents = []
-        for agent_name, (description, emoji) in (await self._agent_registry.get_descriptions_with_emoji()).items():
+        for agent_name, config in (await self._agent_registry.get_configs()).items():
             agents.append(
                 AgentListViewModel(
                     name=agent_name,
-                    description=description,
-                    emoji=emoji,
+                    description=config["description"],
+                    emoji=config.get("emoji"),
                 )
             )
         return sorted(agents, key=lambda x: x.name)
