@@ -28,17 +28,11 @@ async def get_registered_agents():
 
 async def main(args):
     permission_store = DefaultPermissionStore()
-
-    user_registry = DefaultUserRegistry() if args.user_registry else None
-    user_mapping = await user_registry.get_mapping(args.gateway) if user_registry is not None else {}
-
-    # ---------------------------------------------------------------------------------------------------
-    # FIXME: if you activated the user registry and use slack gateway you need to authenticate here ...
-    # ---------------------------------------------------------------------------------------------------
-    # await user_registry.authenticate("username", "password")
-    # ...
+    user_registry = DefaultUserRegistry()
+    await user_registry.unlock("admin")
 
     request_handler: RequestHandler
+    gateway: Gateway
 
     if args.user_channel:
         request_handler = RequestServer(user_registry)
@@ -56,8 +50,6 @@ async def main(args):
         request_handler=request_handler,
     )
 
-    gateway: Gateway
-
     match args.gateway:
         case "github":
             github_app_id = int(os.environ["GITHUB_APP_ID"])
@@ -65,11 +57,13 @@ async def main(args):
             github_private_key_path = Path(os.environ["GITHUB_APP_PRIVATE_KEY_PATH"])
             github_private_key = open(github_private_key_path, "r").read()
             github_app_username = os.environ["GITHUB_APP_USERNAME"]
-            user_mapping[github_app_username] = "gradion"
+
+            user_mappings = user_registry.get_mappings("github")
+            user_mappings[github_app_username] = "gradion"
 
             gateway = GithubGateway(
                 session_manager=manager,
-                user_mapping=user_mapping,
+                user_mapping=user_mappings,
                 github_app_id=github_app_id,
                 github_installation_id=github_installation_id,
                 github_private_key=github_private_key,
@@ -78,7 +72,7 @@ async def main(args):
         case "slack":
             gateway = SlackGateway(
                 session_manager=manager,
-                user_mapping=user_mapping,
+                user_mapping=user_registry.get_mappings("slack"),
                 handle_permission_requests=True,
             )
             slack_home_handlers = SlackHomeHandlers(
@@ -106,9 +100,8 @@ if __name__ == "__main__":
     load_dotenv()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gateway", type=str, default="slack", choices=["github", "slack", "terminal"])
+    parser.add_argument("--gateway", type=str, default="terminal", choices=["github", "slack", "terminal"])
     parser.add_argument("--user-channel", action="store_true", default=False)
-    parser.add_argument("--user-registry", action="store_true", default=False)
     parser.add_argument("--session-id", type=str, default=None, help="session id for terminal gateway")
 
     asyncio.run(main(args=parser.parse_args()))

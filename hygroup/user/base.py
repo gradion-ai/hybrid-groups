@@ -4,10 +4,6 @@ from dataclasses import dataclass, field
 from hygroup.agent import AgentSelectionConfirmationRequest, FeedbackRequest, PermissionRequest
 
 
-class UserAlreadyExistsError(Exception):
-    """Raised when attempting to register an existing username."""
-
-
 class UserNotAuthenticatedError(Exception):
     """Raised when accessing a resource that requires an authenticated user."""
 
@@ -26,19 +22,22 @@ class User:
 
 class UserRegistry(ABC):
     @abstractmethod
-    async def register(self, user: User, password: str): ...
+    async def register(self, user: User, password: str | None): ...
 
     @abstractmethod
-    async def authenticate(self, username: str, password: str) -> bool: ...
+    def authenticate(self, username: str, password: str) -> bool: ...
 
     @abstractmethod
-    async def deauthenticate(self, username: str) -> bool: ...
+    def deauthenticate(self, username: str) -> bool: ...
 
     @abstractmethod
     def authenticated(self, username: str) -> bool: ...
 
     @abstractmethod
-    def get_secrets(self, username: str) -> dict[str, str]: ...
+    def get_secrets(self, username: str) -> dict[str, str] | None: ...
+
+    @abstractmethod
+    def get_mappings(self, gateway: str) -> dict[str, str]: ...
 
 
 class RequestHandler(ABC):

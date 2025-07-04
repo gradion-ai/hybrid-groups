@@ -204,7 +204,7 @@ class RichConsoleHandler(RequestHandler):
 
 
 class RequestServer(RequestHandler):
-    def __init__(self, user_registry: UserRegistry | None = None, host: str = "0.0.0.0", port: int = 8623):
+    def __init__(self, user_registry: UserRegistry, host: str = "0.0.0.0", port: int = 8623):
         self.user_registry = user_registry
         self.host = host
         self.port = port
@@ -248,12 +248,7 @@ class RequestServer(RequestHandler):
                 await websocket.close()
                 return
 
-            # Authenticate user
-            if self.user_registry is None:
-                pass  # allow any username for testing purposes
-            elif self.user_registry.authenticated(username):
-                pass  # user already authenticated
-            elif not await self.user_registry.authenticate(username, password=data.get("password", "")):
+            if not self.user_registry.authenticate(username, password=data.get("password", "")):
                 await websocket.send_json(
                     {"type": "login_response", "success": False, "message": "Authentication failed"}
                 )
@@ -286,13 +281,13 @@ class RequestServer(RequestHandler):
             if username in self._connections:
                 del self._connections[username]
                 if self.user_registry:
-                    await self.user_registry.deauthenticate(username)
+                    self.user_registry.deauthenticate(username)
         except Exception:
             # Clean up on any error
             if username in self._connections:
                 del self._connections[username]
                 if self.user_registry:
-                    await self.user_registry.deauthenticate(username)
+                    self.user_registry.deauthenticate(username)
             raise
 
     async def _handle_response(self, data: dict, username: str):
@@ -441,6 +436,7 @@ class RequestClient:
                 self._receiver_task = asyncio.create_task(self._receiver())
                 return True
             else:
+                print(f"Login failed: {data.get('message', 'Unknown error')}")
                 await self._websocket.close()
                 self._websocket = None
                 return False

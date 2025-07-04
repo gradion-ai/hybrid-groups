@@ -1,6 +1,5 @@
 import asyncio
 import os
-from getpass import getpass
 
 from dotenv import load_dotenv
 
@@ -10,28 +9,30 @@ from hygroup.utils import arun
 
 
 async def main():
-    username = await arun(input, "Enter username: ")
-    password = await arun(getpass, "Enter password: ")
+    registry = DefaultUserRegistry()
+    await registry.unlock("admin")
 
-    print("Enter environment variable names (one per line, empty line to finish):")
-    secrets = {}
-    while True:
-        env_var = await arun(input, "Environment variable name: ")
-        env_var = env_var.strip()
-        if not env_var:
-            break
-        secrets[env_var] = os.environ[env_var]
+    if user := registry.get_user("martin"):
+        print("User martin already registered")
+        return
 
-    print("Enter gateway usernames (one per line, empty line to skip):")
-    mappings = {}
-    for gateway in ["slack", "github"]:
-        gateway_username = await arun(input, f"Enter {gateway} username: ")
-        gateway_username = gateway_username.strip()
-        if gateway_username:
-            mappings[gateway] = gateway_username
+    secrets = {
+        "FIRECRAWL_API_KEY": os.environ["FIRECRAWL_API_KEY"],
+        "BRAVE_API_KEY": os.environ["BRAVE_API_KEY"],
+    }
 
-    user = User(name=username, secrets=secrets, mappings=mappings)
-    await DefaultUserRegistry().register(user, password)
+    for username in ["martin", "chris", "erich", "chief"]:
+        await arun(print, f"Enter gateway usernames for user {username} (one per line, empty line to skip):")
+
+        mappings = {}
+        for gateway in ["slack", "github"]:
+            gateway_username = await arun(input, f"Enter {gateway} username: ")
+            gateway_username = gateway_username.strip()
+            if gateway_username:
+                mappings[gateway] = gateway_username
+
+        user = User(name=username, secrets=secrets, mappings=mappings)
+        await registry.register(user, password=username)
 
 
 if __name__ == "__main__":
