@@ -5,7 +5,14 @@ import aiohttp
 
 MANIFEST_TEMPLATE: Dict[str, Any] = {
     "display_information": {"name": ""},
-    "features": {"bot_user": {"display_name": "", "always_online": False}},
+    "features": {
+        "app_home": {
+            "home_tab_enabled": True,
+            "messages_tab_enabled": False,
+            "messages_tab_read_only_enabled": False,
+        },
+        "bot_user": {"display_name": "", "always_online": False},
+    },
     "oauth_config": {
         "scopes": {
             "bot": [
@@ -13,18 +20,27 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
                 "assistant:write",
                 "channels:history",
                 "groups:history",
+                "groups:read",
                 "im:history",
                 "mpim:history",
                 "chat:write",
                 "chat:write.customize",
                 "channels:read",
                 "reactions:write",
+                "users:read",
             ]
         }
     },
     "settings": {
         "event_subscriptions": {
-            "bot_events": ["app_mention", "message.channels", "message.groups", "message.im", "message.mpim"]
+            "bot_events": [
+                "app_home_opened",
+                "app_mention",
+                "message.channels",
+                "message.groups",
+                "message.im",
+                "message.mpim",
+            ]
         },
         "interactivity": {"is_enabled": True},
         "org_deploy_enabled": False,

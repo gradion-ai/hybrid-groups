@@ -420,3 +420,159 @@ async def test_complex_model_dict_with_all_settings(registry: DefaultAgentRegist
     assert agent.settings.model_settings is not None
     assert agent.settings.model_settings["temperature"] == 0.7
     assert agent.settings.model_settings["max_tokens"] == 2000
+
+
+@pytest.mark.asyncio
+async def test_update_config_single_field(registry: DefaultAgentRegistry, default_settings: AgentSettings):
+    """Test updating a single field of an existing agent."""
+    # Create initial agent
+    await registry.add_config(
+        name="update-test", description="Original description", settings=default_settings, handoff=False
+    )
+
+    # Update just the description
+    await registry.update_config(name="update-test", description="Updated description")
+
+    # Verify the change
+    config = await registry.get_config("update-test")
+    assert config is not None
+    assert config["description"] == "Updated description"
+    assert config["handoff"] is False  # Should remain unchanged
+    assert config["settings"]["model"] == "gpt-3.5-turbo"  # Should remain unchanged
+
+
+@pytest.mark.asyncio
+async def test_update_config_multiple_fields(registry: DefaultAgentRegistry, default_settings: AgentSettings):
+    """Test updating multiple fields at once."""
+    # Create initial agent
+    await registry.add_config(
+        name="multi-update", description="Original", settings=default_settings, handoff=False, emoji="🤖"
+    )
+
+    # Update multiple fields
+    await registry.update_config(name="multi-update", description="Updated description", handoff=True, emoji="🚀")
+
+    # Verify all changes
+    config = await registry.get_config("multi-update")
+    assert config is not None
+    assert config["description"] == "Updated description"
+    assert config["handoff"] is True
+    assert config["emoji"] == "🚀"
+    assert config["settings"]["model"] == "gpt-3.5-turbo"  # Should remain unchanged
+
+
+@pytest.mark.asyncio
+async def test_update_config_settings(
+    registry: DefaultAgentRegistry, default_settings: AgentSettings, handoff_settings: AgentSettings
+):
+    """Test updating agent settings."""
+    # Create initial agent
+    await registry.add_config(
+        name="settings-update", description="Test agent", settings=default_settings, handoff=False
+    )
+
+    # Verify initial settings
+    agent = await registry.create_agent("settings-update")
+    assert agent.settings.model == "gpt-3.5-turbo"
+    assert agent.settings.instructions == "You are a helpful assistant."
+
+    # Update settings
+    await registry.update_config(name="settings-update", settings=handoff_settings)
+
+    # Verify updated settings
+    updated_agent = await registry.create_agent("settings-update")
+    assert updated_agent.settings.model == "gpt-4"
+    assert updated_agent.settings.instructions == "You can handoff to other agents."
+    assert updated_agent.settings.human_feedback is False
+
+
+@pytest.mark.asyncio
+async def test_update_config_partial_fields(registry: DefaultAgentRegistry, default_settings: AgentSettings):
+    """Test updating with some None values (should not update those fields)."""
+    # Create initial agent with all fields
+    await registry.add_config(
+        name="partial-update", description="Original description", settings=default_settings, handoff=False, emoji="🤖"
+    )
+
+    # Update with some None values
+    await registry.update_config(
+        name="partial-update",
+        description="New description",
+        settings=None,  # Should not update
+        handoff=None,  # Should not update
+        emoji="🎯",
+    )
+
+    # Verify only specified fields were updated
+    config = await registry.get_config("partial-update")
+    assert config is not None
+    assert config["description"] == "New description"
+    assert config["handoff"] is False  # Unchanged
+    assert config["emoji"] == "🎯"
+    assert config["settings"]["model"] == "gpt-3.5-turbo"  # Unchanged
+
+
+@pytest.mark.asyncio
+async def test_update_config_nonexistent_agent_error(registry: DefaultAgentRegistry):
+    """Test that updating a non-existent agent raises ValueError."""
+    with pytest.raises(ValueError, match="No agent registered with name 'nonexistent'"):
+        await registry.update_config(name="nonexistent", description="New description")
+
+
+@pytest.mark.asyncio
+async def test_update_config_preserves_unchanged_fields(
+    registry: DefaultAgentRegistry, default_settings: AgentSettings
+):
+    """Test that fields not included in update remain unchanged."""
+    # Create agent with specific settings
+    original_settings = AgentSettings(
+        model="gpt-3.5-turbo",
+        instructions="Original instructions",
+        human_feedback=True,
+        model_settings={"temperature": 0.5, "max_tokens": 1000},
+        mcp_settings=default_settings.mcp_settings,
+    )
+
+    await registry.add_config(
+        name="preserve-test", description="Original description", settings=original_settings, handoff=False, emoji="🤖"
+    )
+
+    # Update only description
+    await registry.update_config(name="preserve-test", description="New description")
+
+    # Verify all other fields remain unchanged
+    config = await registry.get_config("preserve-test")
+    assert config is not None
+    assert config["description"] == "New description"
+    assert config["handoff"] is False
+    assert config["emoji"] == "🤖"
+    assert config["settings"]["model"] == "gpt-3.5-turbo"
+    assert config["settings"]["instructions"] == "Original instructions"
+    assert config["settings"]["human_feedback"] is True
+    assert config["settings"]["model_settings"]["temperature"] == 0.5
+    assert config["settings"]["model_settings"]["max_tokens"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_update_config_emoji_field(registry: DefaultAgentRegistry, default_settings: AgentSettings):
+    """Test updating emoji field specifically."""
+    # Create agent without emoji
+    await registry.add_config(name="emoji-test", description="Test agent", settings=default_settings, handoff=False)
+
+    # Verify no emoji initially
+    emoji = await registry.get_emoji("emoji-test")
+    assert emoji is None
+
+    # Update to add emoji
+    await registry.update_config(name="emoji-test", emoji="🎯")
+
+    # Verify emoji was added
+    emoji = await registry.get_emoji("emoji-test")
+    assert emoji == "🎯"
+
+    # Update emoji to different value
+    await registry.update_config(name="emoji-test", emoji="🚀")
+
+    # Verify emoji was changed
+    emoji = await registry.get_emoji("emoji-test")
+    assert emoji == "🚀"

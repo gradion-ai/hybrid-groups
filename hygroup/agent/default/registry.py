@@ -68,12 +68,15 @@ class DefaultAgentRegistry(AgentRegistry):
 
         return None
 
-    async def get_config(self, name: str) -> dict[str, Any]:
+    async def get_config(self, name: str) -> dict[str, Any] | None:
         """Return the configuration for an agent."""
-        Agent = Query()
+        configs = await self.get_configs()
+        return configs.get(name)
 
+    async def get_configs(self) -> dict[str, dict[str, Any]]:
+        """Return the configurations for all agents."""
         async with self._lock:
-            return await arun(self._tinydb.get, Agent.name == name)
+            return {agent["name"]: agent for agent in await arun(self._tinydb.all)}
 
     async def add_config(
         self,
@@ -106,6 +109,35 @@ class DefaultAgentRegistry(AgentRegistry):
 
             # Insert document
             await arun(self._tinydb.insert, doc)
+
+    async def update_config(
+        self,
+        name: str,
+        description: str | None = None,
+        settings: AgentSettings | None = None,
+        handoff: bool | None = None,
+        emoji: str | None = None,
+    ):
+        """Update configuration for an existing agent."""
+        Agent = Query()
+
+        async with self._lock:
+            existing = await arun(self._tinydb.get, Agent.name == name)
+            if existing is None:
+                raise ValueError(f"No agent registered with name '{name}'")
+
+            update_doc: dict[str, Any] = {}
+            if description is not None:
+                update_doc["description"] = description
+            if settings is not None:
+                update_doc["settings"] = settings.to_dict()
+            if handoff is not None:
+                update_doc["handoff"] = handoff
+            if emoji is not None:
+                update_doc["emoji"] = emoji
+
+            if update_doc:
+                await arun(self._tinydb.update, update_doc, Agent.name == name)
 
     async def remove_config(self, name: str):
         """Remove settings for an agent."""
