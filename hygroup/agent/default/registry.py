@@ -68,10 +68,10 @@ class DefaultAgentRegistry(AgentRegistry):
 
         return None
 
-    async def get_config(self, name: str) -> dict[str, Any]:
+    async def get_config(self, name: str) -> dict[str, Any] | None:
         """Return the configuration for an agent."""
         configs = await self.get_configs()
-        return configs.get(name)  # type: ignore
+        return configs.get(name)
 
     async def get_configs(self) -> dict[str, dict[str, Any]]:
         """Return the configurations for all agents."""

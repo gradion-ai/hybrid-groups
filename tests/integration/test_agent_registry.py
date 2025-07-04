@@ -435,6 +435,7 @@ async def test_update_config_single_field(registry: DefaultAgentRegistry, defaul
 
     # Verify the change
     config = await registry.get_config("update-test")
+    assert config is not None
     assert config["description"] == "Updated description"
     assert config["handoff"] is False  # Should remain unchanged
     assert config["settings"]["model"] == "gpt-3.5-turbo"  # Should remain unchanged
@@ -453,6 +454,7 @@ async def test_update_config_multiple_fields(registry: DefaultAgentRegistry, def
 
     # Verify all changes
     config = await registry.get_config("multi-update")
+    assert config is not None
     assert config["description"] == "Updated description"
     assert config["handoff"] is True
     assert config["emoji"] == "🚀"
@@ -503,6 +505,7 @@ async def test_update_config_partial_fields(registry: DefaultAgentRegistry, defa
 
     # Verify only specified fields were updated
     config = await registry.get_config("partial-update")
+    assert config is not None
     assert config["description"] == "New description"
     assert config["handoff"] is False  # Unchanged
     assert config["emoji"] == "🎯"
@@ -539,6 +542,7 @@ async def test_update_config_preserves_unchanged_fields(
 
     # Verify all other fields remain unchanged
     config = await registry.get_config("preserve-test")
+    assert config is not None
     assert config["description"] == "New description"
     assert config["handoff"] is False
     assert config["emoji"] == "🤖"

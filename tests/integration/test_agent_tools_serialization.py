@@ -190,6 +190,7 @@ async def test_full_workflow_with_multiple_tools():
 
         # Retrieve config
         config = await registry.get_config("multi_tool")
+        assert config is not None
         assert len(config["settings"]["tools"]) == 2
         assert {
             "module": "tests.integration.example_tools",

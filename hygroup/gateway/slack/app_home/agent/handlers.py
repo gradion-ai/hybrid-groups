@@ -54,6 +54,9 @@ class AgentConfigHandlers:
 
     async def _update_agent(self, agent: AgentViewModel):
         config = await self._agent_registry.get_config(agent.name)
+        if config is None:
+            logger.warning(f"Agent not found: {agent.name}")
+            return
 
         await self._agent_registry.update_config(
             name=agent.name,
