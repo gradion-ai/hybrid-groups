@@ -24,7 +24,6 @@ from hygroup.agent import (
 )
 from hygroup.gateway import Gateway
 from hygroup.user import PermissionStore, RequestHandler, UserRegistry
-from hygroup.user.default import RichConsoleHandler
 
 logger = logging.getLogger(__name__)
 
@@ -107,10 +106,10 @@ class Session:
         self.group = group
         self.manager = manager
 
-        self.agent_registry = self.manager.agent_registry
-        self.user_registry = self.manager.user_registry
-        self.permission_store = self.manager.permission_store
-        self.selector_settings = self.manager.selector_settings
+        self.agent_registry: AgentRegistry = self.manager.agent_registry
+        self.user_registry: UserRegistry = self.manager.user_registry
+        self.permission_store: PermissionStore = self.manager.permission_store
+        self.selector_settings: AgentSelectorSettings | None = self.manager.selector_settings
 
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
@@ -167,37 +166,13 @@ class Session:
     def add_agent(self, agent: Agent):
         self._agents[agent.name] = SessionAgent(agent, self)
 
+    async def load_agent(self, name: str):
+        self.add_agent(await self.agent_registry.create_agent(name))
+
     async def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
         names |= await self.agent_registry.get_registered_names()
         return names
-
-    async def _load_agent(self, name: str):
-        if self.agent_registry is None:
-            return
-        try:
-            self.add_agent(await self.agent_registry.create_agent(name))
-        except Exception:
-            return
-
-    def _user_authenticated(self, username: str) -> bool:
-        if self.user_registry is None:
-            return True
-        return self.user_registry.authenticated(username)
-
-    def _user_secrets(self, username: str) -> dict[str, str] | None:
-        if self.user_registry is None:
-            return None
-        return self.user_registry.get_secrets(username)
-
-    async def _get_permission(self, tool_name: str, username: str) -> int | None:
-        if self.permission_store is not None:
-            return await self.permission_store.get_permission(tool_name, username, self.id)
-        return None
-
-    async def _set_permission(self, tool_name: str, username: str, response: int):
-        if self.permission_store is not None:
-            await self.permission_store.set_permission(tool_name, username, self.id, response)
 
     async def _num_agent_responses(self) -> int:
         agent_names = await self.agent_names()
@@ -205,7 +180,7 @@ class Session:
         return len(agent_responses)
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str):
-        if permission := await self._get_permission(request.tool_name, receiver):
+        if permission := await self.permission_store.get_permission(request.tool_name, receiver, self.id):
             request.respond(permission)
             return
 
@@ -219,7 +194,7 @@ class Session:
         permission = await request.response()
 
         if permission in [2, 3]:
-            await self._set_permission(request.tool_name, receiver, permission)
+            await self.permission_store.set_permission(request.tool_name, receiver, self.id, permission)
 
     async def handle_feedback_request(self, request: FeedbackRequest, sender: str, receiver: str):
         coro = self._request_handler.handle_feedback_request(request, sender, receiver, session_id=self.id)
@@ -247,9 +222,6 @@ class Session:
         await self._gateway_queue.put(coro)
 
     async def select(self, message: Message):
-        if self._selector is None:
-            return
-
         # agent names currently available in registry
         agent_names = await self.agent_names()
 
@@ -308,14 +280,14 @@ class Session:
         await self._selector_queue.put(coro)
 
     async def invoke(self, request: AgentRequest, receiver: str):
-        if not self._user_authenticated(request.sender):
-            return await self.handle_system_response(
-                response=f'User "{request.sender}" is not authenticated',
-                receiver=request.sender,
-            )
-
         if receiver not in self._agents:
-            await self._load_agent(receiver)
+            try:
+                await self.load_agent(receiver)
+            except ValueError:
+                return await self.handle_system_response(
+                    response=f'Agent "{receiver}" not registered',
+                    receiver=request.sender,
+                )
 
         if receiver in self._agents:
             if request.id:
@@ -327,7 +299,7 @@ class Session:
                 await self._gateway_queue.put(coro)
 
             # get secrets of authenticated sender
-            secrets = self._user_secrets(request.sender)
+            secrets = self.user_registry.get_secrets(request.sender)
             # invoke receiver agent with request
             await self._agents[receiver].invoke(request, secrets)
             # notify others about this request
@@ -363,8 +335,7 @@ class Session:
             "messages": [asdict(message) for message in self._messages],
             "agents": {name: adapter.get_state() for name, adapter in self._agents.items()},
         }
-        if self._selector:
-            state_dict["selector"] = self._selector.get_state()
+        state_dict["selector"] = self._selector.get_state()
         await self.manager.save_session_state(self.id, state_dict)
 
     async def load(self):
@@ -376,8 +347,7 @@ class Session:
                 self._agents[name].set_state(state)
 
         # restore selector agent state
-        if self._selector and "selector" in state_dict:
-            self._selector.set_state(state_dict["selector"])
+        self._selector.set_state(state_dict["selector"])
 
         # restore thread messages
         self._messages = [Message(**message) for message in state_dict["messages"]]
@@ -387,16 +357,16 @@ class SessionManager:
     def __init__(
         self,
         agent_registry: AgentRegistry,
-        user_registry: UserRegistry | None = None,
-        permission_store: PermissionStore | None = None,
-        request_handler: RequestHandler | None = None,
+        user_registry: UserRegistry,
+        permission_store: PermissionStore,
+        request_handler: RequestHandler,
         selector_settings: AgentSelectorSettings | None = None,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registry = agent_registry
         self.user_registry = user_registry
         self.permission_store = permission_store
-        self.request_handler = request_handler or RichConsoleHandler(upper_bound=1, default_confirmation_response=True)
+        self.request_handler = request_handler
         self.selector_settings = selector_settings
 
         self.root_dir = root_dir

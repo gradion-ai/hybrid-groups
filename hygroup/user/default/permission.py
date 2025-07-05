@@ -8,14 +8,12 @@ from hygroup.utils import arun
 
 
 class DefaultPermissionStore(PermissionStore):
-    """TinyDB-based permission store that persists tool permissions for users across sessions."""
+    """TinyDB-based permission store that persists tool permissions for users across sessions.
+
+    THIS IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.
+    """
 
     def __init__(self, store_path: Path | str = Path(".data", "users", "permissions.json")):
-        """Initialize the permission store with TinyDB storage.
-
-        Args:
-            store_path: Path to the permission store file
-        """
         self.store_path = Path(store_path)
         self.store_path.parent.mkdir(parents=True, exist_ok=True)
 

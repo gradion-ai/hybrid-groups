@@ -88,12 +88,7 @@ class RemoteTerminalGateway(Gateway):
                 await websocket.close()
                 return
 
-            # Authenticate user
-            if self._session.user_registry is None:
-                pass  # allow any username for testing purposes
-            elif self._session.user_registry.authenticated(username):
-                pass  # user already authenticated
-            elif not await self._session.user_registry.authenticate(username, password=data.get("password", "")):
+            if not self._session.user_registry.authenticate(username, password=data.get("password", "")):
                 await websocket.send_json(
                     {"type": "login_response", "success": False, "message": "Authentication failed"}
                 )

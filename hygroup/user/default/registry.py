@@ -1,276 +1,181 @@
+import asyncio
 import base64
+import json
 import os
 from pathlib import Path
+from typing import Optional
 
+import aiofiles
+import aiofiles.os
 import bcrypt
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from tinydb import Query, TinyDB
 
-from hygroup.user.base import User, UserAlreadyExistsError, UserNotAuthenticatedError, UserRegistry
-from hygroup.utils import arun
+from hygroup.user.base import User, UserRegistry
+
+
+class RegistryLockedError(Exception):
+    """Raised when an operation is attempted on a locked registry."""
+
+
+class UserNotRegisteredError(Exception):
+    """Raised when a user is not found in the registry."""
+
+
+class UserAlreadyRegisteredError(Exception):
+    """Raised when attempting to register an existing username."""
 
 
 class DefaultUserRegistry(UserRegistry):
-    def __init__(self, registry_path: Path | str = Path(".data", "users", "registry.json")):
-        """Initialize the registry with TinyDB storage.
+    """TinyDB-based user registry that persists user information across sessions.
 
-        Args:
-            registry_path: Path to the registry file
-        """
-        self._users: dict[str, User] = {}
+    THIS IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.
+    """
+
+    def __init__(self, registry_path: Path | str = Path(".data", "users", "registry.bin")):
         self.registry_path = Path(registry_path)
+        self._salt: Optional[bytes] = None
+        self._key: Optional[bytes] = None
+        self._data: Optional[dict] = None
+        self._authenticated_users: set[str] = set()
+        self._lock = asyncio.Lock()
+
+    async def unlock(self, admin_password: str):
+        """Unlock the registry by decrypting the database with the admin password."""
+        if self._key is not None:
+            return  # Already unlocked
+
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(str(self.registry_path), indent=2)
 
-    async def register(self, user: User, password: str):
-        """Register a new user.
+        if not self.registry_path.exists():
+            # First time setup: create a new salt, key, and empty DB
+            self._salt = os.urandom(16)
+            self._key = self._derive_key(admin_password, self._salt)
+            self._data = {}
+            await self._save()
+            return
 
-        Args:
-            user: User object with name and secrets
-            password: Password to use for hashing and encryption
+        async with aiofiles.open(self.registry_path, "rb") as db_file:
+            contents = await db_file.read()
 
-        Raises:
-            UserAlreadyExistsError: If username already exists
-        """
-        # Check if user with that username already exists
-        UserQuery = Query()
-        existing = await arun(self.db.get, UserQuery.name == user.name)
-        if existing is not None:
-            raise UserAlreadyExistsError(f"User '{user.name}' already exists")
+        self._salt = contents[:16]
+        encrypted_db = contents[16:]
 
-        # Save user to disk
-        await self.save_user(user, password)
+        self._key = self._derive_key(admin_password, self._salt)  # type: ignore
 
-    async def save_user(self, user: User, password: str):
-        """Save user to disk with encrypted secrets and hashed password.
+        try:
+            f = Fernet(self._key)
+            decrypted_db_bytes = f.decrypt(encrypted_db)
+            self._data = json.loads(decrypted_db_bytes)
+        except InvalidToken:
+            # Clear state on failure to prevent partial access
+            self._key = None
+            self._salt = None
+            self._data = None
+            raise ValueError("Failed to decrypt database. The admin password may be incorrect.")
 
-        Args:
-            user: User object with name and secrets
-            password: Password to use for hashing and encryption
-        """
-        # Hash password with bcrypt
-        salt = bcrypt.gensalt()
-        hashed_password = bcrypt.hashpw(password.encode("utf-8"), salt)
+    async def register(self, user: User, password: str | None = None):
+        data = self._check_unlocked()
+        if user.name in data:
+            raise UserAlreadyRegisteredError(f"User '{user.name}' already exists.")
 
-        # Generate salt for encryption
-        encryption_salt = os.urandom(16)
+        user_doc = {"name": user.name, "secrets": user.secrets.copy(), "mappings": user.mappings.copy()}
 
-        # Derive encryption key from password
-        key = self._derive_key(password, encryption_salt)
-        f = Fernet(key)
+        if password:
+            hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+            user_doc["secrets"]["password_hash"] = base64.b64encode(hashed_password).decode("utf-8")  # type: ignore
 
-        # Encrypt all secrets
-        encrypted_secrets = {}
-        for secret_name, secret_value in user.secrets.items():
-            encrypted = f.encrypt(secret_value.encode("utf-8"))
-            # Store salt + encrypted data as base64
-            payload = encryption_salt + encrypted
-            encrypted_secrets[secret_name] = base64.b64encode(payload).decode("utf-8")
+        data[user.name] = user_doc
+        await self._save()
 
-        # Create document for TinyDB
-        doc = {
-            "name": user.name,
-            "password_hash": base64.b64encode(hashed_password).decode("utf-8"),
-            "encrypted_secrets": encrypted_secrets,
-            "salt": base64.b64encode(encryption_salt).decode("utf-8"),
-            "mappings": user.mappings,
-        }
+    def get_user(self, username: str) -> User | None:
+        data = self._check_unlocked()
+        if username not in data:
+            return None
 
-        # Insert or update document
-        UserQuery = Query()
-        await arun(self.db.upsert, doc, UserQuery.name == user.name)
+        user_doc = data[username]
+        return User(name=user_doc["name"], secrets=user_doc["secrets"], mappings=user_doc.get("mappings", {}))
 
-    async def authenticate(self, username: str, password: str) -> bool:
-        """Authenticate a user and load their decrypted secrets into memory.
+    def get_mappings(self, gateway: str) -> dict[str, str]:
+        data = self._check_unlocked()
+        if gateway not in ["slack", "github", "terminal"]:
+            raise ValueError(f"Invalid gateway: {gateway}. Must be 'slack' or 'github'.")
 
-        Args:
-            username: Username to authenticate
-            password: Password to verify
+        mappings = {}
+        for username, user_doc in data.items():
+            if gateway_username := user_doc["mappings"].get(gateway):
+                mappings[gateway_username] = username
+        return mappings
 
-        Returns:
-            True if authentication successful, False otherwise
-        """
-        # Query user from TinyDB
-        UserQuery = Query()
-        user_doc = await arun(self.db.get, UserQuery.name == username)
+    def get_secrets(self, username: str) -> dict[str, str] | None:
+        data = self._check_unlocked()
+        if username not in data:
+            return None
 
-        if user_doc is None:
-            return False
+        return data[username].get("secrets", {}).copy()
 
-        # Verify password with bcrypt
-        stored_hash = base64.b64decode(user_doc["password_hash"].encode("utf-8"))
-        if not bcrypt.checkpw(password.encode("utf-8"), stored_hash):
-            return False
+    async def set_secret(self, username: str, key: str, value: str):
+        """Set a secret for a user. Application-level action."""
+        data = self._check_unlocked()
+        if username not in data:
+            raise UserNotRegisteredError(f"User '{username}' not found.")
 
-        # Decrypt all secrets
-        decrypted_secrets = {}
-        for secret_name, encrypted_data in user_doc["encrypted_secrets"].items():
-            # Decode base64 payload
-            payload = base64.b64decode(encrypted_data.encode("utf-8"))
-            salt = payload[:16]
-            encrypted_secret = payload[16:]
+        data[username]["secrets"][key] = value
+        await self._save()
 
-            # Derive key and decrypt
-            key = self._derive_key(password, salt)
-            f = Fernet(key)
+    async def set_password(self, username: str, new_password: str):
+        hashed_password = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt())
+        await self.set_secret(username, "password_hash", base64.b64encode(hashed_password).decode("utf-8"))
 
-            try:
-                decrypted = f.decrypt(encrypted_secret)
-                decrypted_secrets[secret_name] = decrypted.decode("utf-8")
-            except Exception:
-                # Failed to decrypt - password might have changed
-                return False
+    def authenticate(self, username: str, password: str | None = None) -> bool:
+        data = self._check_unlocked()
+        if username not in data:
+            return True  # only verify registered users
 
-        # Get gateway mappings
-        mappings = user_doc.get("mappings", {})
+        secrets = data[username].get("secrets", {})
+        stored_hash_b64 = secrets.get("password_hash")
 
-        # Create User object and store in memory
-        user = User(name=username, secrets=decrypted_secrets, mappings=mappings)
-        self._users[username] = user
+        if stored_hash_b64 is None:
+            # No password set for user, authentication
+            # succeeds with any password provided
+            self._authenticated_users.add(username)
+            return True
 
-        return True
+        if password is None:
+            return False  # Password required but not provided
 
-    def get_secrets(self, username: str) -> dict[str, str]:
-        """Get all decrypted secrets for an authenticated user.
+        stored_hash = base64.b64decode(stored_hash_b64.encode("utf-8"))
+        if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
+            self._authenticated_users.add(username)
+            return True
 
-        Args:
-            username: Username to get secrets for
+        return False
 
-        Returns:
-            Dictionary of all secrets (key-value pairs)
-
-        Raises:
-            NotAuthenticatedError: If user is not authenticated
-        """
-        if username not in self._users:
-            raise UserNotAuthenticatedError(f"User '{username}' is not authenticated")
-
-        user = self._users[username]
-        return user.secrets.copy()
-
-    def get_secret(self, username: str, key: str) -> str:
-        """Get a decrypted secret for an authenticated user.
-
-        Args:
-            username: Username to get secret for
-            key: Secret key to retrieve
-
-        Returns:
-            Decrypted secret value
-
-        Raises:
-            NotAuthenticatedError: If user is not authenticated
-            KeyError: If secret key doesn't exist
-        """
-        secrets = self.get_secrets(username)
-        if key not in secrets:
-            raise KeyError(f"Secret '{key}' not found for user '{username}'")
-        return secrets[key]
-
-    async def set_secret(self, username: str, key: str, value: str, password: str):
-        """Set a secret for an authenticated user.
-
-        Args:
-            username: Username to set secret for
-            key: Secret key to set
-            value: Secret value to store
-            password: User's password for re-encryption
-
-        Raises:
-            NotAuthenticatedError: If user is not authenticated
-        """
-        if username not in self._users:
-            raise UserNotAuthenticatedError(f"User '{username}' is not authenticated")
-
-        # Update secret in memory
-        user = self._users[username]
-        user.secrets[key] = value
-
-        # Re-encrypt and save to TinyDB
-        await self.save_user(user, password)
-
-    async def delete_secret(self, username: str, key: str, password: str):
-        """Delete a secret for an authenticated user.
-
-        Args:
-            username: Username to delete secret for
-            key: Secret key to delete
-            password: User's password for re-encryption
-
-        Raises:
-            NotAuthenticatedError: If user is not authenticated
-            KeyError: If secret key doesn't exist
-        """
-        if username not in self._users:
-            raise UserNotAuthenticatedError(f"User '{username}' is not authenticated")
-
-        user = self._users[username]
-        if key not in user.secrets:
-            raise KeyError(f"Secret '{key}' not found for user '{username}'")
-
-        # Remove secret from memory
-        del user.secrets[key]
-
-        # Re-encrypt and save to TinyDB
-        await self.save_user(user, password)
-
-    async def get_mapping(self, gateway: str) -> dict[str, str]:
-        """Get the mapping for a specific gateway from the database.
-
-        Args:
-            gateway: The gateway (e.g., 'slack', 'github')
-
-        Returns:
-            A dictionary where keys are gateway usernames and values are database usernames.
-        """
-        all_users = await arun(self.db.all)
-        mapping = {}
-        for user_doc in all_users:
-            user_mapping = user_doc.get("mappings", {})
-            if gateway in user_mapping:
-                gateway_username = user_mapping[gateway]
-                database_username = user_doc["name"]
-                mapping[gateway_username] = database_username
-        return mapping
-
-    async def deauthenticate(self, username: str) -> bool:
-        """Deauthenticate a user by removing them from memory.
-
-        Args:
-            username: Username to deauthenticate
-
-        Returns:
-            True if user was logged out, False if user wasn't authenticated
-        """
-        if username in self._users:
-            del self._users[username]
+    def deauthenticate(self, username: str) -> bool:
+        if username in self._authenticated_users:
+            self._authenticated_users.remove(username)
             return True
         return False
 
     def authenticated(self, username: str) -> bool:
-        """Check if a user is authenticated.
+        return username in self._authenticated_users
 
-        Args:
-            username: Username to check
+    async def _save(self):
+        """Encrypt the in-memory database and save it to disk."""
+        data = self._check_unlocked()
+        f = Fernet(self._key)
+        data_to_encrypt = json.dumps(data).encode("utf-8")
+        encrypted_data = f.encrypt(data_to_encrypt)
+        temp_path = self.registry_path.with_suffix(".tmp")
 
-        Returns:
-            True if user is authenticated, False otherwise
-        """
-        return username in self._users
+        async with self._lock:
+            async with aiofiles.open(temp_path, "wb") as db_file:
+                await db_file.write(self._salt + encrypted_data)
+            await aiofiles.os.replace(temp_path, self.registry_path)
 
     def _derive_key(self, password: str, salt: bytes) -> bytes:
-        """Derive encryption key from password using PBKDF2.
-
-        Args:
-            password: Password to derive key from
-            salt: Salt for key derivation
-
-        Returns:
-            Base64-encoded encryption key
-        """
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -279,3 +184,9 @@ class DefaultUserRegistry(UserRegistry):
             backend=default_backend(),
         )
         return base64.urlsafe_b64encode(kdf.derive(password.encode("utf-8")))
+
+    def _check_unlocked(self) -> dict:
+        """Raise an error if the registry is not unlocked."""
+        if self._salt is None or self._key is None or self._data is None:
+            raise RegistryLockedError("Registry is locked. Please unlock() with admin password first.")
+        return self._data
