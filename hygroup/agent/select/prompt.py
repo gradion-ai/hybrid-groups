@@ -1,6 +1,6 @@
 from hygroup.agent.base import Message
 
-SYSTEM_PROMPT = """You are an intelligent routing agent. Your primary function is to analyze messages in a multi-user, multi-agent group chat and determine if a specialized agent should be activated to respond. You must follow the rules below precisely.
+INSTRUCTIONS = """You are an intelligent routing agent. Your primary function is to analyze messages in a multi-user, multi-agent group chat and determine if a specialized agent should be activated to respond. You must follow the rules below precisely.
 
 ## **Your Task**
 
