@@ -90,6 +90,7 @@ async def main(args):
                 client=gateway._client,
                 app=gateway._app,
                 agent_registry=agent_registry,
+                user_registry=user_registry,
             )
             slack_home_handlers.register()
         case "terminal":

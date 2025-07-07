@@ -6,7 +6,9 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from hygroup.agent.default.registry import DefaultAgentRegistry
 from hygroup.gateway.slack.app_home.agent.handlers import AgentConfigHandlers
+from hygroup.gateway.slack.app_home.secrets.handlers import SecretConfigHandlers
 from hygroup.gateway.slack.app_home.views import HomeViewBuilder
+from hygroup.user.default.registry import DefaultUserRegistry
 
 
 class SlackHomeHandlers:
@@ -25,6 +27,7 @@ class SlackHomeHandlers:
         client: AsyncWebClient,
         app: AsyncApp,
         agent_registry: DefaultAgentRegistry,
+        user_registry: DefaultUserRegistry,
         system_editor_ids: list[str] | None = None,
     ):
         self._client = client
@@ -32,6 +35,7 @@ class SlackHomeHandlers:
         self._system_editor_ids = system_editor_ids
 
         self._agent_config_handlers = AgentConfigHandlers(client, agent_registry)
+        self._secret_config_handlers = SecretConfigHandlers(client, user_registry)
 
         self._logger = logging.getLogger(__name__)
 
@@ -62,6 +66,21 @@ class SlackHomeHandlers:
             )
         )
 
+        # User secret handlers
+        self._app.action("home_add_user_secret")(self._secret_config_handlers.handle_add_user_secret)
+        self._app.view("home_user_secret_added_view")(
+            self.refresh_home_after_completion(self._secret_config_handlers.handle_user_secret_added)
+        )
+        self._app.action(re.compile(r"^home_user_secret_var_menu:"))(
+            self._secret_config_handlers.handle_user_secret_menu
+        )
+        self._app.view("home_user_secret_edited_view")(
+            self.refresh_home_after_completion(self._secret_config_handlers.handle_user_secret_edited)
+        )
+        self._app.view("home_user_secret_delete_confirm_view")(
+            self.refresh_home_after_completion(self._secret_config_handlers.handle_user_secret_delete_confirmed)
+        )
+
         self._logger.info("All handlers registered")
 
     async def handle_app_home_opened(self, client, event, logger):
@@ -75,10 +94,12 @@ class SlackHomeHandlers:
         try:
             username = await self._get_user_display_name(user_id)
             agents = await self._agent_config_handlers._get_agents()
+            user_secrets = await self._secret_config_handlers.get_user_secrets(user_id)
             is_system_editor = self._is_system_editor(user_id)
 
             view = HomeViewBuilder.build_home_view(
                 username=username,
+                user_secrets=user_secrets,
                 agents=agents,
                 is_system_editor=is_system_editor,
             )

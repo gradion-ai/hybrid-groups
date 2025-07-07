@@ -1,13 +1,13 @@
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from hygroup.gateway.slack.app_home.models import AgentListViewModel, AgentViewModel
 
 
 class AgentViewBuilder:
     @staticmethod
-    def build_agents_section(agents: List[AgentListViewModel], is_system_editor: bool) -> List[Dict[str, Any]]:
-        blocks: List[Dict[str, Any]] = [
+    def build_agents_section(agents: list[AgentListViewModel], is_system_editor: bool) -> list[dict[str, Any]]:
+        blocks: list[dict[str, Any]] = [
             {"type": "section", "text": {"type": "plain_text", "text": " "}},
             {
                 "type": "header",
@@ -104,7 +104,7 @@ class AgentViewBuilder:
         }
 
     @staticmethod
-    def build_agent_view_modal(agent: AgentViewModel) -> Dict[str, Any]:
+    def build_agent_view_modal(agent: AgentViewModel) -> dict[str, Any]:
         try:
             model_formatted = json.dumps(agent.model, indent=2)
         except (json.JSONDecodeError, TypeError):
@@ -171,7 +171,7 @@ class AgentViewBuilder:
         }
 
     @staticmethod
-    def build_agent_form_modal(agent: AgentViewModel | None = None, is_edit: bool = False) -> Dict[str, Any]:
+    def build_agent_form_modal(agent: AgentViewModel | None = None, is_edit: bool = False) -> dict[str, Any]:
         title = "Edit Agent" if is_edit else "Add Agent"
         callback_id = "home_agent_edited_view" if is_edit else "home_agent_added_view"
 
@@ -203,7 +203,7 @@ class AgentViewBuilder:
             )
 
         # Create blocks with proper typing
-        description_block: Dict[str, Any] = {
+        description_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_description",
             "label": {"type": "plain_text", "text": "Description"},
@@ -216,7 +216,7 @@ class AgentViewBuilder:
             },
         }
 
-        model_block: Dict[str, Any] = {
+        model_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_model",
             "label": {"type": "plain_text", "text": "Model"},
@@ -240,7 +240,7 @@ class AgentViewBuilder:
             },
         }
 
-        instructions_block: Dict[str, Any] = {
+        instructions_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_instructions",
             "label": {"type": "plain_text", "text": "Instructions"},
@@ -253,7 +253,7 @@ class AgentViewBuilder:
             },
         }
 
-        mcp_settings_block: Dict[str, Any] = {
+        mcp_settings_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_mcp_settings",
             "label": {"type": "plain_text", "text": "MCP Settings"},
@@ -274,7 +274,7 @@ class AgentViewBuilder:
             },
         }
 
-        emoji_block: Dict[str, Any] = {
+        emoji_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_emoji",
             "label": {"type": "plain_text", "text": "Emoji"},
@@ -315,7 +315,7 @@ class AgentViewBuilder:
             if agent.handoff:
                 initial_options.append(options[0])
 
-        checkbox_element: Dict[str, Any] = {
+        checkbox_element: dict[str, Any] = {
             "type": "checkboxes",
             "action_id": "agent_options",
             "options": options,
@@ -324,7 +324,7 @@ class AgentViewBuilder:
             checkbox_element["initial_options"] = initial_options
 
         # Use input block instead of actions block for form behavior
-        checkbox_input_block: Dict[str, Any] = {
+        checkbox_input_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_handoff_options",
             "label": {"type": "plain_text", "text": "Handoff Settings"},
@@ -347,7 +347,7 @@ class AgentViewBuilder:
         return modal
 
     @staticmethod
-    def build_agent_delete_modal(agent: AgentViewModel) -> Dict[str, Any]:
+    def build_agent_delete_modal(agent: AgentViewModel) -> dict[str, Any]:
         return {
             "type": "modal",
             "callback_id": "home_agent_delete_confirm_view",

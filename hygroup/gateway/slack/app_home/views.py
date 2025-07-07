@@ -1,16 +1,18 @@
-from typing import Any, Dict, List
+from typing import Any
 
 from hygroup.gateway.slack.app_home.agent.views import AgentViewBuilder
 from hygroup.gateway.slack.app_home.models import AgentListViewModel
+from hygroup.gateway.slack.app_home.secrets.views import SecretViewBuilder
 
 
 class HomeViewBuilder:
     @staticmethod
     def build_home_view(
         username: str,
-        agents: List[AgentListViewModel],
+        user_secrets: dict[str, str],
+        agents: list[AgentListViewModel],
         is_system_editor: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         blocks = []
 
         # Welcome section
@@ -38,6 +40,9 @@ class HomeViewBuilder:
                 },
             ]
         )
+
+        # User secrets section
+        blocks.extend(SecretViewBuilder.build_user_secrets_section(user_secrets))
 
         # Agents section
         blocks.extend(AgentViewBuilder.build_agents_section(agents, is_system_editor))

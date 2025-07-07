@@ -125,6 +125,14 @@ class DefaultUserRegistry(UserRegistry):
         data[username]["secrets"][key] = value
         await self._save()
 
+    async def delete_secret(self, username: str, key: str):
+        data = self._check_unlocked()
+        if username not in data:
+            raise UserNotRegisteredError(f"User '{username}' not found.")
+
+        data[username]["secrets"].pop(key, None)
+        await self._save()
+
     async def set_password(self, username: str, new_password: str):
         hashed_password = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt())
         await self.set_secret(username, "password_hash", base64.b64encode(hashed_password).decode("utf-8"))
