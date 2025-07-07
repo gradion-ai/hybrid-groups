@@ -3,9 +3,11 @@ import asyncio
 import os
 from pathlib import Path
 
+import aiofiles
 from dotenv import load_dotenv
 
 from hygroup.agent.default import DefaultAgentRegistry
+from hygroup.agent.select import AgentSelectorSettings
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
@@ -54,11 +56,20 @@ async def main(args):
             default_confirmation_response=True,
         )
 
+    selector_settings = AgentSelectorSettings()
+    selector_settings.instructions_file = Path(".data", "agents", "selector.md")
+
+    if not selector_settings.instructions_file.exists():
+        selector_settings.instructions_file.parent.mkdir(parents=True, exist_ok=True)
+        async with aiofiles.open(selector_settings.instructions_file, "w") as f:
+            await f.write(selector_settings.instructions)
+
     manager = SessionManager(
         agent_registry=agent_registry,
         user_registry=user_registry,
         permission_store=permission_store,
         request_handler=request_handler,
+        selector_settings=selector_settings,
     )
 
     match args.gateway:

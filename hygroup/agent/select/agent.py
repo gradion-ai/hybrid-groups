@@ -1,13 +1,14 @@
 from asyncio import Future
 from dataclasses import dataclass, field
+from pathlib import Path
 
+import aiofiles
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.messages import (
     ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
-    SystemPromptPart,
     ThinkingPart,
     ToolCallPart,
     ToolReturnPart,
@@ -18,7 +19,7 @@ from pydantic_ai.models.google import GoogleModelSettings
 from pydantic_core import to_jsonable_python
 
 from hygroup.agent.base import AgentRegistry, Message
-from hygroup.agent.select.prompt import SYSTEM_PROMPT, format_message
+from hygroup.agent.select.prompt import INSTRUCTIONS, format_message
 from hygroup.agent.utils import model_from_dict
 
 
@@ -53,7 +54,16 @@ class AgentSelectionConfirmationRequest:
 
 @dataclass
 class AgentSelectorSettings:
-    instructions: str = SYSTEM_PROMPT
+    instructions: str = INSTRUCTIONS
+    """
+    Instructions to the selector agent.
+    """
+
+    instructions_file: Path | str | None = None
+    """
+    If exists, the instructions will be read from the file.
+    """
+
     model: str | dict = "gemini-2.5-flash"
     model_settings: ModelSettings = field(
         default_factory=lambda: GoogleModelSettings(
@@ -81,7 +91,7 @@ class AgentSelector:
         self._agent = Agent(
             model=model,
             model_settings=self.settings.model_settings,
-            system_prompt=self.settings.instructions,
+            instructions=self.instructions,
             output_type=AgentSelection,
         )
         self._agent.tool_plain(registry.get_registered_agents)
@@ -94,6 +104,13 @@ class AgentSelector:
     def set_state(self, state):
         """Set the state of the selector agent from serialized data."""
         self._history = ModelMessagesTypeAdapter.validate_python(state)
+
+    async def instructions(self) -> str:
+        if self.settings.instructions_file and Path(self.settings.instructions_file).exists():
+            async with aiofiles.open(self.settings.instructions_file, "r") as f:
+                return await f.read()
+        else:
+            return self.settings.instructions
 
     async def run(self, message: Message) -> AgentSelectionResult:
         prompt = format_message(message)
@@ -114,9 +131,6 @@ class AgentSelector:
     async def add(self, message: Message):
         init = len(self._history) == 0
         parts = []
-
-        if init:
-            parts.append(SystemPromptPart(content=self.settings.instructions))
 
         parts.append(UserPromptPart(content=format_message(message)))
         self._history.append(ModelRequest(parts=parts))
