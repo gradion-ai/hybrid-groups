@@ -1,6 +1,6 @@
 import asyncio
 
-from examples.app_server import agent_registry, get_registered_agents
+from examples.app_server import agent_registry, get_registered_agents, get_user_preferences
 from examples.weather import get_weather_forecast
 from hygroup.agent.default import AgentSettings, MCPSettings
 
@@ -8,23 +8,23 @@ BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the u
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
 You MUST plan extensively before each function call, and reflect extensively on the outcomes of the previous function calls. DO NOT do this entire process by making function calls only, as this can impair your ability to solve the problem and think insightfully."""
 
-SEARCH_AGENT_INSTRUCTIONS = """You can search the web using the brave_web_search tool.
-For all other questions say 'I don't know'.
-Be concise."""
+SCRAPE_AGENT_INSTRUCTIONS = """You can scrape individual web pages using the scrape tool from the firecrawl_scrape tool. For all other queries say 'I don't know'."""
 
-SCRAPE_AGENT_INSTRUCTIONS = """You can scrape individual web pages using the scrape tool from the firecrawl_scrape tool.
-For all other questions say 'I don't know'.
-Be concise."""
+SEARCH_AGENT_INSTRUCTIONS = """You can search the web and respond to query senders based on their preferences. For all other queries say 'I don't know'.
+1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
+2. Use the brave_web_search tool to search the web.
+3. Respond to the query sender based on the sender's preferences.
+"""
 
-WEATHER_AGENT_INSTRUCTIONS = """You can get weather forecasts for today or dates in the future.
-Always use the get_weather_forecast tool for any date provided, even if it is far in the future.
-For all other questions say 'I don't know'.
-Be concise."""
+WEATHER_AGENT_INSTRUCTIONS = """You can get weather forecasts for today or dates in the future. For all other queries say 'I don't know'.
+1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
+2. Use the get_weather_forecast tool to get the weather forecast. Always use the get_weather_forecast tool for any date provided, even if it is far in the future.
+3. Respond to the query sender based on the sender's preferences.
+"""
 
 GENERAL_AGENT_INSTRUCTIONS = """You can answer questions about available agents in the system using the get_registered_agents tool.
-If you receive a question that one of the registered agents can answer delegate to that agent. Otherwise say try to answer the question yourself.
-Never delegate to yourself, the "gradion" agent.
-"""
+If you receive a query that one of the registered agents can handle delegate to that agent. Otherwise try to answer the query yourself.
+Never delegate to yourself, the "general" agent."""
 
 
 def browser_agent_config():
@@ -37,7 +37,7 @@ def browser_agent_config():
     )
 
     agent_settings = AgentSettings(
-        model="openai:gpt-4.1",
+        model="gemini-2.5-flash",
         instructions=BROWSER_AGENT_INSTRUCTIONS,
         mcp_settings=[playwright_server_settings],
     )
@@ -48,33 +48,6 @@ def browser_agent_config():
         "settings": agent_settings,
         "handoff": False,
         "emoji": "earth_americas",
-    }
-
-
-def search_agent_config():
-    brave_search_settings = MCPSettings(
-        server_config={
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-            "env": {
-                "BRAVE_API_KEY": "${BRAVE_API_KEY}",
-            },
-        },
-        session_scope=False,
-    )
-
-    agent_settings = AgentSettings(
-        model="openai:gpt-4.1",
-        instructions=SEARCH_AGENT_INSTRUCTIONS,
-        mcp_settings=[brave_search_settings],
-    )
-
-    return {
-        "name": "search",
-        "description": "An agent that can search the web.",
-        "settings": agent_settings,
-        "handoff": False,
-        "emoji": "mag",
     }
 
 
@@ -92,7 +65,7 @@ def scrape_agent_config():
     )
 
     agent_settings = AgentSettings(
-        model="openai:gpt-4.1",
+        model="gemini-2.5-flash",
         instructions=SCRAPE_AGENT_INSTRUCTIONS,
         mcp_settings=[firecrawl_settings],
     )
@@ -106,12 +79,40 @@ def scrape_agent_config():
     }
 
 
+def search_agent_config():
+    brave_search_settings = MCPSettings(
+        server_config={
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+            "env": {
+                "BRAVE_API_KEY": "${BRAVE_API_KEY}",
+            },
+        },
+        session_scope=False,
+    )
+
+    agent_settings = AgentSettings(
+        model="gemini-2.5-flash",
+        instructions=SEARCH_AGENT_INSTRUCTIONS,
+        mcp_settings=[brave_search_settings],
+        tools=[get_user_preferences],
+    )
+
+    return {
+        "name": "search",
+        "description": "An agent that can search the web.",
+        "settings": agent_settings,
+        "handoff": False,
+        "emoji": "mag",
+    }
+
+
 def weather_agent_config():
     agent_settings = AgentSettings(
-        model="openai:gpt-4.1",
+        model="gemini-2.5-flash",
         instructions=WEATHER_AGENT_INSTRUCTIONS,
         mcp_settings=[],
-        tools=[get_weather_forecast],
+        tools=[get_weather_forecast, get_user_preferences],
     )
 
     return {
@@ -125,7 +126,7 @@ def weather_agent_config():
 
 def general_agent_config():
     agent_settings = AgentSettings(
-        model="openai:gpt-4.1",
+        model="gemini-2.5-flash",
         instructions=GENERAL_AGENT_INSTRUCTIONS,
         mcp_settings=[],
         tools=[get_registered_agents],
@@ -143,8 +144,8 @@ def general_agent_config():
 async def main():
     await agent_registry.remove_configs()
     await agent_registry.add_config(**browser_agent_config())
-    await agent_registry.add_config(**search_agent_config())
     await agent_registry.add_config(**scrape_agent_config())
+    await agent_registry.add_config(**search_agent_config())
     await agent_registry.add_config(**weather_agent_config())
     await agent_registry.add_config(**general_agent_config())
 

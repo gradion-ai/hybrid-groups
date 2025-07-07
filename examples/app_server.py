@@ -14,16 +14,24 @@ from hygroup.session import SessionManager
 from hygroup.user import RequestHandler
 from hygroup.user.default import (
     DefaultPermissionStore,
+    DefaultUserPreferences,
     DefaultUserRegistry,
     RequestServer,
     RichConsoleHandler,
 )
 
 agent_registry = DefaultAgentRegistry()
+user_preferences = DefaultUserPreferences()
 
 
 async def get_registered_agents():
     return await agent_registry.get_registered_agents()
+
+
+async def get_user_preferences(username: str):
+    preferences = await user_preferences.get_preferences(username)
+    preferences = preferences or "n/a"
+    return f"User preferences for {username}:\n{preferences}"
 
 
 async def main(args):
@@ -33,6 +41,9 @@ async def main(args):
 
     request_handler: RequestHandler
     gateway: Gateway
+
+    await user_preferences.set_preferences("martin", "- concise answers\n- doesn't want to see emojis")
+    await user_preferences.set_preferences("chris", "- concise answers\n- always wants to see emojis")
 
     if args.user_channel:
         request_handler = RequestServer(user_registry)
