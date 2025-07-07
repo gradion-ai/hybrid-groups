@@ -57,3 +57,15 @@ class DefaultUserPreferences:
             data = await self._read_data()
             data[username] = preferences
             await self._write_data(data)
+
+    async def delete_preferences(self, username: str) -> None:
+        """Delete preferences for a user.
+
+        Args:
+            username: Username to delete preferences for
+        """
+        async with self._lock:
+            data = await self._read_data()
+            if username in data:
+                del data[username]
+                await self._write_data(data)

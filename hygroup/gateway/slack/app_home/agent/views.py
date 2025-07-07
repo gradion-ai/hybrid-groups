@@ -10,15 +10,16 @@ class AgentViewBuilder:
         blocks: list[dict[str, Any]] = [
             {"type": "section", "text": {"type": "plain_text", "text": " "}},
             {
-                "type": "header",
+                "type": "section",
                 "text": {
-                    "type": "plain_text",
-                    "text": "🤖 Agents",
-                    "emoji": True,
+                    "type": "mrkdwn",
+                    "text": "*Agents*",
                 },
             },
             {"type": "divider"},
         ]
+
+        description_text = "The available agents and their capabilities. Agents can be used by all members of this workspace by @mentioning them in conversations."
 
         if is_system_editor:
             blocks.append(
@@ -26,7 +27,7 @@ class AgentViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "Manage agents in the system.",
+                        "text": description_text,
                     },
                     "accessory": {
                         "type": "button",
@@ -42,10 +43,16 @@ class AgentViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "View all available agents in the system.",
+                        "text": description_text,
                     },
                 }
             )
+
+        blocks.extend(
+            [
+                {"type": "section", "text": {"type": "plain_text", "text": " "}},
+            ]
+        )
 
         if agents:
             for agent in agents:
