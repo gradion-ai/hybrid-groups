@@ -40,6 +40,7 @@ class PullRequestOpened(GithubEvent):
 
 @dataclass
 class PullRequestCommentCreated(GithubEvent):
+    comment_id: int
     comment: str
 
 
@@ -92,6 +93,7 @@ def map_github_event(event_type: str, payload: dict) -> GithubEvent | None:
                             repository_full_name=payload["repository"]["full_name"],
                             issue_id=payload["issue"]["id"],
                             issue_number=payload["issue"]["number"],
+                            comment_id=payload["comment"]["id"],
                             user_id=payload["comment"]["user"]["id"],
                             username=payload["comment"]["user"]["login"],
                             comment=payload["comment"]["body"],

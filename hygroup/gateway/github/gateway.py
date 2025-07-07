@@ -129,7 +129,6 @@ class GithubGateway(Gateway):
                 conversation_id = self._conversation_id(opened_event)
 
                 session = self._session_manager.create_session(id=conversation_id)
-                session.sync()
 
                 conversation = self._register_conversation(conversation_id, opened_event, session)
 
@@ -137,6 +136,7 @@ class GithubGateway(Gateway):
                     conversation,
                     message=opened_event.description,
                     username=opened_event.username,
+                    message_id="issue-description",
                 )
 
             case IssueCommentCreated() | PullRequestCommentCreated() | PullRequestReviewSubmitted() as comment_event:
@@ -152,17 +152,27 @@ class GithubGateway(Gateway):
                 if comment_event.username == self._github_app_fullname:
                     return
 
+                message_id: str | None
+                match comment_event:
+                    case IssueCommentCreated() | PullRequestCommentCreated():
+                        message_id = f"issue-comment__{comment_event.comment_id}"
+                    case _:
+                        message_id = None
+
                 await self._handle_conversation_message(
                     conversation,
                     message=comment_event.comment,
                     username=comment_event.username,
+                    message_id=message_id,
                 )
 
             case _:
                 logger.info("Unhandled event (event='%s')", event)
                 return
 
-    async def _handle_conversation_message(self, conversation: GithubConversation, message: str, username: str):
+    async def _handle_conversation_message(
+        self, conversation: GithubConversation, message: str, username: str, message_id: str | None = None
+    ):
         sender_resolved = self._resolve_system_user_id(username)
 
         receiver, text = extract_mention(message)
@@ -181,7 +191,10 @@ class GithubGateway(Gateway):
                 text[:50] + "..." if len(text) > 50 else text,
             )
             request = AgentRequest(
-                query=text, sender=sender_resolved, threads=await self._session_manager.load_threads(thread_refs)
+                query=text,
+                sender=sender_resolved,
+                threads=await self._session_manager.load_threads(thread_refs),
+                id=message_id,
             )
             await conversation.session.invoke(
                 request=request,
@@ -194,10 +207,18 @@ class GithubGateway(Gateway):
                 receiver_resolved or "none",
                 text[:50] + "..." if len(text) > 50 else text,
             )
-            await conversation.session.update(Message(sender=sender_resolved, receiver=receiver_resolved, text=text))
+            await conversation.session.update(
+                Message(
+                    sender=sender_resolved,
+                    receiver=receiver_resolved,
+                    text=text,
+                    id=message_id,
+                )
+            )
 
     def _register_conversation(self, conversation_id: str, event: GithubEvent, session: Session) -> GithubConversation:
         session.set_gateway(self)
+        session.sync()
 
         self._conversations[conversation_id] = GithubConversation(
             repository=GithubRepository(
@@ -219,7 +240,6 @@ class GithubGateway(Gateway):
             return conversation
 
         if session := await self._session_manager.load_session(id=conversation_id):
-            session.sync()
             return self._register_conversation(conversation_id, event, session)
         else:
             return None
@@ -248,3 +268,33 @@ class GithubGateway(Gateway):
             issue_number=conversation.issue.issue_number,
             text=text,
         )
+
+    async def handle_agent_activation(self, agent_name: str | None, message_id: str, session_id: str):
+        conversation = self._conversations.get(session_id)
+        if conversation is None:
+            logger.warning("Conversation for session not found (session_id='%s')", session_id)
+            return
+
+        emoji = None
+        match agent_name:
+            case None:
+                emoji = "+1"
+            case "selector":
+                emoji = "eyes"
+            case _:
+                emoji = "rocket"
+
+        if emoji is not None:
+            if message_id == "issue-description":
+                await self._github_service.add_reaction_to_issue_description(
+                    repository_name=conversation.repository.repository_full_name,
+                    issue_number=conversation.issue.issue_number,
+                    reaction=emoji,
+                )
+            elif message_id.startswith("issue-comment"):
+                await self._github_service.add_reaction_to_issue_comment(
+                    repository_name=conversation.repository.repository_full_name,
+                    issue_number=conversation.issue.issue_number,
+                    comment_id=int(message_id.split("__")[1]),
+                    reaction=emoji,
+                )
