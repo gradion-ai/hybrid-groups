@@ -6,7 +6,7 @@ from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
 from functools import wraps
-from typing import Any, AsyncIterator, Callable, Generic, Optional, Sequence, Type, TypeVar
+from typing import Any, AsyncIterator, Callable, Generic, Iterator, Optional, Sequence, Type, TypeVar
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent as AgentImpl
@@ -157,14 +157,15 @@ class AgentBase(Generic[D], Agent):
 
     @asynccontextmanager
     async def session_scope(self):
-        async with self._run_mcp_servers(self._session_mcp_servers):
-            yield
+        with self._configure_mcp_servers(self._session_mcp_servers, dict(os.environ)) as servers:
+            async with self._run_mcp_servers(servers):
+                yield
 
     @asynccontextmanager
     async def request_scope(self, secrets: dict[str, str] | None = None):
         self._ctx_secrets.set(secrets is not None)
-        with self._configure_mcp_servers(secrets or dict(os.environ)):
-            async with self._run_mcp_servers(self._request_mcp_servers):
+        with self._configure_mcp_servers(self._request_mcp_servers, secrets or dict(os.environ)) as servers:
+            async with self._run_mcp_servers(servers):
                 yield
 
     async def run(
@@ -215,8 +216,9 @@ class AgentBase(Generic[D], Agent):
         await queue.put(AgentResponse(text=self._text(data), final=True, handoffs=self._handoffs(data)))
         self._history.extend(result.new_messages())
 
+    @staticmethod
     @asynccontextmanager
-    async def _run_mcp_servers(self, mcp_servers: list[MCPServer]):
+    async def _run_mcp_servers(mcp_servers: list[MCPServer]):
         exit_stack = AsyncExitStack()
         try:
             for mcp_server in mcp_servers:
@@ -225,14 +227,15 @@ class AgentBase(Generic[D], Agent):
         finally:
             await exit_stack.aclose()
 
+    @staticmethod
     @contextmanager
-    def _configure_mcp_servers(self, config_values: dict[str, str]):
-        """Configure MCP servers using the given config values. Variables in env or headers are replaced
-        with their values in the config, or removed entirely if absent to ensure default MCP server behavior."""
+    def _configure_mcp_servers(
+        mcp_servers: list[MCPServer], config_values: dict[str, str]
+    ) -> Iterator[list[MCPServer]]:
         backups = []
 
         try:
-            for server in self._request_mcp_servers:
+            for server in mcp_servers:
                 match server:
                     case MCPServerStdio() if server.env is not None:
                         new_env, updated = resolve_config_variables(server.env, config_values)
@@ -247,7 +250,7 @@ class AgentBase(Generic[D], Agent):
                     case _:
                         pass
 
-            yield
+            yield mcp_servers
 
         finally:
             for server, field_name, original_value in reversed(backups):
