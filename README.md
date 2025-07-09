@@ -15,13 +15,13 @@ The *Hybrid Groups* project provides:
 
 | Visual | Description |
 |---|---|
-| <a href="docs/images/overview-1.png?raw=true" target="_blank"><img src="docs/images/overview-1.png" width="800"></a> | **Multi-user and multi-agent groups:** A group connects multiple users and agents, allowing them to collaborate on a common goal and access private and shared resources.|
-| <a href="docs/images/overview-2.png?raw=true" target="_blank"><img src="docs/images/overview-2.png" width="800"></a> | **Communication between any group members:** A group enables communication between users, between agents and between users and agents. Any agent in a group is aware of the identity and interactions of all other group members. |
-| <a href="docs/images/overview-6.png?raw=true" target="_blank"><img src="docs/images/overview-6.png" width="800"></a> | **Undirected and directed communication:** A group supports both undirected communication through publishing messages and targeted communication by mentioning specific users or agents. |
-| <a href="docs/images/overview-3.png?raw=true" target="_blank"><img src="docs/images/overview-3.png" width="800"></a> | **Agents act on behalf of users:** User-agent interactions propagate user-specific tokens to agents so that they can access protected resources on behalf of the user. This also works along agent handoff chains.|
-| <a href="docs/images/overview-4.png?raw=true" target="_blank"><img src="docs/images/overview-4.png" width="800"></a> | **Private permission and feedback channels:** Agents may ask initiating users for permissions to execute actions or solicit feedback in case of ambiguities. This is done via private user channels that are separated from the shared group communication channel. |
-| <a href="docs/images/overview-5.png?raw=true" target="_blank"><img src="docs/images/overview-5.png" width="800"></a> | **Agent activations:** Agents can be activated in different ways: reactively based on user requests, via handoffs from other agents, or behave proactively based on trigger events. |
-| <a href="docs/images/overview-7.png?raw=true" target="_blank"><img src="docs/images/overview-7.png" width="800"></a> | **Platform integrations:** *Hybrid Groups* integrates with 3rd party platforms like Slack or GitHub. It also provides its own platform, with terminal user interfaces for experimentation and demonstration purposes.|
+| <a href="docs/images/overview/overview-1.png?raw=true" target="_blank"><img src="docs/images/overview/overview-1.png" width="800"></a> | **Multi-user and multi-agent groups:** A group connects multiple users and agents, allowing them to collaborate on a common goal and access private and shared resources.|
+| <a href="docs/images/overview/overview-2.png?raw=true" target="_blank"><img src="docs/images/overview/overview-2.png" width="800"></a> | **Communication between any group members:** A group enables communication between users, between agents and between users and agents. Any agent in a group is aware of the identity and interactions of all other group members. |
+| <a href="docs/images/overview/overview-6.png?raw=true" target="_blank"><img src="docs/images/overview/overview-6.png" width="800"></a> | **Undirected and directed communication:** A group supports both undirected communication through publishing messages and targeted communication by mentioning specific users or agents. |
+| <a href="docs/images/overview/overview-3.png?raw=true" target="_blank"><img src="docs/images/overview/overview-3.png" width="800"></a> | **Agents act on behalf of users:** User-agent interactions propagate user-specific tokens to agents so that they can access protected resources on behalf of the user. This also works along agent handoff chains.|
+| <a href="docs/images/overview/overview-4.png?raw=true" target="_blank"><img src="docs/images/overview/overview-4.png" width="800"></a> | **Private permission and feedback channels:** Agents may ask initiating users for permissions to execute actions or solicit feedback in case of ambiguities. This is done via private user channels that are separated from the shared group communication channel. |
+| <a href="docs/images/overview/overview-5.png?raw=true" target="_blank"><img src="docs/images/overview/overview-5.png" width="800"></a> | **Agent activations:** Agents can be activated in different ways: reactively based on user requests, via handoffs from other agents, or behave proactively based on trigger events. |
+| <a href="docs/images/overview/overview-7.png?raw=true" target="_blank"><img src="docs/images/overview/overview-7.png" width="800"></a> | **Platform integrations:** *Hybrid Groups* integrates with 3rd party platforms like Slack or GitHub. It also provides its own platform, with terminal user interfaces for experimentation and demonstration purposes.|
 
 ## Project setup
 
@@ -117,11 +117,11 @@ python examples/user_channel.py --username martin --password ""
 
 The conversation example below between `martin` and agents sends one permission request and one feedback request to `martin`'s user channel.
 
-![terminal client](docs/images/terminal-3.png)
+![terminal client](docs/images/legacy/terminal-3.png)
 
 The permission to execute the `get_weather_forecast` tool is granted by `martin` for the duration of the session. Hence, a second request to the `weather` agent is answered without sending a permission request. An instruction to the `gradion` agent to greet `martin`'s friend by name, which the agent cannot know, causes it to request `martin`'s feedback through the user channel.
 
-![terminal client](docs/images/terminal-4.png)
+![terminal client](docs/images/legacy/terminal-4.png)
 
 ### User registration
 
@@ -168,7 +168,7 @@ To start a conversation, add the *app agent* to any channel and mention it with 
 
 In agent responses, the agent name is shown next to a bot icon. The following example shows the *app agent* handling a weather query, handing off to a `weather` agent:
 
-<img src="docs/images/slack_example.png" alt="Slack Example" width="800">
+<img src="docs/images/legacy/slack_example.png" alt="Slack Example" width="800">
 
 ##### Usage
 
@@ -209,7 +209,7 @@ To start a conversation, mention the *app agent* or any other registered agent i
 
 Agent responses are labeled with the agent's name in brackets (e.g. `[weather]` in the example below). The following example demonstrates the *app agent* receiving a weather query and handing off to the `weather` agent:
 
-<img src="docs/images/github_example.png" alt="GitHub Example" width="800">
+<img src="docs/images/legacy/github_example.png" alt="GitHub Example" width="800">
 
 ##### Usage
 

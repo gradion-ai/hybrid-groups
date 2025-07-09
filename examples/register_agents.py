@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from examples.app_server import agent_registry, get_registered_agents, get_user_preferences
 from examples.weather import get_weather_forecast
@@ -6,17 +7,36 @@ from hygroup.agent.default import AgentSettings, MCPSettings
 
 BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved, or if you need more info from the user to solve the problem.
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
-You MUST plan extensively before each function call, and reflect extensively on the outcomes of the previous function calls. DO NOT do this entire process by making function calls only, as this can impair your ability to solve the problem and think insightfully."""
+You MUST plan extensively before each function call, and reflect extensively on the outcomes of the previous function calls. DO NOT do this entire process by making function calls only, as this can impair your ability to solve the problem and think insightfully.
+"""
 
-SCRAPE_AGENT_INSTRUCTIONS = """You can scrape individual web pages using the scrape tool from the firecrawl_scrape tool. For all other queries say 'I don't know'."""
+SCRAPE_AGENT_INSTRUCTIONS = """You can scrape individual web pages using the firecrawl_scrape tool.
+1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
+2. Use the get_weather_forecast tool to get the weather forecast. Always use the get_weather_forecast tool for any date provided, even if it is far in the future.
+3. Respond to the query sender based on the sender's preferences.
+"""
 
-SEARCH_AGENT_INSTRUCTIONS = """You can search the web and respond to query senders based on their preferences. For all other queries say 'I don't know'.
+SEARCH_AGENT_INSTRUCTIONS = """You can search the web and respond to query senders based on their preferences.
 1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
 2. Use the brave_web_search tool to search the web.
 3. Respond to the query sender based on the sender's preferences.
 """
 
-WEATHER_AGENT_INSTRUCTIONS = """You can get weather forecasts for today or dates in the future. For all other queries say 'I don't know'.
+ZOTERO_AGENT_INSTRUCTIONS = """You are an expert at reading and updating a Zotero library.
+1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
+2. Use the Zotero-related tools you have available to read and update the library. For searching items, always use zotero_semantic_search.
+   - For each item in the result use the zotero_get_item_metadata tool to get link and title of the item. Make parallel calls to zotero_get_item_metadata.
+   - Always include links for items in your response. Never hallucinate links, always get links with zotero_get_item_metadata.
+3. Respond to the query sender based on the sender's preferences.
+"""
+
+READER_AGENT_INSTRUCTIONS = """You are an expert at reading and updating Readwise Reader, an application for organizing reading lists.
+1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
+2. Use the readwise tools you have available to read and update a user's reading items.
+3. Respond to the query sender based on the sender's preferences.
+"""
+
+WEATHER_AGENT_INSTRUCTIONS = """You can get weather forecasts for today or dates in the future.
 1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
 2. Use the get_weather_forecast tool to get the weather forecast. Always use the get_weather_forecast tool for any date provided, even if it is far in the future.
 3. Respond to the query sender based on the sender's preferences.
@@ -24,7 +44,8 @@ WEATHER_AGENT_INSTRUCTIONS = """You can get weather forecasts for today or dates
 
 GENERAL_AGENT_INSTRUCTIONS = """You can answer questions about available agents in the system using the get_registered_agents tool.
 If you receive a query that one of the registered agents can handle delegate to that agent. Otherwise try to answer the query yourself.
-Never delegate to yourself, the "general" agent."""
+Never delegate to yourself, the "general" agent.
+"""
 
 
 def browser_agent_config():
@@ -107,6 +128,69 @@ def search_agent_config():
     }
 
 
+def zotero_agent_config(zotero_mcp_exec: str):
+    zotero_settings = MCPSettings(
+        server_config={
+            "command": zotero_mcp_exec,
+            "args": [],
+            "env": {
+                "ZOTERO_API_KEY": "${ZOTERO_API_KEY}",
+                "ZOTERO_LIBRARY_ID": "${ZOTERO_LIBRARY_ID}",
+                "ZOTERO_LIBRARY_TYPE": "${ZOTERO_LIBRARY_TYPE}",
+            },
+        },
+        session_scope=False,
+    )
+
+    fetch_settings = MCPSettings(
+        server_config={
+            "command": "uvx",
+            "args": ["mcp-server-fetch"],
+        },
+        session_scope=True,
+    )
+    agent_settings = AgentSettings(
+        model="gemini-2.5-flash",
+        instructions=ZOTERO_AGENT_INSTRUCTIONS,
+        mcp_settings=[zotero_settings, fetch_settings],
+        tools=[get_user_preferences],
+    )
+
+    return {
+        "name": "zotero",
+        "description": "An agent that can read and update a Zotero library.",
+        "settings": agent_settings,
+        "handoff": False,
+        "emoji": "books",
+    }
+
+
+def reader_agent_config(reader_mcp_exec: str):
+    reader_settings = MCPSettings(
+        server_config={
+            "command": "node",
+            "args": [reader_mcp_exec],
+            "env": {"READWISE_TOKEN": "${READWISE_TOKEN}"},
+        },
+        session_scope=False,
+    )
+
+    agent_settings = AgentSettings(
+        model="gemini-2.5-pro",
+        instructions=READER_AGENT_INSTRUCTIONS,
+        mcp_settings=[reader_settings],
+        tools=[get_user_preferences],
+    )
+
+    return {
+        "name": "reader",
+        "description": "An agent that can read and update a items in Readwise Reader, an application for organizing reading lists.",
+        "settings": agent_settings,
+        "handoff": False,
+        "emoji": "clock10",
+    }
+
+
 def weather_agent_config():
     agent_settings = AgentSettings(
         model="gemini-2.5-flash",
@@ -143,11 +227,15 @@ def general_agent_config():
 
 async def main():
     await agent_registry.remove_configs()
-    await agent_registry.add_config(**browser_agent_config())
     await agent_registry.add_config(**scrape_agent_config())
     await agent_registry.add_config(**search_agent_config())
     await agent_registry.add_config(**weather_agent_config())
     await agent_registry.add_config(**general_agent_config())
+
+    if mcp_exec := os.environ.get("ZOTERO_MCP_EXEC"):
+        await agent_registry.add_config(**zotero_agent_config(mcp_exec))
+    if mcp_exec := os.environ.get("READER_MCP_EXEC"):
+        await agent_registry.add_config(**reader_agent_config(mcp_exec))
 
 
 if __name__ == "__main__":

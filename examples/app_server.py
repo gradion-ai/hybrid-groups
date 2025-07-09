@@ -44,9 +44,6 @@ async def main(args):
     request_handler: RequestHandler
     gateway: Gateway
 
-    await user_preferences.set_preferences("martin", "- concise answers\n- doesn't want to see emojis")
-    await user_preferences.set_preferences("chris", "- concise answers\n- always wants to see emojis")
-
     if args.user_channel:
         request_handler = RequestServer(user_registry)
         await request_handler.start(join=False)
@@ -81,7 +78,7 @@ async def main(args):
             github_app_username = os.environ["GITHUB_APP_USERNAME"]
 
             user_mappings = user_registry.get_mappings("github")
-            user_mappings[github_app_username] = "gradion"
+            user_mappings[github_app_username] = "hybrid-groups"
 
             gateway = GithubGateway(
                 session_manager=manager,
@@ -95,7 +92,7 @@ async def main(args):
             gateway = SlackGateway(
                 session_manager=manager,
                 user_mapping=user_registry.get_mappings("slack"),
-                handle_permission_requests=True,
+                handle_permission_requests=False,
             )
             slack_home_handlers = SlackHomeHandlers(
                 client=gateway._client,
