@@ -184,7 +184,7 @@ def reader_agent_config(reader_mcp_exec: str):
 
     return {
         "name": "reader",
-        "description": "An agent that can read and update a items in Readwise Reader, an application for organizing reading lists.",
+        "description": "An agent that can read and update items in Readwise Reader.",
         "settings": agent_settings,
         "handoff": False,
         "emoji": "clock10",
@@ -227,15 +227,17 @@ def general_agent_config():
 
 async def main():
     await agent_registry.remove_configs()
-    await agent_registry.add_config(**scrape_agent_config())
+    # await agent_registry.add_config(**scrape_agent_config())
     await agent_registry.add_config(**search_agent_config())
-    await agent_registry.add_config(**weather_agent_config())
-    await agent_registry.add_config(**general_agent_config())
+    # await agent_registry.add_config(**weather_agent_config())
+    # await agent_registry.add_config(**general_agent_config())
 
     if mcp_exec := os.environ.get("ZOTERO_MCP_EXEC"):
         await agent_registry.add_config(**zotero_agent_config(mcp_exec))
     if mcp_exec := os.environ.get("READER_MCP_EXEC"):
         await agent_registry.add_config(**reader_agent_config(mcp_exec))
+
+    await agent_registry.add_config(**weather_agent_config())
 
 
 if __name__ == "__main__":
