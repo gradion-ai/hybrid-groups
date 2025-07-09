@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 2:
                 phase2Container.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'auto' });
                 break;
             case 3:
                 phase3Container.style.display = 'block';
@@ -86,12 +87,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     appIdDisplay.textContent = appData.app_id;
                     appLevelTokensLink.href = `https://api.slack.com/apps/${appData.app_id}/general`;
                 }
+                window.scrollTo({ top: 0, behavior: 'auto' });
                 break;
             case 4:
                 phase4Container.style.display = 'block';
                 if (appData) {
                     oauthPermissionsLink.href = `https://api.slack.com/apps/${appData.app_id}/install-on-team`;
                 }
+                window.scrollTo({ top: 0, behavior: 'auto' });
                 break;
             case 'success':
                 successContainer.style.display = 'block';
