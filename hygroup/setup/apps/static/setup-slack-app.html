@@ -3,38 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slack App Creation</title>
+    <title>Slack App Setup</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
         <div class="card">
             <div class="header">
-                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m0 0v10a2 2 0 002 2h6a2 2 0 002-2V8M9 12h6m-6 4h6"></path>
-                </svg>
-                <h1>Register Hybrid Groups Slack App</h1>
+                </svg> -->
+                <img src="/static/images/logo.png" alt="Logo" class="header-icon" style="margin-right: 1rem;">
+                <h1>Hybrid Groups Slack App Setup</h1>
             </div>
 
-            <div class="info-section" id="initial-info-section">
-                <p>This setup guide will walk you through the process of registering the <b>Hybrid Groups Slack app</b> in your Slack workspace.</p>
-                <p>You need a <b>Slack account with admin permissions</b> to continue.</p>
+            <!-- Progress Indicator -->
+            <div class="progress-indicator">
+                <div class="progress-step active" id="progress-1">
+                    <span class="progress-number">1</span>
+                    <span class="progress-label">Welcome</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" id="progress-2">
+                    <span class="progress-number">2</span>
+                    <span class="progress-label">Create Slack App</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" id="progress-3">
+                    <span class="progress-number">3</span>
+                    <span class="progress-label">Generate App Token</span>
+                </div>
+                <div class="progress-line"></div>
+                <div class="progress-step" id="progress-4">
+                    <span class="progress-number">4</span>
+                    <span class="progress-label">Install Slack App</span>
+                </div>
             </div>
 
+            <!-- Phase 1: Introduction -->
             <div id="phase-1-container">
-                <form id="slack-app-create-form">
-                    <div id="create-form-error" class="form-error">
-                        <p class="form-error-message" id="create-form-error-message"></p>
+                <div class="info-section">
+                    <p>This setup guide will walk you through the process of creating and configuring the <span class="highlight">Hybrid Groups Slack App</span> in <b>your Slack workspace</b>.</p>
+                    <p>You need a <b>Slack account with admin permissions</b> to continue.</p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="start-configuration-button" class="btn btn-primary">
+                        Start Setup
+                    </button>
+                </div>
+            </div>
+
+            <!-- Phase 2: App Configuration Token -->
+            <div id="phase-2-container" style="display: none;">
+                <form id="slack-app-config-form">
+                    <div id="config-form-error" class="form-error">
+                        <p class="form-error-message" id="config-form-error-message"></p>
                     </div>
 
                     <div class="form-group">
-                        <label for="config_token">Slack App Configuration Token</label>
-                        <div class="info-section" id="initial-info-section">
-                            <p>Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a>, login to your account and navigate to the section <span class="highlight">Your App Configuration Tokens</span>.<br/><br/>Click on <span class="highlight">Generate Token</span> and copy the generated <span class="highlight">Access Token</span>.</p>
-                            <details>
-                                <summary style="cursor: pointer; color: white; margin-bottom: 10px;">More details</summary>
-                                <img src="/static/images/slack_app_config_token.png" alt="App-Level Tokens" style="width: 100%; height: auto; margin-bottom: 10px;">
-                            </details>
+                        <label for="config_token">Create Slack App</label>
+                        <div class="info-section">
+                            <p>To create the Hybrid Groups Slack App in your workspace, an <b>App Configuration Token</b> is required.</p>
+
+                            <div style="margin-top: 1.5rem;">
+                                <div style="margin-bottom: 2rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">1. Navigate to Slack Apps</p>
+                                    <p style="margin-bottom: 1rem;">Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> and log in to your Slack account. Find the section <span class="highlight">Your App Configuration Tokens</span>.</p>
+                                </div>
+
+                                <div style="margin-bottom: 1rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">2. Generate your token</p>
+                                    <p style="margin-bottom: 1rem;">Click <span class="highlight">Generate Token</span> to create a new token pair, then copy the generated <span class="highlight">Access Token</span> and paste it below.</p>
+                                    <img src="/static/images/slack_app_config_token.png" alt="App Configuration Token section showing Generate Token button" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                </div>
+                            </div>
+
+                            <p style="margin-top: 1rem;"><em>This token is only used once for app creation and is not stored.</em></p>
                         </div>
 
                         <input type="text"
@@ -46,60 +91,120 @@
 
                     <div class="form-actions">
                         <button type="button"
-                                id="create-app-button"
+                                id="config-token-next-button"
                                 disabled
                                 class="btn btn-primary">
-                            Register Slack App
+                            Create Slack App
                         </button>
                     </div>
                 </form>
             </div>
 
-            <div id="phase-2-container" style="display: none;">
-                <div class="info-section">
-                    <h2>App Created Successfully!</h2>
+            <!-- Phase 3: App-Level Token -->
+            <div id="phase-3-container" style="display: none;">
+                <div class="info-section" id="app-created-info" style="display: none;">
+                    <h2>Slack App Created Successfully!</h2>
+                    <div class="info-item">
+                        <span class="info-label">App Name:</span>
+                        <span class="info-value">Hybrid Groups</span>
+                    </div>
                     <div class="info-item">
                         <span class="info-label">App ID:</span>
                         <span class="info-value" id="app-id-display"></span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">App Name:</span>
-                        <span class="info-value" id="app-name-display"></span>
-                    </div>
                 </div>
 
-                <div class="info-section">
-                    <h2>Next Steps</h2>
-                    <p>Follow the instructions below to create an App-Level Token and install the app to your workspace.</p>
-                </div>
-
-                <form id="slack-app-complete-form">
-                    <div id="complete-form-error" class="form-error">
-                        <p class="form-error-message" id="complete-form-error-message"></p>
+                <form id="slack-app-level-form">
+                    <div id="app-level-form-error" class="form-error">
+                        <p class="form-error-message" id="app-level-form-error-message"></p>
                     </div>
 
                     <div class="form-group">
-                        <label for="app_token">App-Level Token</label>
+                        <label for="app_token">Generate App-Level Token</label>
+                        <div class="info-section">
+                            <p>To enable communication between the Slack App and the Hybrid Groups backend, an <b>App-Level Token</b> is required.</p>
+
+                            <div style="margin-top: 1.5rem;">
+                                <div style="margin-bottom: 2rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">1. Go to Slack App settings</p>
+                                    <p style="margin-bottom: 1rem;">Go to the <a href="#" target="_blank" id="app-level-tokens-link">App-Level Tokens section</a> of your newly created Slack app and click <span class="highlight">Generate Token and Scopes</span>.</p>
+                                    <img src="/static/images/slack_app_token_1_overview.png" alt="App-Level Tokens Overview" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                </div>
+
+                                <div style="margin-bottom: 2rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">2. Generate your token</p>
+                                    <p style="margin-bottom: 1rem;">Give the token a name (e.g. <code style="background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 3px;">App Token</code>) and add the <code style="background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 3px;">connections:write</code> scope. Click <span class="highlight">Generate</span> to create the token.</p>
+                                    <img src="/static/images/slack_app_token_2_generate_token.png" alt="Generate Token Dialog" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                </div>
+
+                                <div style="margin-bottom: 1rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">3. Copy your token</p>
+                                    <p style="margin-bottom: 1rem;">Your token will start with <span class="highlight">xapp-</span>. Copy it and paste it below.</p>
+                                    <img src="/static/images/slack_app_token_3_token_created.png" alt="Token Created" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                </div>
+                            </div>
+
+                            <p style="margin-top: 1rem;"><em>This token will be stored in your .env file.</em></p>
+                        </div>
+
                         <input type="text"
                                id="app_token"
                                name="app_token"
                                required
-                               placeholder="xapp-">
-                        <p class="help-text">Go to the <a href="#" target="_blank" id="app-level-tokens-link">Slack App-Level Tokens section</a> and generate an App-Level Token with scope <b style="color: white;">connections:write</b>.</p>
-                        <details>
-                            <summary style="cursor: pointer; color: white; margin-bottom: 10px;">More details</summary>
-                            <img src="/static/images/slack_app_level_token.png" alt="App-Level Tokens" style="width: 100%; height: auto; margin-bottom: 10px;">
-                        </details>
+                               placeholder="xapp-...">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button"
+                                id="app-token-next-button"
+                                disabled
+                                class="btn btn-primary">
+                            Next
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Phase 4: Bot User OAuth Token -->
+            <div id="phase-4-container" style="display: none;">
+                <form id="slack-bot-token-form">
+                    <div id="bot-token-form-error" class="form-error">
+                        <p class="form-error-message" id="bot-token-form-error-message"></p>
                     </div>
 
                     <div class="form-group">
-                        <label for="bot_token">Bot User OAuth Token</label>
+                        <label for="bot_token">Install the Slack App</label>
+                        <div class="info-section">
+                            <p>To use the Slack App in your workspace, it must be installed. This process generates a <b>Bot User OAuth Token</b> that allows the app to perform actions in your Slack workspace.</p>
+
+                            <div style="margin-top: 1.5rem;">
+                                <div style="margin-bottom: 2rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">1. Install your Slack App</p>
+                                    <p style="margin-bottom: 1rem;">Go to the <a href="#" target="_blank" id="oauth-permissions-link">Install App</a> section of your Slack app and click <span class="highlight">Install to [your workspace]</span>.</p>
+                                    <img src="/static/images/slack_bot_token_1_install_app.png" alt="Install App page" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                </div>
+
+                                <div style="margin-bottom: 2rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">2. Grant permissions</p>
+                                    <p style="margin-bottom: 1rem;">A permissions dialog will appear requesting workspace access. Review the permissions and click <span class="highlight">Allow</span> to authorize the app.</p>
+                                    <img src="/static/images/slack_bot_token_2_install_app_permissions.png" alt="App permissions dialog" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                </div>
+
+                                <div style="margin-bottom: 1rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">3. Copy your Bot User OAuth Token</p>
+                                    <p style="margin-bottom: 1rem;">After installation, the OAuth Tokens section displays your Bot User OAuth Token. Copy it and paste it below.</p>
+                                    <img src="/static/images/slack_bot_token_3_token_created.png" alt="OAuth Tokens section with Bot User OAuth Token" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                </div>
+                            </div>
+
+                            <p style="margin-top: 1rem;"><em>This token will be stored in your .env file.</em></p>
+                        </div>
+
                         <input type="text"
                                id="bot_token"
                                name="bot_token"
                                required
-                               placeholder="xoxb-">
-                        <p class="help-text">Go to the <a href="#" target="_blank" id="oauth-permissions-link">Slack Install App section</a> and install the app to your workspace to get the Bot User OAuth Token.</p>
+                               placeholder="xoxb-...">
                     </div>
 
                     <div class="form-actions">
@@ -113,17 +218,22 @@
                 </form>
             </div>
 
+            <!-- Success Container -->
             <div id="success-container" style="display: none;">
                 <div class="success-section">
                     <h2>Setup Complete!</h2>
-                    <p class="success-message">Your Slack app has been configured successfully. Credentials have been saved to your .env file.</p>
+                    <p class="success-message" style="margin-bottom: 1rem;">Your Slack app has been configured successfully. Slack tokens and configuration settings have been saved to your .env file.</p>
+                    <div class="info-item">
+                        <span class="info-label">App Name:</span>
+                        <span class="info-value">Hybrid Groups</span>
+                    </div>
                     <div class="info-item">
                         <span class="info-label">App User ID:</span>
                         <span class="info-value" id="app-user-id-display"></span>
                     </div>
                 </div>
                 <div class="status-message">
-                    Server will shut down automatically...
+                    You can close this window now.
                 </div>
             </div>
         </div>

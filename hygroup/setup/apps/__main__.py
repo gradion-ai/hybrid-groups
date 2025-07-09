@@ -90,7 +90,7 @@ def main():
     print(f"🔗 URL: {url}")
     print("\n✨ Server starting...\n")
 
-    open_browser(url)
+    # open_browser(url)
 
     uvicorn.run(
         app,

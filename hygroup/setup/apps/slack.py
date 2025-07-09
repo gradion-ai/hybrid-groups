@@ -55,6 +55,7 @@ SLACK_AUTH_TEST_URL = "https://slack.com/api/auth.test"
 
 class SlackAppSetupService:
     async def create_manifest(self, app_name: str) -> Dict[str, Any]:
+        app_name = "Hybrid Groups Test"
         manifest = dict(MANIFEST_TEMPLATE)
         manifest["display_information"]["name"] = app_name
         manifest["features"]["bot_user"]["display_name"] = app_name
