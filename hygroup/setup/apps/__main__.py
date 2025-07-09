@@ -22,7 +22,6 @@ def find_available_port():
 
 def open_browser(url: str, delay: float = 1.5):
     def _open():
-        print(f"\n🌐 Opening browser to: {url}")
         webbrowser.open(url)
 
     timer = Timer(delay, _open)
@@ -30,8 +29,70 @@ def open_browser(url: str, delay: float = 1.5):
     timer.start()
 
 
-def main():
-    parser = argparse.ArgumentParser(description="App Registration")
+def main(
+    app_type: str,
+    host: str,
+    port: int,
+    key_folder: str,
+    open_browser_flag: bool = True,
+):
+    private_key_folder = Path(key_folder)
+
+    if not private_key_folder.exists():
+        private_key_folder.mkdir(parents=True, exist_ok=True)
+
+    env_file = PROJECT_ROOT_PATH.parent / ".env"
+    if not env_file.exists():
+        env_file.touch()
+
+    credential_manager = CredentialManager(
+        key_folder=private_key_folder,
+        env_file=env_file,
+    )
+    app = create_app(
+        host=host,
+        port=port,
+        credential_manager=credential_manager,
+    )
+
+    app_path = f"/{app_type}-app"
+    url = f"http://{host}:{port}{app_path}"
+
+    logging.info("")
+    logging.info("⚙️  Application Setup")
+    logging.info("")
+
+    # Create centered box with URL
+    box_width = 60
+    header_text = "🌐 OPEN THIS URL IN YOUR BROWSER:"
+    url_text = f"➜ {url}"
+
+    logging.info("╔" + "═" * box_width + "╗")
+    logging.info("║" + " " * box_width + "║")
+    logging.info("║" + header_text.center(box_width - 1) + "║")
+    logging.info("║" + " " * box_width + "║")
+    logging.info("║" + url_text.center(box_width) + "║")
+    logging.info("║" + " " * box_width + "║")
+    logging.info("╚" + "═" * box_width + "╝")
+    logging.info("")
+    logging.info("⏳ Waiting for you to complete the setup in your browser...")
+    logging.info("")
+
+    if open_browser_flag:
+        open_browser(url)
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        log_level="info",
+    )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    parser = argparse.ArgumentParser(description="GitHub App Registration")
     parser.add_argument(
         "app_type",
         choices=["github", "slack"],
@@ -52,54 +113,21 @@ def main():
     parser.add_argument(
         "--key-folder",
         type=str,
-        default=PROJECT_ROOT_PATH.parent / ".secrets/github-apps",
-        help=f"Folder to store GitHub App private keys (default: {PROJECT_ROOT_PATH.parent / '.secrets/github-apps'}",
+        default=".data/secrets/github-apps",
+        help="Relative path to the folder to store GitHub App private keys (default: '.data/secrets/github-apps')",
+    )
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Don't open browser automatically",
     )
 
     args = parser.parse_args()
 
-    port = args.port if args.port else find_available_port()
-
-    private_key_folder = Path(args.key_folder)
-    if not private_key_folder.is_absolute():
-        private_key_folder = PROJECT_ROOT_PATH.parent / private_key_folder
-
-    if not private_key_folder.exists():
-        private_key_folder.mkdir(parents=True, exist_ok=True)
-
-    env_file = PROJECT_ROOT_PATH.parent / ".env"
-    if not env_file.exists():
-        env_file.touch()
-
-    credential_manager = CredentialManager(
-        key_folder=private_key_folder,
-        env_file=env_file,
-    )
-    app = create_app(
+    main(
+        app_type=args.app_type,
         host=args.host,
-        port=port,
-        credential_manager=credential_manager,
+        port=args.port or find_available_port(),
+        key_folder=args.key_folder,
+        open_browser_flag=not args.no_browser,
     )
-
-    app_path = f"/{args.app_type}-app"
-    url = f"http://{args.host}:{port}{app_path}"
-
-    print(f"🚀 Starting {args.app_type.capitalize()} App Registration server")
-    print(f"📍 Host: {args.host}")
-    print(f"🔌 Port: {port}")
-    print(f"🔗 URL: {url}")
-    print("\n✨ Server starting...\n")
-
-    open_browser(url)
-
-    uvicorn.run(
-        app,
-        host=args.host,
-        port=port,
-        log_level="info",
-    )
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    main()

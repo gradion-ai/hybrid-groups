@@ -143,12 +143,13 @@ class GithubGateway(Gateway):
 
                 conversation = self._register_conversation(conversation_id, opened_event, session)
 
-                await self._handle_conversation_message(
-                    conversation,
-                    message=opened_event.description,
-                    username=opened_event.username,
-                    message_id="issue-description",
-                )
+                if opened_event.description is not None:
+                    await self._handle_conversation_message(
+                        conversation,
+                        message=opened_event.description,
+                        username=opened_event.username,
+                        message_id="issue-description",
+                    )
 
             case IssueCommentCreated() | PullRequestCommentCreated() | PullRequestReviewSubmitted() as comment_event:
                 if comment_event.comment is None:

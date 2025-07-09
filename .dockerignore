@@ -10,6 +10,4 @@ __pycache__
 .data-docker
 .claude/
 .secrets/
-extra
 sandbox*
-site
