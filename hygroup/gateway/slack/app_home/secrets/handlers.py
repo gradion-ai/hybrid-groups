@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Callable
 
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -12,9 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 class SecretConfigHandlers:
-    def __init__(self, client: AsyncWebClient, user_registry: DefaultUserRegistry):
+    def __init__(
+        self,
+        client: AsyncWebClient,
+        user_registry: DefaultUserRegistry,
+        resolve_system_user_id: Callable[[str], str],
+    ):
         self._client = client
         self._user_registry = user_registry
+        self._resolve_system_user_id = resolve_system_user_id
 
     @staticmethod
     def _validate_key(key: str) -> ValidationError | None:
@@ -35,32 +42,34 @@ class SecretConfigHandlers:
             return ValidationError(field="value", message="Secret value is required")
         return None
 
-    async def get_user_secrets(self, user_id: str) -> dict[str, str]:
-        if self._user_registry.get_user(user_id) is None:
-            return {}
+    async def get_user_secrets(self, slack_user_id: str) -> dict[str, str]:
+        system_user_id = self._resolve_system_user_id(slack_user_id)
 
-        if secrets := self._user_registry.get_secrets(user_id):
-            return {k.upper(): v for k, v in secrets.items()}
+        if secrets := self._user_registry.get_secrets(system_user_id):
+            return {k.upper(): v for k, v in secrets.items() if k.upper() != "PASSWORD_HASH"}
 
         return {}
 
-    async def _add_user_secret(self, user_id: str, key: str, value: str):
+    async def _add_user_secret(self, slack_user_id: str, key: str, value: str):
+        system_user_id = self._resolve_system_user_id(slack_user_id)
         _key = key.upper()
 
-        if self._user_registry.get_user(user_id) is None:
-            await self._user_registry.register(User(user_id, mappings={"slack": user_id}))
-        else:
-            existing_secrets = await self.get_user_secrets(user_id)
-            if _key in existing_secrets:
-                raise ValueError(f"Secret '{_key}' already exists.")
+        secrets = self._user_registry.get_secrets(system_user_id) or {}
+        if any(k.upper() == _key for k in secrets.keys()):
+            raise ValueError(f"Secret '{_key}' already exists.")
 
-        await self._user_registry.set_secret(user_id, _key, value)
+        if not secrets and self._user_registry.get_user(system_user_id) is None:
+            await self._user_registry.register(User(system_user_id))
 
-    async def _edit_user_secret(self, user_id: str, key: str, value: str):
-        await self._user_registry.set_secret(user_id, key.upper(), value)
+        await self._user_registry.set_secret(system_user_id, _key, value)
 
-    async def _delete_user_secret(self, user_id: str, key: str):
-        await self._user_registry.delete_secret(user_id, key.upper())
+    async def _edit_user_secret(self, slack_user_id: str, key: str, value: str):
+        system_user_id = self._resolve_system_user_id(slack_user_id)
+        await self._user_registry.set_secret(system_user_id, key.upper(), value)
+
+    async def _delete_user_secret(self, slack_user_id: str, key: str):
+        system_user_id = self._resolve_system_user_id(slack_user_id)
+        await self._user_registry.delete_secret(system_user_id, key.upper())
 
     async def handle_add_user_secret(self, ack, body, client):
         await ack()

@@ -5,9 +5,13 @@ from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
 from hygroup.agent.default.registry import DefaultAgentRegistry
+from hygroup.agent.select.agent import AgentSelectorSettings
 from hygroup.gateway.slack.app_home.agent.handlers import AgentConfigHandlers
+from hygroup.gateway.slack.app_home.policy.handlers import ActivationPolicyConfigHandlers
+from hygroup.gateway.slack.app_home.preferences.handlers import UserPreferenceConfigHandlers
 from hygroup.gateway.slack.app_home.secrets.handlers import SecretConfigHandlers
 from hygroup.gateway.slack.app_home.views import HomeViewBuilder
+from hygroup.user.default.preferences import DefaultUserPreferences
 from hygroup.user.default.registry import DefaultUserRegistry
 
 
@@ -28,16 +32,28 @@ class SlackHomeHandlers:
         app: AsyncApp,
         agent_registry: DefaultAgentRegistry,
         user_registry: DefaultUserRegistry,
+        user_preferences: DefaultUserPreferences,
+        selector_settings: AgentSelectorSettings,
         system_editor_ids: list[str] | None = None,
     ):
         self._client = client
         self._app = app
         self._system_editor_ids = system_editor_ids
+        self._slack_user_mapping = user_registry.get_mappings("slack")
 
         self._agent_config_handlers = AgentConfigHandlers(client, agent_registry)
-        self._secret_config_handlers = SecretConfigHandlers(client, user_registry)
+        self._secret_config_handlers = SecretConfigHandlers(client, user_registry, self._resolve_system_user_id)
+        self._user_preference_config_handlers = UserPreferenceConfigHandlers(
+            client, user_preferences, self._resolve_system_user_id
+        )
+        self._activation_policy_config_handlers = ActivationPolicyConfigHandlers(client, selector_settings)
+
+        self._app_name: str | None = None
 
         self._logger = logging.getLogger(__name__)
+
+    def _resolve_system_user_id(self, slack_user_id: str) -> str:
+        return self._slack_user_mapping.get(slack_user_id, slack_user_id)
 
     def register(self):
         # Home page handlers
@@ -81,6 +97,39 @@ class SlackHomeHandlers:
             self.refresh_home_after_completion(self._secret_config_handlers.handle_user_secret_delete_confirmed)
         )
 
+        # User preference handlers
+        self._app.action("home_user_preferences_overflow")(
+            self._user_preference_config_handlers.handle_user_preferences_overflow
+        )
+        self._app.action("home_user_preferences_create")(
+            self._user_preference_config_handlers.handle_user_preferences_create
+        )
+        self._app.view("home_user_preferences_edited_view")(
+            self.refresh_home_after_completion(self._user_preference_config_handlers.handle_user_preferences_edited)
+        )
+        self._app.view("home_user_preferences_delete_confirm_view")(
+            self.refresh_home_after_completion(
+                self._user_preference_config_handlers.handle_user_preferences_delete_confirmed
+            )
+        )
+
+        # Activation policy handlers
+        self._app.action("home_activation_policy_overflow")(
+            self.require_system_edit_permission(
+                self._activation_policy_config_handlers.handle_activation_policy_overflow
+            )
+        )
+        self._app.action("home_edit_activation_policy")(
+            self.require_system_edit_permission(self._activation_policy_config_handlers.handle_edit_activation_policy)
+        )
+        self._app.view("home_activation_policy_edited_view")(
+            self.refresh_home_after_completion(
+                self.require_system_edit_permission(
+                    self._activation_policy_config_handlers.handle_activation_policy_edited
+                )
+            )
+        )
+
         self._logger.info("All handlers registered")
 
     async def handle_app_home_opened(self, client, event, logger):
@@ -92,14 +141,18 @@ class SlackHomeHandlers:
 
     async def refresh_home_view(self, user_id: str):
         try:
+            app_name = await self._get_app_display_name()
             username = await self._get_user_display_name(user_id)
             agents = await self._agent_config_handlers._get_agents()
             user_secrets = await self._secret_config_handlers.get_user_secrets(user_id)
+            user_preferences = await self._user_preference_config_handlers._get_user_preferences(user_id)
             is_system_editor = self._is_system_editor(user_id)
 
             view = HomeViewBuilder.build_home_view(
+                app_name=app_name,
                 username=username,
                 user_secrets=user_secrets,
+                user_preferences=user_preferences,
                 agents=agents,
                 is_system_editor=is_system_editor,
             )
@@ -121,6 +174,22 @@ class SlackHomeHandlers:
         except Exception as e:
             self._logger.error(f"Error fetching user info for {user_id}: {e}")
             return "User"
+
+    async def _get_app_display_name(self) -> str | None:
+        if self._app_name is None:
+            try:
+                auth_response = await self._client.auth_test()
+                bot_user_id = auth_response["user_id"]
+
+                user_info = await self._client.users_info(user=bot_user_id)
+                bot_profile = user_info["user"]["profile"]
+
+                self._app_name = bot_profile.get("display_name") or bot_profile.get("real_name")
+            except Exception as e:
+                self._logger.error(f"Error fetching app display name: {e}")
+                return None
+
+        return self._app_name
 
     def require_system_edit_permission(self, handler):
         async def wrapper(ack, body, client, *args, **kwargs):

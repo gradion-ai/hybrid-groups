@@ -7,11 +7,10 @@ class SecretViewBuilder:
         blocks: list[dict[str, Any]] = [
             {"type": "section", "text": {"type": "plain_text", "text": " "}},
             {
-                "type": "header",
+                "type": "section",
                 "text": {
-                    "type": "plain_text",
-                    "text": "🔑 User Secrets",
-                    "emoji": True,
+                    "type": "mrkdwn",
+                    "text": "*Secrets*",
                 },
             },
             {"type": "divider"},
@@ -19,15 +18,16 @@ class SecretViewBuilder:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Manage your user secrets.",
+                    "text": "Secrets are used by agents when running MCP servers *on your behalf*. Secrets are encrypted and never shared with other users.",
                 },
                 "accessory": {
                     "type": "button",
                     "action_id": "home_add_user_secret",
-                    "text": {"type": "plain_text", "text": "Add User Secret"},
+                    "text": {"type": "plain_text", "text": "Add Secret"},
                     "style": "primary",
                 },
             },
+            {"type": "section", "text": {"type": "plain_text", "text": " "}},
         ]
 
         if secrets:
@@ -39,51 +39,7 @@ class SecretViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "_No user secrets configured yet._",
-                    },
-                }
-            )
-
-        return blocks
-
-    @staticmethod
-    def build_global_secrets_section(secrets: dict[str, str]) -> list[dict[str, Any]]:
-        blocks: list[dict[str, Any]] = [
-            {"type": "section", "text": {"type": "plain_text", "text": " "}},
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🌐 Global Secrets",
-                    "emoji": True,
-                },
-            },
-            {"type": "divider"},
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Manage global secrets shared across all users.",
-                },
-                "accessory": {
-                    "type": "button",
-                    "action_id": "home_add_global_secret",
-                    "text": {"type": "plain_text", "text": "Add Global Secret"},
-                    "style": "primary",
-                },
-            },
-        ]
-
-        if secrets:
-            for key in secrets:
-                blocks.append(SecretViewBuilder.build_secret_item(key, "home_global_secret_var_menu"))
-        else:
-            blocks.append(
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "_No global secrets configured yet._",
+                        "text": "_No secrets configured_",
                     },
                 }
             )
@@ -96,7 +52,7 @@ class SecretViewBuilder:
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*{key}*\n`•••••`",
+                "text": f"*{key}*   `•••••`",
             },
             "accessory": {
                 "type": "overflow",
