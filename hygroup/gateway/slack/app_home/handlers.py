@@ -169,8 +169,8 @@ class SlackHomeHandlers:
     async def _get_user_display_name(self, user_id: str) -> str:
         try:
             response = await self._client.users_info(user=user_id)
-            user_info = response["user"]
-            return user_info.get("display_name") or user_info.get("real_name") or user_info.get("name", "User")
+            user_profile = response["user"]["profile"]
+            return user_profile.get("display_name") or user_profile.get("real_name") or user_profile.get("name", "User")
         except Exception as e:
             self._logger.error(f"Error fetching user info for {user_id}: {e}")
             return "User"

@@ -18,7 +18,7 @@ class SecretViewBuilder:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Secrets are used by agents when running MCP servers *on your behalf*. Secrets are encrypted and never shared with other users.",
+                    "text": "Agents use your secrets when running MCP servers *on your behalf*. Secrets are encrypted and never shared with other users.",
                 },
                 "accessory": {
                     "type": "button",

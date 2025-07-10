@@ -19,7 +19,7 @@ class AgentViewBuilder:
             {"type": "divider"},
         ]
 
-        description_text = "The available agents and their capabilities. Agents can be used by all members of this workspace by @mentioning them in conversations."
+        description_text = "Available agents and their configuration."
 
         if is_system_editor:
             blocks.append(
