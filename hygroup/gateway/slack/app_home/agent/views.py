@@ -203,7 +203,7 @@ class AgentViewBuilder:
                     "element": {
                         "action_id": "name_input",
                         "type": "plain_text_input",
-                        "placeholder": {"type": "plain_text", "text": "e.g. assistant"},
+                        "placeholder": {"type": "plain_text", "text": "e.g. custom-agent"},
                     },
                     "hint": {"type": "plain_text", "text": "Agent name must be unique and cannot be changed later"},
                 }
@@ -219,7 +219,11 @@ class AgentViewBuilder:
                 "type": "plain_text_input",
                 "multiline": True,
                 "initial_value": agent.description if agent and is_edit else "",
-                "placeholder": {"type": "plain_text", "text": "Describe what this agent does"},
+                "placeholder": {"type": "plain_text", "text": "Describe what the agent does."},
+            },
+            "hint": {
+                "type": "plain_text",
+                "text": "Will be used by background reasoning for selecting and activating the agent.",
             },
         }
 
@@ -238,25 +242,25 @@ class AgentViewBuilder:
                 else "",
                 "placeholder": {
                     "type": "plain_text",
-                    "text": 'e.g. "openai:gpt-4.1"',
+                    "text": 'e.g. "gemini-2.5-flash"',
                 },
             },
             "hint": {
                 "type": "plain_text",
-                "text": "Enter a PydanticAI model name (see https://ai.pydantic.dev/api/models/base/)",
+                "text": "PydanticAI model name (see https://ai.pydantic.dev/api/models/base/)",
             },
         }
 
         instructions_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_instructions",
-            "label": {"type": "plain_text", "text": "Instructions"},
+            "label": {"type": "plain_text", "text": "System instructions"},
             "element": {
                 "action_id": "instructions_input",
                 "type": "plain_text_input",
                 "multiline": True,
                 "initial_value": agent.instructions if agent and is_edit else "",
-                "placeholder": {"type": "plain_text", "text": "System instructions for the agent"},
+                "placeholder": {"type": "plain_text", "text": "System instructions for the agent."},
             },
         }
 
@@ -291,7 +295,7 @@ class AgentViewBuilder:
                 "initial_value": agent.emoji if agent and agent.emoji and is_edit else "",
                 "placeholder": {"type": "plain_text", "text": "robot_face"},
             },
-            "hint": {"type": "plain_text", "text": "Emoji name without colons, e.g. robot_face"},
+            "hint": {"type": "plain_text", "text": "Slack emoji code without colons."},
         }
 
         blocks.extend(
