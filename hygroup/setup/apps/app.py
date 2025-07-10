@@ -90,21 +90,20 @@ def create_app(
             str(env_file_path),
         )
 
-        html_template_path = Paths.GITHUB_SUCCESS_TEMPLATE
-        organization_display = organization if organization else "Personal Account"
+        # Redirect back to the wizard with success parameters
+        from urllib.parse import urlencode
 
-        html_content = _render_template(
-            html_template_path,
-            {
-                "app_name": credentials.slug,
-                "organization": organization_display,
-                "env_file_path": str(env_file_path),
-                "private_key_path": str(private_key_path),
-                "installation_url": installation_url,
-            },
-        )
+        from fastapi.responses import RedirectResponse
 
-        return HTMLResponse(content=html_content)
+        redirect_params = {
+            "setup": "complete",
+            "app_id": str(credentials.app_id),
+            "app_slug": credentials.slug,
+            "installation_url": installation_url,
+        }
+
+        redirect_url = f"/github-app?{urlencode(redirect_params)}"
+        return RedirectResponse(url=redirect_url, status_code=302)
 
     @app.post(Routes.GITHUB_COMPLETE, response_model=GitHubCompleteResponse)
     async def complete_registration(request: GitHubCompleteRequest):
