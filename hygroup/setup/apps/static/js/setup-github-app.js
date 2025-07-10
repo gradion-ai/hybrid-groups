@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerAppButton = document.getElementById('register-app-button');
     const installAppButton = document.getElementById('install-app-button');
     const completeSetupButton = document.getElementById('complete-setup-button');
+    const resetWizardButton = document.getElementById('reset-wizard-button');
 
     // Error container references
     const errorContainer = document.getElementById('form-error');
@@ -27,9 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Display element references
     const appCreatedInfo = document.getElementById('app-created-info');
     const appNameDisplay = document.getElementById('app-name-display');
-    const appIdDisplay = document.getElementById('app-id-display');
+    const webhookUrlDisplay = document.getElementById('webhook-url-display');
     const appNameSuccessDisplay = document.getElementById('app-name-success-display');
-    const appIdSuccessDisplay = document.getElementById('app-id-success-display');
+    const webhookUrlSuccessDisplay = document.getElementById('webhook-url-success-display');
+    const smeeUrlDisplay = document.getElementById('smee-url-display');
 
     let appData = null;
     let currentPhase = 1;
@@ -75,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (appData) {
                     appCreatedInfo.style.display = 'block';
                     appNameDisplay.textContent = appData.app_name;
-                    appIdDisplay.textContent = appData.app_id;
+                    webhookUrlDisplay.textContent = appData.webhook_url;
                 }
                 window.scrollTo({ top: 0, behavior: 'auto' });
                 break;
@@ -83,7 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 successContainer.style.display = 'block';
                 if (appData) {
                     appNameSuccessDisplay.textContent = appData.app_name;
-                    appIdSuccessDisplay.textContent = appData.app_id;
+                    webhookUrlSuccessDisplay.textContent = appData.webhook_url;
+                    if (smeeUrlDisplay) {
+                        smeeUrlDisplay.textContent = appData.webhook_url;
+                    }
                 }
                 break;
         }
@@ -97,8 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Form validation functions
     const validateForm = () => {
         const appName = githubAppForm.app_name.value.trim();
-        const webhookUrl = githubAppForm.webhook_url.value.trim();
-        const isValid = appName && webhookUrl && isValidUrl(webhookUrl);
+        const isValid = appName;
         registerAppButton.disabled = !isValid;
         return isValid;
     };
@@ -158,8 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const formData = {
-                app_name: githubAppForm.app_name.value.trim(),
-                webhook_url: githubAppForm.webhook_url.value.trim()
+                app_name: githubAppForm.app_name.value.trim()
             };
 
             const org = githubAppForm.organization.value.trim();
@@ -180,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Store app data in session storage for later phases
             appData = {
                 app_name: formData.app_name,
-                webhook_url: formData.webhook_url,
                 organization: formData.organization || null,
                 ...result
             };
@@ -271,9 +273,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Reset wizard function
+    const resetWizard = () => {
+        // Clear all data
+        appData = null;
+        sessionStorage.removeItem('github_app_data');
+
+        // Reset forms
+        if (githubAppForm) {
+            githubAppForm.reset();
+        }
+        if (githubInstallForm) {
+            githubInstallForm.reset();
+        }
+
+        // Reset button states
+        registerAppButton.disabled = true;
+        registerAppButton.innerHTML = 'Create GitHub App';
+        completeSetupButton.disabled = true;
+        completeSetupButton.innerHTML = 'Complete Setup';
+
+        // Hide all errors
+        hideError();
+        hideInstallError();
+
+        // Hide app created info
+        appCreatedInfo.style.display = 'none';
+
+        // Go to phase 1
+        showPhase(1);
+    };
+
     // Event listeners
     startConfigButton.addEventListener('click', () => {
         showPhase(2);
+    });
+
+    resetWizardButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetWizard();
     });
 
     registerAppButton.addEventListener('click', (e) => {
@@ -316,7 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Extract app info from URL if available
             const appId = urlParams.get('app_id');
             const appSlug = urlParams.get('app_slug');
+            const appName = urlParams.get('app_name');
             const installationUrl = urlParams.get('installation_url');
+            const webhookUrl = urlParams.get('webhook_url');
 
             if (appId) {
                 appData.app_id = appId;
@@ -324,8 +364,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (appSlug) {
                 appData.app_slug = appSlug;
             }
+            if (appName) {
+                appData.app_name = appName;  // Update with actual name from GitHub
+            }
             if (installationUrl) {
                 appData.installation_url = installationUrl;
+            }
+            if (webhookUrl) {
+                appData.webhook_url = webhookUrl;
             }
 
             // Update session storage

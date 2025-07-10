@@ -12,6 +12,12 @@
             <div class="header">
                 <img src="/static/images/logo.png" alt="Logo" class="header-icon" style="margin-right: 1rem;">
                 <h1>Hybrid Groups GitHub App Setup</h1>
+                <button type="button" id="reset-wizard-button" class="btn btn-secondary reset-tooltip" style="margin-left: auto; font-size: 0.9rem; padding: 0.5rem 0.75rem;" title="Reset and clear data">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                    </svg>
+                </button>
             </div>
 
             <!-- Progress Indicator -->
@@ -37,6 +43,7 @@
                 <div class="info-section">
                     <p>This setup guide will walk you through the process of creating and configuring the <span class="highlight">Hybrid Groups GitHub App</span> in <b>your GitHub account or organization</b>.</p>
                     <p>You need a <b>GitHub account</b> to continue. If creating for an organization, you need <b>owner permissions</b>.</p>
+                    <p>You must be <b>logged in to GitHub</b> on this browser. If you're not already logged in, please visit <a href="https://github.com/login" target="_blank">github.com/login</a> first.</p>
                 </div>
 
                 <div class="form-actions">
@@ -56,51 +63,31 @@
                     <div class="form-group">
                         <label for="app_name">Create GitHub App</label>
                         <div class="info-section">
-                            <p>To create the Hybrid Groups GitHub App, we'll use the <b>GitHub App Manifest Flow</b>. This will automatically configure your app with the required permissions and webhook settings.</p>
+                            <p>The Hybrid Groups GitHub App can be created in <b>your personal account</b> or <b>an organization</b>.</p>
+                            <p>To start the app creation, fill out the form below and click <span class="highlight">Create GitHub App</span>. You will be redirected to GitHub.</p>
+                            <p>On GitHub click <span class="highlight">Create GitHub App for [your-account / organization]</span> to complete the creation process and be redirected back to this page.</p>
 
-                            <div style="margin-top: 1.5rem;">
-                                <div style="margin-bottom: 2rem;">
-                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">1. App Name</p>
-                                    <p style="margin-bottom: 1rem;">Choose a unique name for your GitHub App. This will be visible in GitHub's UI.</p>
-                                </div>
-
-                                <div style="margin-bottom: 2rem;">
-                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">2. GitHub Organization (Optional)</p>
-                                    <p style="margin-bottom: 1rem;">If you want to create the app for an organization, enter its name. Leave empty to create for your personal account.</p>
-                                </div>
-
-                                <div style="margin-bottom: 1rem;">
-                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">3. Webhook URL</p>
-                                    <p style="margin-bottom: 1rem;">The URL where GitHub will send webhook events. For local development, you can use <a href="https://smee.io/" target="_blank">smee.io</a> to create a webhook proxy.</p>
-                                </div>
-                            </div>
+                            <img src="/static/images/github_app_1_create_app.png" alt="GitHub App creation page" style="width: 100%; height: auto; border-radius: 4px;">
                         </div>
 
+                        <label for="app_name">App Name</label>
                         <input type="text"
                                id="app_name"
                                name="app_name"
                                required
-                               placeholder="My GitHub App">
+                               placeholder="my-hybrid-groups">
+                        <p class="help-text">Unique name for your GitHub App (e.g. 'my-hybrid-groups'). Use '@my-hybrid-groups' when mentioning the GitHub App in issues.</p>
                     </div>
 
                     <div class="form-group">
-                        <label for="organization">GitHub Organization (Optional)</label>
+                        <label for="organization">GitHub Organization (optional)</label>
                         <input type="text"
                                id="organization"
                                name="organization"
                                placeholder="my-org">
-                        <p class="help-text">Leave empty to create the app for your personal account</p>
+                        <p class="help-text">Organization name (optional). Leave empty for personal account.</p>
                     </div>
 
-                    <div class="form-group">
-                        <label for="webhook_url">Webhook URL</label>
-                        <input type="url"
-                               id="webhook_url"
-                               name="webhook_url"
-                               required
-                               placeholder="http://localhost:8000/webhook">
-                        <p class="help-text">For testing, you can use <a href="https://smee.io/" target="_blank">smee.io</a> to create a webhook proxy that forwards GitHub events to your local development server.</p>
-                    </div>
 
                     <div class="form-actions">
                         <button type="button"
@@ -121,10 +108,6 @@
                         <span class="info-label">App Name:</span>
                         <span class="info-value" id="app-name-display"></span>
                     </div>
-                    <div class="info-item">
-                        <span class="info-label">App ID:</span>
-                        <span class="info-value" id="app-id-display"></span>
-                    </div>
                 </div>
 
                 <form id="github-install-form">
@@ -135,43 +118,51 @@
                     <div class="form-group">
                         <label for="installation_id">Install the GitHub App</label>
                         <div class="info-section">
-                            <p>Your GitHub App has been created. Now you need to install it to your account or organization to start using it.</p>
+                            <p>To use the Github App in your repositories, it must be installed. You can either install it in your <b>personal account</b> or <b>your organizations</b>.</p>
+                            <p>To start the installation process, click <span class="highlight">Install App on GitHub</span> in below. You will be redirected to GitHub. Follow these steps on GitHub to complete the setup process:</p>
 
                             <div style="margin-top: 1.5rem;">
                                 <div style="margin-bottom: 2rem;">
-                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">1. Install your GitHub App</p>
-                                    <p style="margin-bottom: 1rem;">Click the button below to open GitHub and install your app. Then click <span class="highlight">Install</span> to add it to your account or organization.</p>
-                                    <div class="form-actions" style="margin-top: 1rem; margin-bottom: 1rem;">
-                                        <button type="button"
-                                                id="install-app-button"
-                                                class="btn btn-secondary">
-                                            Install App on GitHub
-                                        </button>
-                                    </div>
-                                    <img src="/static/images/github_app_install.png" alt="GitHub App install page" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">1. Choose account or organization</p>
+                                    <p style="margin-bottom: 1rem;">Choose the account or organization where you want to install the app.</p>
+
+
+                                    <img src="/static/images/github_app_2_install_app.png" alt="GitHub App install page" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
                                 </div>
 
                                 <div style="margin-bottom: 2rem;">
                                     <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">2. Grant permissions</p>
-                                    <p style="margin-bottom: 1rem;">Review the permissions requested by the app and select which repositories it can access. Click <span class="highlight">Install</span> to proceed.</p>
-                                    <img src="/static/images/github_app_install_permissions.png" alt="GitHub App permissions" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                    <p style="margin-bottom: 1rem;">A permissions dialog will appear requesting repository access. Review the permissions and select the repositories the app can access. Click <span class="highlight">Install</span> to authorize the app.</p>
+                                    <img src="/static/images/github_app_3_choose_repo.png" alt="GitHub App permissions" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
                                 </div>
 
-                                <div style="margin-bottom: 2rem;">
+                                <div style="margin-bottom: 4rem;">
                                     <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">3. Copy the Installation ID</p>
-                                    <p style="margin-bottom: 1rem;">After installation, the Installation ID will be visible in the URL. Copy the number after <code style="background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 3px;">/installations/</code> and paste it below.</p>
-                                    <img src="/static/images/github_app_installation_id_url.png" alt="GitHub App installation ID in URL" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
+                                    <p style="margin-bottom: 1rem;">You will be redirected to the installation page showing the <span class="highlight">Installation ID</span> in the URL (number after <code style="background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 3px;">/installations/</code> , e.g. <code style="background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 3px;">75221500</code>). Copy the Installation ID and paste it below.</p>
+                                    <img src="/static/images/github_app_4_installation_id.png" alt="GitHub App installation ID in URL" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px;">
                                 </div>
-                            </div>
 
-                            <p style="margin-top: 1rem;"><em>This ID will be stored in your configuration.</em></p>
+                                <div style="margin-bottom: 1rem;">
+                                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem; font-size: 1.2rem;">Start installation</p>
+                                    <p style="margin-bottom: 2rem;">Click the button below to start the installation process.</p>
+                                    <div class="form-actions" style="margin-top: 1rem; margin-bottom: 1rem;">
+                                        <button type="button"
+                                                id="install-app-button"
+                                                class="btn btn-primary">
+                                            Install App on GitHub
+                                        </button>
+                                        </div>
+                                    </div>
+                            </div>
                         </div>
 
+
+                        <label for="installation_id">Installation ID</label>
                         <input type="text"
                                id="installation_id"
                                name="installation_id"
                                required
-                               placeholder="12345678">
+                               placeholder="75221500">
                     </div>
 
                     <div class="form-actions">
@@ -189,15 +180,24 @@
             <div id="success-container" style="display: none;">
                 <div class="success-section">
                     <h2>Setup Complete!</h2>
-                    <p class="success-message" style="margin-bottom: 1rem;">Your GitHub app has been configured successfully. The app credentials and configuration have been saved.</p>
+                    <p class="success-message" style="margin-bottom: 1rem;">Your GitHub App has been configured successfully. GitHub App tokens and configuration settings have been saved to the application's .env file.</p>
                     <div class="info-item">
                         <span class="info-label">App Name:</span>
                         <span class="info-value" id="app-name-success-display"></span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">App ID:</span>
-                        <span class="info-value" id="app-id-success-display"></span>
+                        <span class="info-label">Webhook URL:</span>
+                        <span class="info-value" id="webhook-url-success-display"></span>
                     </div>
+                </div>
+                <div class="info-section" style="margin-top: 1.5rem;">
+                    <p style="color: #f7f7f7; font-weight: 600; margin-bottom: 0.5rem;">Webhook URL</p>
+                    <p style="margin-bottom: 1rem;">A webhook URL was generated using <a href="https://smee.io" target="_blank">smee.io</a>. This webhook is used to forward GitHub events to your Hybrid Groups backend.
+                        To start forwarding events, install the <a href="https://www.npmjs.com/package/smee-client" target="_blank">smee-client</a> and run the following command:</p>
+                    <div style="background: rgba(255, 255, 255, 0.1); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                        <code style="display: block; white-space: nowrap; overflow-x: auto;">smee -u <span id="smee-url-display"></span> -t http://127.0.0.1:8000/api/v1/github-webhook</code>
+                    </div>
+                    <p style="margin-bottom: 1rem;">Only required if running the Hybrid Groups backend outside of Docker.</p>
                 </div>
                 <div class="status-message">
                     You can close this window now.

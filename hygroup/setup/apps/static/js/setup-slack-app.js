@@ -85,15 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (appData) {
                     appCreatedInfo.style.display = 'block';
                     appIdDisplay.textContent = appData.app_id;
-                    appLevelTokensLink.href = `https://api.slack.com/apps/${appData.app_id}/general`;
                 }
                 window.scrollTo({ top: 0, behavior: 'auto' });
                 break;
             case 4:
                 phase4Container.style.display = 'block';
-                if (appData) {
-                    oauthPermissionsLink.href = `https://api.slack.com/apps/${appData.app_id}/install-on-team`;
-                }
                 window.scrollTo({ top: 0, behavior: 'auto' });
                 break;
             case 'success':
@@ -291,6 +287,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (botTokenForm) {
         botTokenForm.addEventListener('input', validateBotTokenForm);
+    }
+
+    // Click handler for app-level tokens link
+    if (appLevelTokensLink) {
+        appLevelTokensLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!appData || !appData.app_id) {
+                return false;
+            }
+
+            // Open the URL in a new tab
+            const url = `https://api.slack.com/apps/${appData.app_id}/general?selected=app_level_tokens`;
+            window.open(url, '_blank');
+            return false;
+        });
+    }
+
+    // Click handler for oauth permissions link
+    if (oauthPermissionsLink) {
+        oauthPermissionsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!appData || !appData.app_id) {
+                return false;
+            }
+
+            // Open the URL in a new tab
+            const url = `https://api.slack.com/apps/${appData.app_id}/install-on-team`;
+            window.open(url, '_blank');
+            return false;
+        });
     }
 
     // Initialize

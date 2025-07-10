@@ -58,10 +58,9 @@ def create_app(
 
     @app.post(Routes.GITHUB_MANIFEST, response_model=GitHubManifestResponse)
     async def create_manifest(request: GitHubAppCreateRequest):
-        manifest, github_url = github_app_setup_service.create_manifest(
+        manifest, github_url = await github_app_setup_service.create_manifest(
             app_name=request.app_name,
             organization=request.organization,
-            webhook_url=request.webhook_url,
             host=host,
             port=port,
             callback_route=Routes.GITHUB_CALLBACK,
@@ -77,10 +76,13 @@ def create_app(
             app_name,
             organization,
             installation_url,
+            webhook_url,
             credentials,
         ) = await github_app_setup_service.handle_github_callback(code, state)
 
-        private_key_path, env_file_path = await credential_manager.save_github_credentials(credentials, organization)
+        private_key_path, env_file_path = await credential_manager.save_github_credentials(
+            credentials, organization, webhook_url
+        )
 
         logger.info(
             "Saved credentials (app_name='%s', slug='%s', private_key_path='%s', env_file_path='%s')",
@@ -99,7 +101,9 @@ def create_app(
             "setup": "complete",
             "app_id": str(credentials.app_id),
             "app_slug": credentials.slug,
+            "app_name": app_name,
             "installation_url": installation_url,
+            "webhook_url": webhook_url,
         }
 
         redirect_url = f"/github-app?{urlencode(redirect_params)}"
@@ -132,9 +136,8 @@ def create_app(
     @app.post(Routes.SLACK_CREATE, response_model=SlackAppCreateResponse)
     async def create_slack_app_endpoint(request: SlackAppCreateRequest):
         try:
-            manifest = await slack_app_setup_service.create_manifest(request.app_name)  # noqa: F841
-            # response = await slack_app_setup_service.create_slack_app(manifest, request.config_token)
-            response = {"ok": True, "app_id": "1234567890"}
+            manifest = await slack_app_setup_service.create_manifest(request.app_name)
+            response = await slack_app_setup_service.create_slack_app(manifest, request.config_token)
 
             if response.get("ok"):
                 app_id = response["app_id"]
@@ -156,8 +159,7 @@ def create_app(
     @app.post(Routes.SLACK_COMPLETE, response_model=SlackCompleteResponse)
     async def complete_slack_registration(request: SlackCompleteRequest):
         try:
-            # success, app_user_id, data = await slack_app_setup_service.get_app_user_id(request.bot_token)
-            success, app_user_id, data = True, "1234567890", {"ok": True}
+            success, app_user_id, data = await slack_app_setup_service.get_app_user_id(request.bot_token)
 
             if not success:
                 return SlackCompleteResponse(success=False, error=data.get("error", "Unknown error"))

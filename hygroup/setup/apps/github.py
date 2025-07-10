@@ -33,6 +33,23 @@ class GitHubAppSetupService:
     def __init__(self):
         self._state: Dict[str, Dict[str, Any]] = {}
 
+    async def _create_smee_channel(self) -> str:
+        """Create a new smee channel and return the webhook URL"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.request("HEAD", "https://smee.io/new", allow_redirects=False) as response:
+                    if response.status == 307:
+                        location = response.headers.get("Location")
+                        if location:
+                            logger.info("Created new smee channel: %s", location)
+                            return location
+
+                    logger.error("Failed to create smee channel: status=%s", response.status)
+                    raise HTTPException(status_code=500, detail="Failed to create smee channel")
+        except Exception as e:
+            logger.error("Error creating smee channel: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to create smee channel")
+
     def _store_state(self, state: str, data: Dict[str, Any]) -> None:
         self._state[state] = data
 
@@ -41,15 +58,16 @@ class GitHubAppSetupService:
             raise ValueError("Invalid or expired authorization link. Please try creating the GitHub App again.")
         return self._state.pop(state)
 
-    def create_manifest(
+    async def create_manifest(
         self,
         app_name: str,
         organization: str | None,
-        webhook_url: str,
         host: str,
         port: int,
         callback_route: str,
     ) -> tuple[Dict[str, Any], str]:
+        webhook_url = await self._create_smee_channel()
+
         manifest = GitHubAppManifest(
             name=app_name,
             url="https://github.com/gradion-ai",
@@ -70,6 +88,7 @@ class GitHubAppSetupService:
                 "manifest": manifest_dict,
                 "organization": organization,
                 "app_name": app_name,
+                "webhook_url": webhook_url,
             },
         )
 
@@ -84,7 +103,7 @@ class GitHubAppSetupService:
         self,
         code: str,
         state: str,
-    ) -> tuple[str, str | None, str, GitHubAppCredentials]:
+    ) -> tuple[str, str | None, str, str, GitHubAppCredentials]:
         stored_data = self._validate_state(state)
 
         logger.info("Processing callback (app_name='%s')", stored_data["app_name"])
@@ -96,9 +115,10 @@ class GitHubAppSetupService:
         installation_url = f"https://github.com/apps/{credentials.slug}/installations/new"
 
         return (
-            stored_data["app_name"],
+            credentials.name,
             stored_data["organization"],
             installation_url,
+            stored_data["webhook_url"],
             credentials,
         )
 
@@ -120,6 +140,7 @@ class GitHubAppSetupService:
                 return GitHubAppCredentials(
                     app_id=data["id"],
                     slug=data["slug"],
+                    name=data["name"],
                     client_secret=data["client_secret"],
                     webhook_secret=data["webhook_secret"],
                     pem=data["pem"],
