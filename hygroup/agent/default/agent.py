@@ -164,7 +164,7 @@ class AgentBase(Generic[D], Agent):
     @asynccontextmanager
     async def request_scope(self, secrets: dict[str, str] | None = None):
         self._ctx_secrets.set(secrets is not None)
-        with self._configure_mcp_servers(self._request_mcp_servers, secrets or dict(os.environ)) as servers:
+        with self._configure_mcp_servers(self._request_mcp_servers, dict(os.environ) | (secrets or {})) as servers:
             async with self._run_mcp_servers(servers):
                 yield
 
