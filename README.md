@@ -125,7 +125,7 @@ The permission to execute the `get_weather_forecast` tool is granted by `martin`
 
 ### User registration
 
-Running MCP servers with a user's private API tokens requires user registration. The [examples/register_user.py](examples/register_user.py) script allows interactive registration of users. The registration process prompts for:
+Running MCP servers with a user's private API tokens requires user registration. The [examples/register_users.py](examples/register_users.py) script allows interactive registration of users. The registration process prompts for:
 
 - Username and password
 - Environment variables to be stored as user secrets (encrypted tokens)
@@ -156,7 +156,7 @@ The Slack integration enables multi-user, multi-agent conversations in Slack thr
 
 The Slack integration works through a dedicated [Slack app](https://api.slack.com/docs/apps) that creates an *app agent* which can be used directly or that delegates to other agents in the agent registry.
 
-Set up the Slack app by following the [Slack integration guide](docs/slack-integration-guide.md). The name that is assigned to the Slack app becomes the name of the Slack *app agent*. Once installed in a Slack workspace, users can interact with the *app agent* and other registered agents in Slack threads.
+Set up the Slack app by following the [Slack integration guide](docs/setup/slack-integration-guide.md). The name that is assigned to the Slack app becomes the name of the Slack *app agent*. Once installed in a Slack workspace, users can interact with the *app agent* and other registered agents in Slack threads.
 
 > [!NOTE]
 > For the following, we assume an *app agent* named `Gradion Agent`.
@@ -197,7 +197,7 @@ The GitHub integration enables multi-user, multi-agent conversations within GitH
 
 The GitHub integration works through a dedicated [GitHub App](https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/about-creating-github-apps) that creates an *app agent* which can be used directly or that delegates to other agents in the agent registry.
 
-Set up the GitHub App by following the [GitHub integration guide](docs/github-integration-guide.md). The name that is assigned to the GitHub App becomes the name of the GitHub *app agent*. Once installed in a repository, users can interact with the *app agent* and other registered agents in issues and pull requests.
+Set up the GitHub App by following the [GitHub integration guide](docs/setup/github-integration-guide.md). The name that is assigned to the GitHub App becomes the name of the GitHub *app agent*. Once installed in a repository, users can interact with the *app agent* and other registered agents in issues and pull requests.
 
 > [!NOTE]
 > For the following, we assume an *app agent* named `gradion-agent`.
@@ -214,7 +214,7 @@ Agent responses are labeled with the agent's name in brackets (e.g. `[weather]` 
 ##### Usage
 
 To enable the GitHub integration, ensure that webhook events from GitHub are forwarded to the local gateway.
-The following example assumes usage of [smee.io](https://smee.io) during [setup](docs/github-integration-guide.md) and a locally running [smee-client](https://www.npmjs.com/package/smee-client).
+The following example assumes usage of [smee.io](https://smee.io) during [setup](docs/setup/github-integration-guide.md) and a locally running [smee-client](https://www.npmjs.com/package/smee-client).
 
 ```
 smee -u https://smee.io/{CHANNEL_ID} -t http://127.0.0.1:8000/api/v1/github-webhook
@@ -244,4 +244,4 @@ The following resources are examples how to use the `hygroup` package as library
 - [examples/app_client.py](examples/app_client.py) - Example group chat client with terminal interface
 - [examples/user_channel.py](examples/user_channel.py) - Private user channel with terminal interface
 - [examples/register_agents.py](examples/register_agents.py) - Registration of example agents
-- [examples/register_user.py](examples/register_user.py) - Interactive registration of users
+- [examples/register_users.py](examples/register_users.py) - Interactive registration of users
