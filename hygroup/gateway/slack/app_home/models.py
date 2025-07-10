@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass
@@ -27,9 +27,11 @@ class AgentListViewModel:
 class AgentViewModel:
     name: str
     description: str
-    model: Dict[str, Any] | str
+    model: dict[str, Any] | str
     instructions: str
     mcp_settings: list[dict[str, Any]] = field(default_factory=list)
+    model_settings: dict[str, Any] | None = None
+    tools: list[dict[str, str]] = field(default_factory=list)
     handoff: bool = False
     emoji: str | None = None
 
@@ -40,7 +42,9 @@ class AgentViewModel:
             description=agent_config["description"],
             model=agent_config["settings"]["model"],
             instructions=agent_config["settings"]["instructions"],
-            mcp_settings=agent_config["settings"]["mcp_settings"],
+            mcp_settings=agent_config["settings"].get("mcp_settings", []),
+            model_settings=agent_config["settings"].get("model_settings"),
+            tools=agent_config["settings"].get("tools", []),
             handoff=agent_config["handoff"],
             emoji=agent_config.get("emoji"),
         )

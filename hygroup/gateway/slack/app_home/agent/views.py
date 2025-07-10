@@ -117,10 +117,9 @@ class AgentViewBuilder:
         except (json.JSONDecodeError, TypeError):
             model_formatted = str(agent.model)
 
-        try:
-            mcp_settings_formatted = json.dumps(agent.mcp_settings, indent=2)
-        except (json.JSONDecodeError, TypeError):
-            mcp_settings_formatted = str(agent.mcp_settings)
+        mcp_settings_formatted = json.dumps(agent.mcp_settings, indent=2)
+        model_settings_formatted = json.dumps(agent.model_settings or {}, indent=2)
+        tools_formatted = json.dumps(agent.tools, indent=2)
 
         emoji_text = ""
         if agent.emoji:
@@ -150,7 +149,7 @@ class AgentViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Instructions:*\n```{agent.instructions}```",
+                        "text": f"*System Instructions:*\n```{agent.instructions}```",
                     },
                 },
                 {
@@ -164,7 +163,21 @@ class AgentViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
+                        "text": f"*Model Settings:*\n```\n{model_settings_formatted}\n```",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
                         "text": f"*MCP Settings:*\n```\n{mcp_settings_formatted}\n```",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Python Coroutines:*\n```\n{tools_formatted}\n```",
                     },
                 },
                 {
@@ -209,7 +222,6 @@ class AgentViewBuilder:
                 }
             )
 
-        # Create blocks with proper typing
         description_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_description",
@@ -251,6 +263,27 @@ class AgentViewBuilder:
             },
         }
 
+        model_settings_block: dict[str, Any] = {
+            "type": "input",
+            "block_id": "agent_model_settings",
+            "label": {"type": "plain_text", "text": "Model Settings"},
+            "optional": True,
+            "element": {
+                "action_id": "model_settings_input",
+                "type": "plain_text_input",
+                "multiline": True,
+                "initial_value": json.dumps(agent.model_settings) if agent and is_edit and agent.model_settings else "",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": '{\n  "google_thinking_config": {\n    "include_thoughts": true\n  }\n}',
+                },
+            },
+            "hint": {
+                "type": "plain_text",
+                "text": "PydanticAI model settings. BaseSettings (https://ai.pydantic.dev/api/settings/) has common options. Model-specific settings in model docs (e.g. https://ai.pydantic.dev/models/google/#model-settings).",
+            },
+        }
+
         instructions_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_instructions",
@@ -273,7 +306,7 @@ class AgentViewBuilder:
                 "action_id": "mcp_settings_input",
                 "type": "plain_text_input",
                 "multiline": True,
-                "initial_value": json.dumps(agent.mcp_settings) if agent and is_edit else "",
+                "initial_value": json.dumps(agent.mcp_settings) if agent and is_edit and agent.mcp_settings else "",
                 "placeholder": {
                     "type": "plain_text",
                     "text": '[{\n  "server_config": {\n    "command": "...",  \n    "args": [...], \n    "env": { "API_KEY": "${API_KEY}" } \n  },\n  "session_scope": false\n}]',
@@ -282,6 +315,27 @@ class AgentViewBuilder:
             "hint": {
                 "type": "plain_text",
                 "text": "JSON array of MCP server configurations. Supports variable substitution for registered secrets and environment variables.",
+            },
+        }
+
+        tools_block: dict[str, Any] = {
+            "type": "input",
+            "block_id": "agent_tools",
+            "label": {"type": "plain_text", "text": "Python Coroutines"},
+            "optional": True,
+            "element": {
+                "action_id": "tools_input",
+                "type": "plain_text_input",
+                "multiline": True,
+                "initial_value": json.dumps(agent.tools) if agent and is_edit and agent.tools else "",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": '[{\n  "module": "examples.app_server",\n  "function": "get_user_preferences"\n}]',
+                },
+            },
+            "hint": {
+                "type": "plain_text",
+                "text": "JSON array of Python coroutines to import as tools. Each tool definition must have 'module' and 'function' fields.",
             },
         }
 
@@ -300,11 +354,13 @@ class AgentViewBuilder:
 
         blocks.extend(
             [
-                description_block,
-                model_block,
-                instructions_block,
                 emoji_block,
+                description_block,
+                instructions_block,
+                model_block,
+                model_settings_block,
                 mcp_settings_block,
+                tools_block,
             ]
         )
 
@@ -338,7 +394,7 @@ class AgentViewBuilder:
         checkbox_input_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_handoff_options",
-            "label": {"type": "plain_text", "text": "Handoff Settings"},
+            "label": {"type": "plain_text", "text": "Handoff"},
             "optional": True,
             "element": checkbox_element,
         }
