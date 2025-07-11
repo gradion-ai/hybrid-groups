@@ -341,9 +341,21 @@ input[type="url"]::placeholder {
 }
 
 .highlight {
-    color: #ffffff;
+    color: #cdcaca;
     font-weight: 600;
 }
+
+.highlight-code {
+    font-family: 'Courier New', Consolas, Monaco, 'Lucida Console', monospace;
+    background-color: #17191c;
+    color: #fcfcfc;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    border: 1px solid #4a5568;
+    white-space: nowrap;
+}
+
 
 /* Progress indicator styles */
 .progress-indicator {

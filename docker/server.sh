@@ -1,17 +1,15 @@
 #!/bin/bash
 
-# Check if .env file exists in data directory and create symlink
+export PYTHONPATH=.
+
+# Check if .env file exists in data directory and create symlink to app directory
 if [ -f /app/.data/.env ]; then
     [ -e /app/.env ] && rm -f /app/.env
     ln -s /app/.data/.env /app/.env
 else
     echo "Error: .env file not found"
-    echo "Please create a .env file in your data directory with the following environment variable:"
-    echo "GEMINI_API_KEY=<your-api-key>"
     exit 1
 fi
-
-export PYTHONPATH=.
 
 # Convert GATEWAY to lowercase for case-insensitive comparisons
 GATEWAY_LOWER=$(echo "$GATEWAY" | tr '[:upper:]' '[:lower:]')
@@ -33,9 +31,6 @@ if [ -f .env ]; then
         echo "Please add GEMINI_API_KEY=<your-api-key> to your .env file"
         exit 1
     fi
-
-    # Re-convert GATEWAY to lowercase after loading .env
-    GATEWAY_LOWER=$(echo "$GATEWAY" | tr '[:upper:]' '[:lower:]')
 
     # Check for required variables based on GATEWAY
     if [ "$GATEWAY_LOWER" = "slack" ]; then
@@ -86,7 +81,6 @@ if [ "$GATEWAY_LOWER" = "github" ]; then
         set -a
         source .env
         set +a
-        GATEWAY_LOWER=$(echo "$GATEWAY" | tr '[:upper:]' '[:lower:]')
     fi
 
     if [ -n "$GITHUB_APP_WEBHOOK_URL" ]; then
