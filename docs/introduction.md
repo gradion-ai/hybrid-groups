@@ -1,6 +1,6 @@
 Hybrid Groups is a multi-user, multi-agent platform that enables teams to collaborate with proactive and reactive agents in Slack and GitHub. 
 It adds background reasoning to Slack threads and GitHub issues to intelligently activate agents based on chat messages and context. 
-Agents reason, act and respond specific to a sender's identity, preferences and history, and can take actions on behalf of the user.
+Agents reason, act and respond specific to a user's identity, preferences and history, and can take actions on behalf of any team member.
 Users can build custom agents by defining their system prompt, model, tools and criteria for being activated by background reasoning.
 
 <table>
