@@ -26,7 +26,6 @@ if [ -f .env ]; then
     set -a
     source .env
     set +a
-    echo "Environment variables loaded from .env file"
 
     # Check if GEMINI_API_KEY is set
     if [ -z "$GEMINI_API_KEY" ]; then
@@ -41,13 +40,17 @@ if [ -f .env ]; then
     # Check for required variables based on GATEWAY
     if [ "$GATEWAY_LOWER" = "slack" ]; then
         if [ -z "$SLACK_APP_ID" ]; then
-            echo "SLACK_APP_ID not found, entering setup mode for Slack"
+            echo ""
+            echo "No configuration found for Slack, entering setup mode..."
+            echo ""
             SETUP_NEEDED=true
             SETUP_TYPE="slack"
         fi
     elif [ "$GATEWAY_LOWER" = "github" ]; then
         if [ -z "$GITHUB_APP_WEBHOOK_URL" ]; then
-            echo "GITHUB_APP_WEBHOOK_URL not found, entering setup mode for GitHub"
+            echo ""
+            echo "No configuration found for GitHub, entering setup mode..."
+            echo ""
             SETUP_NEEDED=true
             SETUP_TYPE="github"
         fi
@@ -59,17 +62,18 @@ fi
 
 # Check if agents directory exists, if not register agents
 if [ ! -d /app/.data/agents ]; then
+    echo ""
     echo "Agents directory not found, registering agents..."
+    echo ""
     python examples/register_agents.py
 fi
 
 # Run setup if needed
 if [ "$SETUP_NEEDED" = true ]; then
-    echo "Starting setup for $SETUP_TYPE..."
     if [ "$SETUP_TYPE" = "slack" ]; then
-        python -m hygroup.setup.apps slack --port 8001 --host 192.168.1.77
+        python -m hygroup.setup.apps slack --port 8001 --host ${SERVER_HOST} --no-browser
     elif [ "$SETUP_TYPE" = "github" ]; then
-        python -m hygroup.setup.apps github --port 8001 --host 192.168.1.77
+        python -m hygroup.setup.apps github --port 8001 --host ${SERVER_HOST} --no-browser
     else
         echo "Error: Unknown GATEWAY type: $GATEWAY"
         exit 1
@@ -77,24 +81,26 @@ if [ "$SETUP_NEEDED" = true ]; then
     echo "Setup completed"
 fi
 
-# Start the application
-echo "Starting application with gateway: $GATEWAY"
-
-# Start smee if GATEWAY is github
 if [ "$GATEWAY_LOWER" = "github" ]; then
-    # Reload .env if it was just created during setup
     if [ -f .env ]; then
         set -a
         source .env
         set +a
-        # Re-convert GATEWAY to lowercase after reloading .env
         GATEWAY_LOWER=$(echo "$GATEWAY" | tr '[:upper:]' '[:lower:]')
     fi
 
     if [ -n "$GITHUB_APP_WEBHOOK_URL" ]; then
+        echo ""
         echo "Starting smee gateway with URL: $GITHUB_APP_WEBHOOK_URL"
+        echo ""
         smee -u "$GITHUB_APP_WEBHOOK_URL" -t http://127.0.0.1:8000/api/v1/github-webhook &
     fi
 fi
+
+echo ""
+echo "----------------------------------------------------------------------------------------------------"
+echo "Starting Application Server with gateway: $GATEWAY"
+echo "----------------------------------------------------------------------------------------------------"
+echo ""
 
 python examples/app_server.py --gateway $GATEWAY

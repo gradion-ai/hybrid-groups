@@ -35,6 +35,7 @@ def main(
     host: str,
     port: int,
     key_folder: str,
+    open_browser_flag: bool = True,
 ):
     private_key_folder = Path(key_folder)
 
@@ -58,12 +59,15 @@ def main(
     app_path = f"/{app_type}-app"
     url = f"http://{host}:{port}{app_path}"
 
-    logging.info(f"🚀 Starting {app_type.capitalize()} App Registration server")
-    logging.info(f"📍 Host: {host}")
-    logging.info(f"🔌 Port: {port}")
-    logging.info(f"🔗 URL: {url}")
+    logging.info("  ⚙️ Application Setup")
+    logging.info("  " + "-" * 100)
+    logging.info("  Please open the following URL in your browser and follow the instructions:")
+    logging.info(f"  🌐 {url}")
+    logging.info("  " + "-" * 100)
+    logging.info("")
 
-    # open_browser(url)
+    if open_browser_flag:
+        open_browser(url)
 
     uvicorn.run(
         app,
@@ -100,6 +104,11 @@ if __name__ == "__main__":
         default=".data/secrets/github-apps",
         help="Relative path to the folder to store GitHub App private keys (default: '.data/secrets/github-apps')",
     )
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Don't open browser automatically",
+    )
 
     args = parser.parse_args()
 
@@ -108,4 +117,5 @@ if __name__ == "__main__":
         host=args.host,
         port=args.port or find_available_port(),
         key_folder=args.key_folder,
+        open_browser_flag=not args.no_browser,
     )

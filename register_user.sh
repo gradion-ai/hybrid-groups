@@ -15,7 +15,10 @@ if [[ "$DATA_DIR" != /* ]]; then
     DATA_DIR="$(pwd)/$DATA_DIR"
 fi
 
-echo "Using data directory: $DATA_DIR"
+echo "--------------------------------"
+echo "Hybrid Groups User Registration"
+echo "--------------------------------"
+echo "Data directory: $DATA_DIR"
 
 # Check if data directory exists
 if [ ! -d "$DATA_DIR" ]; then
@@ -40,7 +43,6 @@ fi
 #     echo ".env file not found: $ENV_FILE"
 # fi
 
-echo "Starting Docker container..."
 docker run -it \
   --entrypoint /bin/bash \
   -v "$DATA_DIR":/app/.data \
