@@ -2,15 +2,48 @@
 
 # Check arguments
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <gateway: github|slack> [data_directory] [host]"
-    echo "Example: $0 github /path/to/data localhost"
-    echo "Example: $0 github  # uses .hybrid_groups_data and localhost"
+    echo "Usage: $0 <gateway: github|slack> [options]"
+    echo "Options:"
+    echo "  --data-dir <path>     Data directory (default: .hybrid_groups_data)"
+    echo "  --host <host>         Host address (default: localhost)"
+    echo ""
+    echo "Examples:"
+    echo "  $0 github"
+    echo "  $0 github --host 0.0.0.0"
+    echo "  $0 github --data-dir /path/to/data --host 192.168.1.100"
+    echo "  $0 github /path/to/data localhost  # old positional format still works"
     exit 1
 fi
 
 GATEWAY=$1
-DATA_DIR=${2:-".hybrid_groups_data"}
-HOST=${3:-"localhost"}
+DATA_DIR=".hybrid_groups_data"
+HOST="localhost"
+
+# Parse remaining arguments
+shift
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --data-dir)
+            DATA_DIR="$2"
+            shift 2
+            ;;
+        --host)
+            HOST="$2"
+            shift 2
+            ;;
+        *)
+            # Handle old positional format for backward compatibility
+            if [[ -z "$DATA_DIR_SET" ]]; then
+                DATA_DIR="$1"
+                DATA_DIR_SET=true
+            elif [[ -z "$HOST_SET" ]]; then
+                HOST="$1"
+                HOST_SET=true
+            fi
+            shift
+            ;;
+    esac
+done
 
 # Convert to absolute path if relative
 if [[ "$DATA_DIR" != /* ]]; then
