@@ -54,8 +54,6 @@ if [ -f .env ]; then
     fi
 else
     echo "Error: .env file not found"
-    echo "Please create a .env file in your data directory with the following environment variable:"
-    echo "GEMINI_API_KEY=<your-api-key>"
     exit 1
 fi
 
