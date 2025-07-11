@@ -30,7 +30,52 @@ def open_browser(url: str, delay: float = 1.5):
     timer.start()
 
 
-def main():
+def main(
+    app_type: str,
+    host: str,
+    port: int,
+    key_folder: str,
+):
+    private_key_folder = Path(key_folder)
+
+    if not private_key_folder.exists():
+        private_key_folder.mkdir(parents=True, exist_ok=True)
+
+    env_file = PROJECT_ROOT_PATH.parent / ".env"
+    if not env_file.exists():
+        env_file.touch()
+
+    credential_manager = CredentialManager(
+        key_folder=private_key_folder,
+        env_file=env_file,
+    )
+    app = create_app(
+        host=host,
+        port=port,
+        credential_manager=credential_manager,
+    )
+
+    app_path = f"/{app_type}-app"
+    url = f"http://{host}:{port}{app_path}"
+
+    logging.info(f"🚀 Starting {app_type.capitalize()} App Registration server")
+    logging.info(f"📍 Host: {host}")
+    logging.info(f"🔌 Port: {port}")
+    logging.info(f"🔗 URL: {url}")
+
+    # open_browser(url)
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        log_level="info",
+    )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
     parser = argparse.ArgumentParser(description="GitHub App Registration")
     parser.add_argument(
         "app_type",
@@ -52,54 +97,15 @@ def main():
     parser.add_argument(
         "--key-folder",
         type=str,
-        default=PROJECT_ROOT_PATH.parent / ".secrets/github-apps",
-        help=f"Folder to store GitHub App private keys (default: {PROJECT_ROOT_PATH.parent / '.secrets/github-apps'}",
+        default=".data/secrets/github-apps",
+        help="Relative path to the folder to store GitHub App private keys (default: '.data/secrets/github-apps')",
     )
 
     args = parser.parse_args()
 
-    port = args.port if args.port else find_available_port()
-
-    private_key_folder = Path(args.key_folder)
-    if not private_key_folder.is_absolute():
-        private_key_folder = PROJECT_ROOT_PATH.parent / private_key_folder
-
-    if not private_key_folder.exists():
-        private_key_folder.mkdir(parents=True, exist_ok=True)
-
-    env_file = PROJECT_ROOT_PATH.parent / ".env"
-    if not env_file.exists():
-        env_file.touch()
-
-    credential_manager = CredentialManager(
-        key_folder=private_key_folder,
-        env_file=env_file,
-    )
-    app = create_app(
+    main(
+        app_type=args.app_type,
         host=args.host,
-        port=port,
-        credential_manager=credential_manager,
+        port=args.port or find_available_port(),
+        key_folder=args.key_folder,
     )
-
-    app_path = f"/{args.app_type}-app"
-    url = f"http://{args.host}:{port}{app_path}"
-
-    print(f"🚀 Starting {args.app_type.capitalize()} App Registration server")
-    print(f"📍 Host: {args.host}")
-    print(f"🔌 Port: {port}")
-    print(f"🔗 URL: {url}")
-    print("\n✨ Server starting...\n")
-
-    open_browser(url)
-
-    uvicorn.run(
-        app,
-        host=args.host,
-        port=port,
-        log_level="info",
-    )
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    main()

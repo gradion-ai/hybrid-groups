@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  hygroup:
+    build:
+        context: .
+        dockerfile: docker/Dockerfile
+    volumes:
+      - .data/docker2:/app/.data
+    environment:
+      - GATEWAY=${GATEWAY}
+    ports:
+      - 8000:8000
+      - 8001:8001
