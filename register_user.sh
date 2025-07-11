@@ -19,6 +19,7 @@ echo "--------------------------------"
 echo "Hybrid Groups User Registration"
 echo "--------------------------------"
 echo "Data directory: $DATA_DIR"
+echo ""
 
 # Check if data directory exists
 if [ ! -d "$DATA_DIR" ]; then

@@ -73,7 +73,6 @@ if [ "$SETUP_NEEDED" = true ]; then
         echo "Error: Unknown GATEWAY type: $GATEWAY"
         exit 1
     fi
-    echo "Setup completed"
 fi
 
 if [ "$GATEWAY_LOWER" = "github" ]; then

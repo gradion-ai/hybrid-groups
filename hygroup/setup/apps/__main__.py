@@ -61,7 +61,7 @@ def main(
 
     logging.info("  ⚙️ Application Setup")
     logging.info("  " + "-" * 100)
-    logging.info("  Please open the following URL in your browser and follow the instructions:")
+    logging.info("  Please open the following URL in your browser and follow the setup instructions:")
     logging.info(f"  🌐 {url}")
     logging.info("  " + "-" * 100)
     logging.info("")
