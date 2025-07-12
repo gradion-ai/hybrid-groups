@@ -10,17 +10,12 @@ from hygroup.utils import arun
 
 
 class DefaultAgentRegistry(AgentRegistry):
-    """TinyDB-based agent registry for persistent agent config storage.
+    """Reference implementation of an agent registry for storing agent configurations.
 
-    THIS IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.
+    **THIS REFERENCE IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, registry_path: Path | str = Path(".data", "agents", "registry.json")):
-        """Initialize the registry with TinyDB storage.
-
-        Args:
-            registry_path: Path to the registry file
-        """
         self.registry_path = Path(registry_path)
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -29,9 +29,10 @@ class UserAlreadyRegisteredError(Exception):
 
 
 class DefaultUserRegistry(UserRegistry):
-    """TinyDB-based user registry that persists user information across sessions.
+    """Reference implementaton of a user registry that encrypts user data at rest with an admin
+    password.
 
-    THIS IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.
+    **THIS REFERENCE IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, registry_path: Path | str = Path(".data", "users", "registry.bin")):
