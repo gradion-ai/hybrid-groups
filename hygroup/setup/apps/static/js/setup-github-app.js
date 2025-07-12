@@ -89,6 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (smeeUrlDisplay) {
                         smeeUrlDisplay.textContent = appData.webhook_url;
                     }
+                    const appNameExample = document.getElementById('app-name-example');
+                    if (appNameExample && appData.app_name) {
+                        const formattedName = appData.app_name
+                            .toLowerCase()
+                            .replace(/\s+/g, '-')
+                            .replace(/[^a-z0-9-]/g, '');
+                        appNameExample.textContent = formattedName;
+                    }
                 }
                 break;
         }

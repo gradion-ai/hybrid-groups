@@ -22,7 +22,6 @@ def find_available_port():
 
 def open_browser(url: str, delay: float = 1.5):
     def _open():
-        print(f"\n🌐 Opening browser to: {url}")
         webbrowser.open(url)
 
     timer = Timer(delay, _open)
