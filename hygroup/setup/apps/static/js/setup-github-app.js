@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (smeeUrlDisplay) {
                         smeeUrlDisplay.textContent = appData.webhook_url;
                     }
+                    // Format the app name for the example (lowercase, spaces to hyphens, special chars removed)
                     const appNameExample = document.getElementById('app-name-example');
                     if (appNameExample && appData.app_name) {
                         const formattedName = appData.app_name
@@ -413,4 +414,14 @@ document.addEventListener('DOMContentLoaded', () => {
             showPhase(1);
         }
     }
+
+    // // TEST MODE: Show success page immediately
+    // // Remove or comment out this section for production
+    // appData = {
+    //     app_name: 'MY HYbdrid Groupgs',
+    //     webhook_url: 'https://smee.io/test-webhook-url-12345',
+    //     app_id: '123456',
+    //     installation_id: '75221500'
+    // };
+    // showPhase('success');
 });

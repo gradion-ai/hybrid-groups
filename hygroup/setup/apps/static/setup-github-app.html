@@ -190,27 +190,13 @@
                         <span class="info-value" id="webhook-url-success-display"></span>
                     </div>
                 </div>
+
                 <div class="info-section" style="margin-top: 1.5rem;">
-                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem;">Getting Started</p>
-                    <p style="margin-bottom: 1rem;">Your Hybrid Groups app is now <span class="highlight">active in all issues and PRs</span> in the installed repositories. The app automatically performs background reasoning to understand conversational context and activate an agent if needed.</p>
-
-                    <p style="margin-bottom: 1rem;">You can also <span class="highlight">directly interact with agents</span> by mentioning them in comments using <span class="highlight-code">@<span id="app-name-example"></span>/agent-name</span>.</p>
-
-                    <img src="/static/images/github_app_3_choose_repo.png" alt="Agent activation example" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; margin-bottom: 1rem;">
-
-                    <p style="margin-bottom: 0.5rem;">The app's background reasoning process is indicated by emoji reactions added to your comments:</p>
-                    <ul style="list-style: none; padding-left: 0; margin-bottom: 1.5rem;">
-                        <li style="margin-bottom: 0.3rem;">👀 - Background reasoning in progress</li>
-                        <li style="margin-bottom: 0.3rem;">👍 - Background reasoning complete, no agent needed</li>
-                        <li style="margin-bottom: 0.3rem;">🚀 - Agent activated and working</li>
-                    </ul>
-
-                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem;">Start the Hybrid Groups Backend</p>
-                    <p style="margin-bottom: 1rem;">Choose your setup to see the required steps:</p>
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 1rem; font-size: 1.4rem;"">Next Steps</p>
 
                     <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
                         <p style="color: #86efac; font-weight: 600; margin-bottom: 0.5rem;">🐳 Running with Docker</p>
-                        <p style="margin: 0;">No additional steps needed! The backend and webhook forwarding are handled automatically.</p>
+                        <p style="margin: 0;">No additional steps needed! The Hybrid Groups backend and webhook forwarding are started automatically.</p>
                     </div>
 
                     <div style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.3); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
@@ -223,13 +209,33 @@
                                     <code style="font-size: 0.85rem;">smee -u <span id="smee-url-display"></span> -t http://127.0.0.1:8000/api/v1/github-webhook</code>
                                 </div>
                             </li>
-                            <li>Start the backend:
+                            <li>Start the Hybrid Groups backend:
                                 <div style="background: rgba(0, 0, 0, 0.3); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
                                     <code style="font-size: 0.85rem;">python examples/app_server.py --gateway github</code>
                                 </div>
                             </li>
                         </ol>
                     </div>
+                </div>
+
+                <div class="info-section" style="margin-top: 1.5rem;">
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem; font-size: 1.4rem;"">Getting Started</p>
+                    <p style="margin-bottom: 1rem;">Hybrid Groups is now <span class="highlight">active in all issues and PRs</span> in the installed repositories.</p>
+
+                    <p style="margin-bottom: 1rem;">Once you create an issue or write a comment, Hybrid Groups automatically performs background reasoning to understand the context and activates an agent if needed. The background reasoning process is indicated by emoji reactions added to your comments:</p>
+
+                    <ul style="list-style: none; padding-left: 0; margin-bottom: 1.5rem;">
+                        <li style="margin-bottom: 0.3rem;">👀 - Background reasoning in progress</li>
+                        <li style="margin-bottom: 0.3rem;">👍 - Background reasoning complete, no agent needed</li>
+                        <li style="margin-bottom: 0.3rem;">🚀 - Agent activated and working</li>
+                    </ul>
+
+                    <img src="/static/images/github_app_3_choose_repo.png" alt="Agent activation example" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; margin-bottom: 1rem;">
+
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem;">Direct Agent Interaction</p>
+                    <p style="margin-bottom: 1rem;">You can also <span class="highlight">directly interact with agents</span> by mentioning them in issue descriptions or comments using <span class="highlight-code">@<span id="app-name-example"></span>/agent-name</span>.</p>
+
+                    <img src="/static/images/github_app_3_choose_repo.png" alt="Agent activation example" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; margin-bottom: 1rem;">
                 </div>
                 <div class="status-message">
                     You can close this window now.

@@ -221,6 +221,49 @@
                         <span class="info-value" id="app-user-id-display"></span>
                     </div>
                 </div>
+
+                <div class="info-section" style="margin-top: 1.5rem;">
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 1rem; font-size: 1.4rem;">Next Steps</p>
+
+                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                        <p style="color: #86efac; font-weight: 600; margin-bottom: 0.5rem;">🐳 Running with Docker</p>
+                        <p style="margin: 0;">No additional steps needed! The Hybrid Groups backend is started automatically.</p>
+                    </div>
+
+                    <div style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.3); padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                        <p style="color: #fdba74; font-weight: 600; margin-bottom: 0.5rem;">💻 Running without Docker</p>
+                        <p style="margin-bottom: 0.5rem;">Start the Hybrid Groups backend:</p>
+                        <div style="background: rgba(0, 0, 0, 0.3); padding: 0.5rem; border-radius: 4px; margin-top: 0.3rem;">
+                            <code style="font-size: 0.85rem;">python examples/app_server.py --gateway slack</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section" style="margin-top: 1.5rem;">
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem; font-size: 1.4rem;">Getting Started</p>
+                    <p style="margin-bottom: 1.5rem;">Your Hybrid Groups app is now ready to use in your Slack workspace.</p>
+
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem;">Add to Channels</p>
+                    <p style="margin-bottom: 1rem;">Add the app to any Slack channel by mentioning <span class="highlight-code">@Hybrid Groups</span>.</p>
+                    <p style="margin-bottom: 1rem;">Once you write a message, Hybrid Groups automatically performs background reasoning to understand the context and activates an agent if needed. The background reasoning process is indicated by emoji reactions added to your messages:</p>
+
+                    <ul style="list-style: none; padding-left: 0; margin-bottom: 1.5rem;">
+                        <li style="margin-bottom: 0.3rem;">👀 - Background reasoning in progress</li>
+                        <li style="margin-bottom: 0.3rem;">☑️ - Background reasoning complete, no agent needed</li>
+                        <li style="margin-bottom: 0.3rem;">🤖 - Agent activated and working</li>
+                    </ul>
+
+                    <img src="/static/images/slack_usage_add_to_channel.png" alt="Adding app to Slack channel" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; margin-bottom: 1.5rem;">
+
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem;">Direct Agent Interaction</p>
+                    <p style="margin-bottom: 1rem;">You can also directly interact with specific agents by mentioning them in channels or threads using <span class="highlight-code">@agent-name</span>.</p>
+                    <img src="/static/images/slack_usage_agent_mention.png" alt="Direct agent interaction example" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; margin-bottom: 1.5rem;">
+
+                    <p style="color: #eeebeb; font-weight: 600; margin-bottom: 0.5rem;">Configuration & Settings</p>
+                    <p style="margin-bottom: 1rem;">To configure Hybrid Groups, add the app to your Apps section in Slack and navigate to the <span class="highlight">Home</span> tab of Hybrid Groups.</p>
+                    <img src="/static/images/slack_usage_home_view.png" alt="Slack app home view with settings" style="width: 100%; height: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; margin-bottom: 1.5rem;">
+                </div>
+
                 <div class="status-message">
                     You can close this window now.
                 </div>

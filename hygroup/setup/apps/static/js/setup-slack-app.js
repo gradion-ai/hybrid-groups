@@ -323,6 +323,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize
+    // // TEST MODE: Show success page immediately
+    // // Remove or comment out this section for production
+    // appData = {
+    //     app_id: 'A123456789',
+    //     app_name: 'Hybrid Groups'
+    // };
+    // if (appUserIdDisplay) {
+    //     appUserIdDisplay.textContent = 'U987654321';
+    // }
+    // showPhase('success');
+
+    // Initialize (commented out for test mode)
     showPhase(1);
 });
