@@ -19,4 +19,9 @@ Additional commands are:
 # Code quality checks (linting, formatting, type checking)
 invoke code-check
 invoke cc  # alias
+
+# Documentation
+invoke build-docs  # Build documentation with MkDocs
+invoke serve-docs  # Serve documentation locally at http://localhost:8000
+invoke deploy-docs  # Deploy documentation to GitHub Pages
 ```

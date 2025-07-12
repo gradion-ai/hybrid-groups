@@ -5,11 +5,11 @@ The *Hybrid Groups* Slack app includes a simple agent builder, which consists of
 <table align="center">
 <tr>
 <td valign="top" align="center">
-<a href="images/features/feature-9a.png?raw=true" target="_blank"><img src="images/features/feature-9a.png" width="100%"></a><br>
+<a href="/images/features/feature-9a.png?raw=true" target="_blank"><img src="/images/features/feature-9a.png" width="100%"></a><br>
 Agent configuration sections in the <i>Hybrid Groups</i> Slack app home view.
 </td>
 <td valign="top" align="center">
-<a href="images/features/feature-9b.png?raw=true" target="_blank"><img src="images/features/feature-9b-crop.png" width="100%"></a><br>
+<a href="/images/features/feature-9b.png?raw=true" target="_blank"><img src="/images/features/feature-9b-crop.png" width="100%"></a><br>
 Editor for configuring the system prompt, model and tools of an agent.
 </td>
 </tr>
