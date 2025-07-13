@@ -2,26 +2,22 @@
 
 The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of the app's home view. From there, you can open the agent editor by clicking the `Add Agent` button or by selecting `Edit` from an agent's menu. In the editor, users can build custom agents by defining their system prompt, model and tools.
 
-<table align="center">
-<tr>
-<td valign="top" align="center">
-<div class="image-zoom">
-<a href="/images/features/feature-9a.png" target="_blank"><img src="/images/features/feature-9a.png" width="100%" class="thumbnail"></a>
-<a href="/images/features/feature-9a.png" target="_blank" class="large-link"><img src="/images/features/feature-9a.png" class="large"></a>
+<div class="image-row">
+  <div class="image-item">
+    <div class="image-zoom">
+      <a href="/images/features/feature-9a.png" target="_blank"><img src="/images/features/feature-9a.png" width="100%" class="thumbnail"></a>
+      <a href="/images/features/feature-9a.png" target="_blank" class="large-link"><img src="/images/features/feature-9a.png" class="large"></a>
+    </div>
+    <p class="caption"><b>Figure 1:</b> Agent configuration sections in the <i>Hybrid Groups</i> Slack app home view.</p>
+  </div>
+  <div class="image-item">
+    <div class="image-zoom">
+      <a href="/images/features/feature-9b.png" target="_blank"><img src="/images/features/feature-9b-crop.png" width="90%" class="thumbnail"></a>
+      <a href="/images/features/feature-9b.png" target="_blank" class="large-link"><img src="/images/features/feature-9b.png" class="large"></a>
+    </div>
+    <p class="caption"><b>Figure 2:</b> Editor for configuring the system prompt, model and tools of an agent.</p>
+  </div>
 </div>
-<br>
-Agent configuration sections in the <i>Hybrid Groups</i> Slack app home view.
-</td>
-<td valign="top" align="center">
-<div class="image-zoom">
-<a href="/images/features/feature-9b.png" target="_blank"><img src="/images/features/feature-9b-crop.png" width="100%" class="thumbnail"></a>
-<a href="/images/features/feature-9b.png" target="_blank" class="large-link"><img src="/images/features/feature-9b.png" class="large"></a>
-</div>
-<br>
-Editor for configuring the system prompt, model and tools of an agent.
-</td>
-</tr>
-</table>
 
 An agent's description and the agent activation policy ([example](selector.md)) determine if an agent is activated by background reasoning. For integrating more advanced agents or agentic systems, use the *Hybrid Groups* Python SDK.
 
@@ -70,6 +66,10 @@ The `session_scope` setting determines the lifecycle of an MCP server and how pl
 
 - `session_scope: true`: The server is started once per session and reused across requests (session scope). This is the recommended and most performant option. It supports substituting placeholders with environment variables.
 - `session_scope: false`: A new server is started for each agent request (request scope). This may be less performant but is **required** if you need to substitute placeholders with user secrets. It also supports substituting placeholders with environment variables.
+
+!!! Hint
+
+    The `reader` and `zotero` agents in the [screenshot above](builder.md#agent-builder) use the [readwise-reader-mcp](https://github.com/edricgsh/Readwise-Reader-MCP) and [zotero-mcp](https://github.com/54yyyu/zotero-mcp) servers, respectively. To use them, follow their installation instructions and set the `READER_MCP_EXEC` and `ZOTERO_MCP_EXEC` environment variables as required by [examples/register_agents.py](https://github.com/gradion-ai/hybrid-groups/blob/main/examples/register_agents.py).
 
 ### Python coroutines
 

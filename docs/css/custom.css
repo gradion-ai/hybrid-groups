@@ -58,6 +58,26 @@
   }
 }
 
-.md-typeset table:not([class]) {
+/*.md-typeset table:not([class]) {
   font-size: inherit;
+}*/
+
+.image-row {
+  display: flex;
+  margin-top: 1.5em;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1em;
 }
+
+.image-item {
+  text-align: left;
+  flex: 1;
+}
+
+.caption {
+  margin-top: 0.0em;
+  font-size: 0.8em;
+}
+
+/*  font-style: italic; */

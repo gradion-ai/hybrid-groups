@@ -81,7 +81,6 @@ markdown_extensions:
 nav:
   - User Guide:
     - Introduction: index.md
-    - Features: features.md
     - Agent Builder: builder.md
 
 extra_css:
