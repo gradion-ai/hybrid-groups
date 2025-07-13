@@ -57,3 +57,7 @@
     opacity: 1;
   }
 }
+
+.md-typeset table:not([class]) {
+  font-size: inherit;
+}
