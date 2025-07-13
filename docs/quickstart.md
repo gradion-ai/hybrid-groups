@@ -49,13 +49,13 @@ how's the weather in vienna?
 - in the channel where the Slack app was added:
 
     <div class="image-zoom quickstart-image">
-      <a href="/images/quickstart/quickstart-1.png" target="_blank"><img src="/images/quickstart/quickstart-1.png" class="thumbnail"></a>
-      <a href="/images/quickstart/quickstart-1.png" target="_blank" class="large-link"><img src="/images/quickstart/quickstart-1.png" class="large"></a>
+      <a href="../images/quickstart/quickstart-1.png" target="_blank"><img src="../images/quickstart/quickstart-1.png" class="thumbnail"></a>
+      <a href="../images/quickstart/quickstart-1.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-1.png" class="large"></a>
     </div>
 
 - in the description of a new GitHub issue:
 
     <div class="image-zoom quickstart-image">
-      <a href="/images/quickstart/quickstart-2.png" target="_blank"><img src="/images/quickstart/quickstart-2.png" class="thumbnail"></a>
-      <a href="/images/quickstart/quickstart-2.png" target="_blank" class="large-link"><img src="/images/quickstart/quickstart-2.png" class="large"></a>
+      <a href="../images/quickstart/quickstart-2.png" target="_blank"><img src="../images/quickstart/quickstart-2.png" class="thumbnail"></a>
+      <a href="../images/quickstart/quickstart-2.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-2.png" class="large"></a>
     </div>
