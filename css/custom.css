@@ -1,0 +1,87 @@
+.image-zoom {
+  position: relative;
+  display: inline-block;
+}
+
+.image-zoom .large {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  background: white;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+}
+
+.image-zoom:hover .large {
+  display: block;
+  opacity: 1;
+}
+
+.large-link {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  background: transparent;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.large-link img {
+  width: auto;
+  height: auto;
+  display: block;
+}
+
+.large-link,
+.large-link img {
+  background: transparent !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .image-zoom:hover .large-link {
+    display: block;
+    opacity: 1;
+  }
+}
+
+.image-row {
+  display: flex;
+  margin-top: 1.5em;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1em;
+}
+
+.image-item {
+  text-align: left;
+  flex: 1;
+}
+
+.caption {
+  margin-top: 0.0em;
+  font-size: 0.8em;
+}
+
+.quickstart-image {
+  width: 80%;
+}
+
+.quickstart-image .thumbnail {
+  width: 100%;
+  height: auto;
+  display: block;
+}
