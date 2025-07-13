@@ -11,7 +11,7 @@ class ActivationPolicyViewBuilder:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "*Activation Policy*",
+                    "text": "*Agent Activation Policy*",
                 },
             },
             {"type": "divider"},
@@ -28,7 +28,7 @@ class ActivationPolicyViewBuilder:
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "The activation policy controls which agents are automatically selected in conversations.",
+                "text": "Defines criteria for automatically activating agents in conversations.",
             },
             "accessory": {
                 "type": "overflow",

@@ -6,10 +6,10 @@ import aiofiles
 import aiofiles.os
 
 
-class DefaultUserPreferences:
-    """Simple user preferences store that persists user preferences as strings.
+class DefaultPreferenceStore:
+    """Database for user preferences.
 
-    Stores preferences as a JSON file with username as key and preferences string as value.
+    **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, preferences_path: Path | str = Path(".data", "users", "preferences.json")):
@@ -34,36 +34,17 @@ class DefaultUserPreferences:
             await f.write(json.dumps(data, indent=2))
 
     async def get_preferences(self, username: str) -> str | None:
-        """Get preferences for a user.
-
-        Args:
-            username: Username to get preferences for
-
-        Returns:
-            Preferences string if found, None otherwise
-        """
         async with self._lock:
             data = await self._read_data()
             return data.get(username)
 
     async def set_preferences(self, username: str, preferences: str) -> None:
-        """Set preferences for a user.
-
-        Args:
-            username: Username to set preferences for
-            preferences: Preferences string to store
-        """
         async with self._lock:
             data = await self._read_data()
             data[username] = preferences
             await self._write_data(data)
 
     async def delete_preferences(self, username: str) -> None:
-        """Delete preferences for a user.
-
-        Args:
-            username: Username to delete preferences for
-        """
         async with self._lock:
             data = await self._read_data()
             if username in data:

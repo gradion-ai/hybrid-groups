@@ -22,7 +22,7 @@ from hygroup.session import Session, SessionManager
 from hygroup.user import UserNotAuthenticatedError
 
 
-class RemoteTerminalGateway(Gateway):
+class TerminalGateway(Gateway):
     def __init__(
         self,
         session_manager: SessionManager,
@@ -180,7 +180,7 @@ class RemoteTerminalGateway(Gateway):
             del self._connections[username]
 
 
-class RemoteTerminalClient:
+class TerminalClient:
     def __init__(self, host: str = "localhost", port: int = 8723, **terminal_kwargs):
         self.host = host
         self.port = port
@@ -188,7 +188,7 @@ class RemoteTerminalClient:
         self._username: str | None = None
         self._websocket: WebSocket | None = None
 
-        self._terminal_interface: RemoteTerminalInterface | None = None
+        self._terminal_interface: TerminalInterface | None = None
         self._terminal_kwargs = terminal_kwargs
 
         self._receiver_task: asyncio.Task | None = None
@@ -238,7 +238,7 @@ class RemoteTerminalClient:
             return False
 
     async def _start_interface(self):
-        self._terminal_interface = RemoteTerminalInterface(self, **self._terminal_kwargs)
+        self._terminal_interface = TerminalInterface(self, **self._terminal_kwargs)
         await self._terminal_interface.run()
 
     async def _receive_messages(self):
@@ -274,10 +274,10 @@ class RemoteTerminalClient:
             pass
 
 
-class RemoteTerminalInterface:
+class TerminalInterface:
     def __init__(
         self,
-        client: RemoteTerminalClient,
+        client: TerminalClient,
         user_color: str = "orange1",
         agent_color: str = "green",
         human_color: str = "cyan",

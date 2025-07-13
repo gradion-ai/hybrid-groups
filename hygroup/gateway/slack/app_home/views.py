@@ -21,7 +21,7 @@ class HomeViewBuilder:
 
         # Welcome section
         app_name_text = f" for `{app_name}`" if app_name else ""
-        intro_text = f"This is the settings page{app_name_text}.\n\nConfigure your *personal secrets and preferences* and {'manage' if is_system_editor else 'view'} the *shared agent settings*{' and the *activation policy*' if is_system_editor else ''}."
+        intro_text = f"This is the settings page{app_name_text}."
 
         blocks.extend(
             [
@@ -48,21 +48,14 @@ class HomeViewBuilder:
                     },
                 },
                 {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Personal settings that only apply to you.",
-                    },
-                },
             ]
         )
 
-        # User secrets section
-        blocks.extend(SecretViewBuilder.build_user_secrets_section(user_secrets))
-
         # User preferences section
         blocks.extend(UserPreferenceViewBuilder.build_user_preferences_section(user_preferences))
+
+        # User secrets section
+        blocks.extend(SecretViewBuilder.build_user_secrets_section(user_secrets))
 
         blocks.extend(
             [
@@ -77,13 +70,6 @@ class HomeViewBuilder:
                     },
                 },
                 {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Shared settings that apply to all members of this workspace.",
-                    },
-                },
             ]
         )
 

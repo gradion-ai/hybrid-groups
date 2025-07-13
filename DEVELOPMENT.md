@@ -1,4 +1,4 @@
-# Development Guide
+# Development Environment
 
 This guide provides instructions for setting up a development environment for `hybrid-groups`. Follow these steps to get started with development, testing, and contributing to the project.
 
@@ -25,7 +25,7 @@ poetry self add "poetry-dynamic-versioning[plugin]"
 Install dependencies with Poetry:
 
 ```bash
-poetry install
+poetry install --with docs
 ```
 
 Install pre-commit hooks:

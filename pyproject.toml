@@ -35,6 +35,14 @@ cryptography = "^45.0.3"
 rich = "^14.0.0"
 markdown-to-mrkdwn = "^0.2.0"
 
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.5.48"
+mkdocstrings-python = "^1.12.2"
+
 [tool.poetry.group.dev.dependencies]
 invoke = "^2.2"
 pre-commit = "^4.0"

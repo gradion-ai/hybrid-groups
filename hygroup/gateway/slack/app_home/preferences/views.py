@@ -16,7 +16,7 @@ class UserPreferenceViewBuilder:
             {"type": "divider"},
         ]
 
-        description_text = "Preferences are used to personalize responses you receive from agents."
+        description_text = "Personalize behavior and responses you receive from agents."
 
         if preferences:
             overflow_options = [

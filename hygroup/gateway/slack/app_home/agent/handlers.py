@@ -45,7 +45,8 @@ class AgentConfigHandlers:
                     "model": agent.model,
                     "instructions": agent.instructions,
                     "mcp_settings": agent.mcp_settings,
-                    "tools": [],
+                    "model_settings": agent.model_settings,
+                    "tools": agent.tools,
                 }
             ),
             handoff=agent.handoff,
@@ -66,7 +67,8 @@ class AgentConfigHandlers:
                     "model": agent.model,
                     "instructions": agent.instructions,
                     "mcp_settings": agent.mcp_settings,
-                    "tools": config.get("settings", {}).get("tools", []),
+                    "model_settings": agent.model_settings,
+                    "tools": agent.tools,
                 }
             ),
             handoff=agent.handoff,
@@ -112,8 +114,10 @@ class AgentConfigHandlers:
         name = view["state"]["values"]["agent_name"]["name_input"].get("value") or ""
         description = view["state"]["values"]["agent_description"]["description_input"].get("value") or ""
         model_str = view["state"]["values"]["agent_model"]["model_input"].get("value") or ""
+        model_settings_str = view["state"]["values"]["agent_model_settings"]["model_settings_input"].get("value") or ""
         instructions = view["state"]["values"]["agent_instructions"]["instructions_input"].get("value") or ""
         mcp_settings_str = view["state"]["values"]["agent_mcp_settings"]["mcp_settings_input"].get("value") or ""
+        tools_str = view["state"]["values"]["agent_tools"]["tools_input"].get("value") or ""
         emoji = view["state"]["values"]["agent_emoji"]["emoji_input"].get("value") or ""
 
         # Extract checkboxes from input block
@@ -135,6 +139,8 @@ class AgentConfigHandlers:
             model_str.strip(),
             instructions.strip(),
             mcp_settings_str.strip(),
+            model_settings_str.strip(),
+            tools_str.strip(),
             existing_names=existing_names,
         )
 
@@ -150,6 +156,8 @@ class AgentConfigHandlers:
         # Parse validated data
         model_data, _ = AgentValidator.validate_model(model_str.strip())
         mcp_data, _ = AgentValidator.validate_mcp_settings(mcp_settings_str.strip())
+        model_settings_data, _ = AgentValidator.validate_model_settings(model_settings_str.strip())
+        tools_data, _ = AgentValidator.validate_tools(tools_str.strip())
 
         # Create agent
         agent = AgentViewModel(
@@ -158,6 +166,8 @@ class AgentConfigHandlers:
             model=model_data,  # type: ignore
             instructions=instructions.strip(),
             mcp_settings=mcp_data or [],
+            model_settings=model_settings_data,
+            tools=tools_data or [],
             handoff=handoff,
             emoji=emoji.strip(),
         )
@@ -193,8 +203,10 @@ class AgentConfigHandlers:
         # Extract form data
         description = view["state"]["values"]["agent_description"]["description_input"].get("value") or ""
         model_str = view["state"]["values"]["agent_model"]["model_input"].get("value") or ""
+        model_settings_str = view["state"]["values"]["agent_model_settings"]["model_settings_input"].get("value") or ""
         instructions = view["state"]["values"]["agent_instructions"]["instructions_input"].get("value") or ""
         mcp_settings_str = view["state"]["values"]["agent_mcp_settings"]["mcp_settings_input"].get("value") or ""
+        tools_str = view["state"]["values"]["agent_tools"]["tools_input"].get("value") or ""
         emoji = view["state"]["values"]["agent_emoji"]["emoji_input"].get("value") or ""
 
         # Extract checkboxes from input block
@@ -213,6 +225,8 @@ class AgentConfigHandlers:
             model_str.strip(),
             instructions.strip(),
             mcp_settings_str.strip(),
+            model_settings_str.strip(),
+            tools_str.strip(),
             validate_name_field=False,
         )
 
@@ -228,6 +242,8 @@ class AgentConfigHandlers:
         # Parse validated data
         model_data, _ = AgentValidator.validate_model(model_str.strip())
         mcp_data, _ = AgentValidator.validate_mcp_settings(mcp_settings_str.strip())
+        model_settings_data, _ = AgentValidator.validate_model_settings(model_settings_str.strip())
+        tools_data, _ = AgentValidator.validate_tools(tools_str.strip())
 
         # Update agent
         updated_agent = AgentViewModel(
@@ -236,6 +252,8 @@ class AgentConfigHandlers:
             model=model_data,  # type: ignore
             instructions=instructions.strip(),
             mcp_settings=mcp_data or [],
+            model_settings=model_settings_data,
+            tools=tools_data or [],
             handoff=handoff,
             emoji=emoji.strip(),
         )

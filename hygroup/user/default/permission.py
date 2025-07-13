@@ -8,9 +8,11 @@ from hygroup.utils import arun
 
 
 class DefaultPermissionStore(PermissionStore):
-    """TinyDB-based permission store that persists tool permissions for users across sessions.
+    """Database for tool execution permissions.
 
-    THIS IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.
+    Only session-scoped (level 2) and permanent (level 3) permissions are stored.
+
+    **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, store_path: Path | str = Path(".data", "users", "permissions.json")):
@@ -21,16 +23,6 @@ class DefaultPermissionStore(PermissionStore):
         self._lock = asyncio.Lock()
 
     async def get_permission(self, tool_name: str, username: str, session_id: str) -> int | None:
-        """Get permission for a tool and user, considering session context.
-
-        Args:
-            tool_name: Name of the tool
-            username: Username requesting permission
-            session_id: Current session ID
-
-        Returns:
-            Permission level (2 or 3) if found, None otherwise
-        """
         Query_ = Query()
 
         async with self._lock:
@@ -54,17 +46,6 @@ class DefaultPermissionStore(PermissionStore):
         return None
 
     async def set_permission(self, tool_name: str, username: str, session_id: str, permission: int):
-        """Set permission for a tool and user.
-
-        Only stores permission levels 2 (session) and 3 (always).
-        Levels 0 (denied) and 1 (granted once) are not persisted.
-
-        Args:
-            tool_name: Name of the tool
-            username: Username to set permission for
-            session_id: Session ID (used for level 2, ignored for level 3)
-            permission: Permission level to set (0-3)
-        """
         # Only persist levels 2 and 3
         if permission not in (2, 3):
             return

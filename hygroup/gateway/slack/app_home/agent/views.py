@@ -19,7 +19,7 @@ class AgentViewBuilder:
             {"type": "divider"},
         ]
 
-        description_text = "The available agents and their capabilities. Agents can be used by all members of this workspace by @mentioning them in conversations."
+        description_text = "Available agents and their configuration."
 
         if is_system_editor:
             blocks.append(
@@ -117,10 +117,9 @@ class AgentViewBuilder:
         except (json.JSONDecodeError, TypeError):
             model_formatted = str(agent.model)
 
-        try:
-            mcp_settings_formatted = json.dumps(agent.mcp_settings, indent=2)
-        except (json.JSONDecodeError, TypeError):
-            mcp_settings_formatted = str(agent.mcp_settings)
+        mcp_settings_formatted = json.dumps(agent.mcp_settings, indent=2)
+        model_settings_formatted = json.dumps(agent.model_settings or {}, indent=2)
+        tools_formatted = json.dumps(agent.tools, indent=2)
 
         emoji_text = ""
         if agent.emoji:
@@ -150,7 +149,7 @@ class AgentViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Instructions:*\n```{agent.instructions}```",
+                        "text": f"*System Instructions:*\n```{agent.instructions}```",
                     },
                 },
                 {
@@ -164,7 +163,21 @@ class AgentViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
+                        "text": f"*Model Settings:*\n```\n{model_settings_formatted}\n```",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
                         "text": f"*MCP Settings:*\n```\n{mcp_settings_formatted}\n```",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Python Coroutines:*\n```\n{tools_formatted}\n```",
                     },
                 },
                 {
@@ -203,13 +216,12 @@ class AgentViewBuilder:
                     "element": {
                         "action_id": "name_input",
                         "type": "plain_text_input",
-                        "placeholder": {"type": "plain_text", "text": "e.g. assistant"},
+                        "placeholder": {"type": "plain_text", "text": "e.g. custom-agent"},
                     },
                     "hint": {"type": "plain_text", "text": "Agent name must be unique and cannot be changed later"},
                 }
             )
 
-        # Create blocks with proper typing
         description_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_description",
@@ -219,7 +231,11 @@ class AgentViewBuilder:
                 "type": "plain_text_input",
                 "multiline": True,
                 "initial_value": agent.description if agent and is_edit else "",
-                "placeholder": {"type": "plain_text", "text": "Describe what this agent does"},
+                "placeholder": {"type": "plain_text", "text": "Describe what the agent does."},
+            },
+            "hint": {
+                "type": "plain_text",
+                "text": "Will be used by background reasoning for selecting and activating the agent.",
             },
         }
 
@@ -238,25 +254,46 @@ class AgentViewBuilder:
                 else "",
                 "placeholder": {
                     "type": "plain_text",
-                    "text": 'e.g. "openai:gpt-4.1"',
+                    "text": 'e.g. "gemini-2.5-flash"',
                 },
             },
             "hint": {
                 "type": "plain_text",
-                "text": "Enter a PydanticAI model name (see https://ai.pydantic.dev/api/models/base/)",
+                "text": "PydanticAI model name (see https://ai.pydantic.dev/api/models/base/)",
+            },
+        }
+
+        model_settings_block: dict[str, Any] = {
+            "type": "input",
+            "block_id": "agent_model_settings",
+            "label": {"type": "plain_text", "text": "Model Settings"},
+            "optional": True,
+            "element": {
+                "action_id": "model_settings_input",
+                "type": "plain_text_input",
+                "multiline": True,
+                "initial_value": json.dumps(agent.model_settings) if agent and is_edit and agent.model_settings else "",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": '{\n  "google_thinking_config": {\n    "include_thoughts": true\n  }\n}',
+                },
+            },
+            "hint": {
+                "type": "plain_text",
+                "text": "PydanticAI model settings. BaseSettings (https://ai.pydantic.dev/api/settings/) has common options. Model-specific settings in model docs (e.g. https://ai.pydantic.dev/models/google/#model-settings).",
             },
         }
 
         instructions_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_instructions",
-            "label": {"type": "plain_text", "text": "Instructions"},
+            "label": {"type": "plain_text", "text": "System instructions"},
             "element": {
                 "action_id": "instructions_input",
                 "type": "plain_text_input",
                 "multiline": True,
                 "initial_value": agent.instructions if agent and is_edit else "",
-                "placeholder": {"type": "plain_text", "text": "System instructions for the agent"},
+                "placeholder": {"type": "plain_text", "text": "System instructions for the agent."},
             },
         }
 
@@ -269,7 +306,7 @@ class AgentViewBuilder:
                 "action_id": "mcp_settings_input",
                 "type": "plain_text_input",
                 "multiline": True,
-                "initial_value": json.dumps(agent.mcp_settings) if agent and is_edit else "",
+                "initial_value": json.dumps(agent.mcp_settings) if agent and is_edit and agent.mcp_settings else "",
                 "placeholder": {
                     "type": "plain_text",
                     "text": '[{\n  "server_config": {\n    "command": "...",  \n    "args": [...], \n    "env": { "API_KEY": "${API_KEY}" } \n  },\n  "session_scope": false\n}]',
@@ -278,6 +315,27 @@ class AgentViewBuilder:
             "hint": {
                 "type": "plain_text",
                 "text": "JSON array of MCP server configurations. Supports variable substitution for registered secrets and environment variables.",
+            },
+        }
+
+        tools_block: dict[str, Any] = {
+            "type": "input",
+            "block_id": "agent_tools",
+            "label": {"type": "plain_text", "text": "Python Coroutines"},
+            "optional": True,
+            "element": {
+                "action_id": "tools_input",
+                "type": "plain_text_input",
+                "multiline": True,
+                "initial_value": json.dumps(agent.tools) if agent and is_edit and agent.tools else "",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": '[{\n  "module": "examples.app_server",\n  "function": "get_user_preferences"\n}]',
+                },
+            },
+            "hint": {
+                "type": "plain_text",
+                "text": "JSON array of Python coroutines to import as tools. Each tool definition must have 'module' and 'function' fields.",
             },
         }
 
@@ -291,16 +349,18 @@ class AgentViewBuilder:
                 "initial_value": agent.emoji if agent and agent.emoji and is_edit else "",
                 "placeholder": {"type": "plain_text", "text": "robot_face"},
             },
-            "hint": {"type": "plain_text", "text": "Emoji name without colons, e.g. robot_face"},
+            "hint": {"type": "plain_text", "text": "Slack emoji code without colons."},
         }
 
         blocks.extend(
             [
-                description_block,
-                model_block,
-                instructions_block,
                 emoji_block,
+                description_block,
+                instructions_block,
+                model_block,
+                model_settings_block,
                 mcp_settings_block,
+                tools_block,
             ]
         )
 
@@ -334,7 +394,7 @@ class AgentViewBuilder:
         checkbox_input_block: dict[str, Any] = {
             "type": "input",
             "block_id": "agent_handoff_options",
-            "label": {"type": "plain_text", "text": "Handoff Settings"},
+            "label": {"type": "plain_text", "text": "Handoff"},
             "optional": True,
             "element": checkbox_element,
         }

@@ -18,7 +18,7 @@ class SecretViewBuilder:
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Secrets are used by agents when running MCP servers *on your behalf*. Secrets are encrypted and never shared with other users.",
+                    "text": "Agents use your secrets when running MCP servers *on your behalf*. Secrets are encrypted and never shared with other users.",
                 },
                 "accessory": {
                     "type": "button",
@@ -86,11 +86,11 @@ class SecretViewBuilder:
                 {
                     "type": "input",
                     "block_id": key_block_id,
-                    "label": {"type": "plain_text", "text": "Secret Name"},
+                    "label": {"type": "plain_text", "text": "Name"},
                     "element": {
                         "action_id": "key_input",
                         "type": "plain_text_input",
-                        "placeholder": {"type": "plain_text", "text": "e.g., API_KEY"},
+                        "placeholder": {"type": "plain_text", "text": "e.g. API_KEY"},
                     },
                     "hint": {"type": "plain_text", "text": "Use uppercase letters, numbers, and underscores only"},
                 },
@@ -124,7 +124,7 @@ class SecretViewBuilder:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Secret Name:* `{key}`",
+                        "text": f"*Name:* `{key}`",
                     },
                 },
                 {

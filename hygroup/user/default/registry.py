@@ -29,9 +29,9 @@ class UserAlreadyRegisteredError(Exception):
 
 
 class DefaultUserRegistry(UserRegistry):
-    """TinyDB-based user registry that persists user information across sessions.
+    """A user registry that encrypts user data at rest with an admin password.
 
-    THIS IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.
+    **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, registry_path: Path | str = Path(".data", "users", "registry.bin")):
@@ -117,7 +117,6 @@ class DefaultUserRegistry(UserRegistry):
         return data[username].get("secrets", {}).copy()
 
     async def set_secret(self, username: str, key: str, value: str):
-        """Set a secret for a user. Application-level action."""
         data = self._check_unlocked()
         if username not in data:
             raise UserNotRegisteredError(f"User '{username}' not found.")

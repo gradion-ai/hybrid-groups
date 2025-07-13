@@ -1,11 +1,13 @@
 import asyncio
 import importlib
+import inspect
 import os
 from abc import abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
 from functools import wraps
+from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Generic, Iterator, Optional, Sequence, Type, TypeVar
 
 from pydantic import BaseModel, Field
@@ -59,9 +61,19 @@ class AgentSettings:
         Returns None for lambdas, built-ins, or other non-regular functions.
         """
         try:
-            module = tool.__module__
-            name = tool.__name__
-            return {"module": module, "function": name}
+            tool_name = tool.__name__
+            module_name = tool.__module__
+            if module_name == "__main__":
+                module = inspect.getmodule(tool)
+                if module_file := getattr(module, "__file__", None):
+                    filepath = Path(module_file).resolve()
+                    root = Path.cwd()
+                    if filepath.is_relative_to(root):
+                        relpath = filepath.relative_to(root)
+                        if relpath.suffix == ".py":
+                            module_name = ".".join(relpath.with_suffix("").parts)
+
+            return {"module": module_name, "function": tool_name}
         except AttributeError:
             return None
 
@@ -164,7 +176,7 @@ class AgentBase(Generic[D], Agent):
     @asynccontextmanager
     async def request_scope(self, secrets: dict[str, str] | None = None):
         self._ctx_secrets.set(secrets is not None)
-        with self._configure_mcp_servers(self._request_mcp_servers, secrets or dict(os.environ)) as servers:
+        with self._configure_mcp_servers(self._request_mcp_servers, dict(os.environ) | (secrets or {})) as servers:
             async with self._run_mcp_servers(servers):
                 yield
 

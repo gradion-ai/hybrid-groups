@@ -42,3 +42,21 @@ def _pytest_cov_options(use_cov: bool):
     if not use_cov:
         return ""
     return "--cov=hygroup --cov-report=term"
+
+
+@task
+def build_docs(c):
+    """Build documentation with MkDocs."""
+    c.run("mkdocs build")
+
+
+@task
+def serve_docs(c):
+    """Serve documentation locally with MkDocs."""
+    c.run("mkdocs serve -a 0.0.0.0:8000")
+
+
+@task
+def deploy_docs(c):
+    """Deploy documentation to GitHub Pages."""
+    c.run("mkdocs gh-deploy --force")

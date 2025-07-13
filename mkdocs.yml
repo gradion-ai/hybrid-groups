@@ -1,0 +1,94 @@
+site_name: Hybrid Groups
+site_description: A multi-user, multi-agent collaboration platform
+
+repo_name: gradion-ai/hybrid-groups
+repo_url: https://github.com/gradion-ai/hybrid-groups
+
+copyright: Copyright &copy; 2025 Gradion AI
+
+theme:
+  name: material
+  font:
+    text: Fira
+    code: Fira Code
+  palette:
+  - media: "(prefers-color-scheme)"
+    scheme: default
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/link
+      name: Switch to light mode
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    primary: indigo
+    accent: indigo
+    toggle:
+      icon: material/toggle-switch
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: black
+    accent: indigo
+    toggle:
+      icon: material/toggle-switch-off
+      name: Switch to system preference
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.preview
+    - navigation.instant.progress
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - toc.follow
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [hygroup]
+          options:
+            show_signature_annotations: true
+            signature_crossrefs: true
+            separate_signature: true
+            merge_init_into_class: true
+          import:
+            - url: https://docs.python.org/3/objects.inv
+              domains: [py, std]
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      dedent_subsections: true
+  - pymdownx.superfences
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - User Guide:
+    - Introduction: index.md
+    - Quickstart: quickstart.md
+    - Installation: installation.md
+    - App server: app-server.md
+    - Agent builder: agent-builder.md
+    - Python SDK: python-sdk.md
+
+extra_css:
+  - css/custom.css
