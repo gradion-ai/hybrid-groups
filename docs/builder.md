@@ -5,11 +5,19 @@ The *Hybrid Groups* Slack app includes a simple agent builder, which consists of
 <table align="center">
 <tr>
 <td valign="top" align="center">
-<a href="/images/features/feature-9a.png?raw=true" target="_blank"><img src="/images/features/feature-9a.png" width="100%"></a><br>
+<div class="image-zoom">
+<a href="/images/features/feature-9a.png" target="_blank"><img src="/images/features/feature-9a.png" width="100%" class="thumbnail"></a>
+<a href="/images/features/feature-9a.png" target="_blank" class="large-link"><img src="/images/features/feature-9a.png" class="large"></a>
+</div>
+<br>
 Agent configuration sections in the <i>Hybrid Groups</i> Slack app home view.
 </td>
 <td valign="top" align="center">
-<a href="/images/features/feature-9b.png?raw=true" target="_blank"><img src="/images/features/feature-9b-crop.png" width="100%"></a><br>
+<div class="image-zoom">
+<a href="/images/features/feature-9b.png" target="_blank"><img src="/images/features/feature-9b-crop.png" width="100%" class="thumbnail"></a>
+<a href="/images/features/feature-9b.png" target="_blank" class="large-link"><img src="/images/features/feature-9b.png" class="large"></a>
+</div>
+<br>
 Editor for configuring the system prompt, model and tools of an agent.
 </td>
 </tr>

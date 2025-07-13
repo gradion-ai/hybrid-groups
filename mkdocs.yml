@@ -83,3 +83,6 @@ nav:
     - Introduction: index.md
     - Features: features.md
     - Agent Builder: builder.md
+
+extra_css:
+  - css/custom.css
