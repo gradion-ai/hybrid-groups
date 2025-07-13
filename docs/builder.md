@@ -1,6 +1,6 @@
 ## Agent builder
 
-The *Hybrid Groups* Slack app includes a simple agent builder, which consists of the agent-related sections in the app's home view. From there, you can open the agent editor by clicking the `Add Agent` button or by selecting `Edit` from an agent's menu. In the editor, users can build custom agents by defining their system prompt, model and tools. An agent's description and the agent activation policy ([example](selector.md)) determine if an agent is activated by background reasoning. For integrating more advanced agents or agentic systems, use the *Hybrid Groups* Python SDK.
+The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of the app's home view. From there, you can open the agent editor by clicking the `Add Agent` button or by selecting `Edit` from an agent's menu. In the editor, users can build custom agents by defining their system prompt, model and tools.
 
 <table align="center">
 <tr>
@@ -23,16 +23,18 @@ Editor for configuring the system prompt, model and tools of an agent.
 </tr>
 </table>
 
+An agent's description and the agent activation policy ([example](selector.md)) determine if an agent is activated by background reasoning. For integrating more advanced agents or agentic systems, use the *Hybrid Groups* Python SDK.
+
 ### Model
 
-The model is specified as a [PydanticAI model name](https://ai.pydantic.dev/api/models/base/).
+The model is specified with a [PydanticAI model name](https://ai.pydantic.dev/api/models/base/).
 
 ```json
 "gemini-2.5-flash"
 ```
 ### Model Settings
 
-Model settings can be [common model settings](https://ai.pydantic.dev/api/settings/) or specific to a given provider. The following example shows a setting for [Google Gemini](https://ai.pydantic.dev/models/google/#model-settings).
+Model settings can be [common model settings](https://ai.pydantic.dev/api/settings/) or specific to a given provider. The following example shows settings for [Google Gemini](https://ai.pydantic.dev/models/google/#model-settings).
 
 ```json
 {
@@ -44,7 +46,7 @@ Model settings can be [common model settings](https://ai.pydantic.dev/api/settin
 
 ### MCP settings
 
-MCP settings are defined as a JSON array of MCP server configurations. In `env` or `headers`, you can use placeholders for values (e.g. `${VAR_NAME}`). These will be substituted at runtime with user secrets or environment variables.
+MCP settings are defined as a JSON array of MCP server configurations. In `env` or `headers`, you can use placeholders for values e.g. `${VAR_NAME}`. These will be substituted at runtime with user secrets or environment variables.
 
 ```json
 [
