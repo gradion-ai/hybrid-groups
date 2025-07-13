@@ -1,10 +1,10 @@
 ## Slack app
 
-...
+... (incl. adding app to a channel)
 
-## GitHub app
+## GitHub app 
 
-...
+... (incl. adding app to a repository)
 
 ## App server
 

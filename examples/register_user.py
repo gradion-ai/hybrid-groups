@@ -1,14 +1,16 @@
+import argparse
 import asyncio
 from getpass import getpass
+from pathlib import Path
 
 from hygroup.user import User
 from hygroup.user.default import DefaultUserRegistry
 from hygroup.utils import arun
 
 
-async def main():
-    registry = DefaultUserRegistry()
-    await registry.unlock("admin")
+async def main(args):
+    registry = DefaultUserRegistry(args.user_registry)
+    await registry.unlock(args.user_registry_password)
 
     username = await arun(input, "Enter username: ")
     password = await arun(getpass, "Enter password (Enter for none): ")
@@ -35,4 +37,19 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Hybrid Groups user registration")
+    parser.add_argument(
+        "--user-registry",
+        type=Path,
+        default=Path(".data", "users", "registry.bin"),
+        help="Path to the user registry file.",
+    )
+    parser.add_argument(
+        "--user-registry-password",
+        type=str,
+        default="admin",
+        help="Admin password for creating or unlocking the user registry.",
+    )
+
+    args = parser.parse_args()
+    asyncio.run(main(args=args))

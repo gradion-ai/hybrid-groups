@@ -7,10 +7,9 @@ import aiofiles.os
 
 
 class DefaultPreferenceStore:
-    """Reference implementation of a user preferences store that persists user preferences as
-    strings to be interpreted by agents.
+    """Database for user preferences.
 
-    **THIS REFERENCE IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.**
+    **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, preferences_path: Path | str = Path(".data", "users", "preferences.json")):

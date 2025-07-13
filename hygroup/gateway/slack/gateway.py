@@ -105,6 +105,14 @@ class SlackGateway(Gateway, RequestHandler):
         self.logger = logging.getLogger("slack_bolt.AsyncApp")
         self.logger.setLevel(logging.ERROR)
 
+    @property
+    def app(self) -> AsyncApp:
+        return self._app
+
+    @property
+    def client(self) -> AsyncWebClient:
+        return self._client
+
     async def start(self, join: bool = True):
         if join:
             await self._handler.start_async()

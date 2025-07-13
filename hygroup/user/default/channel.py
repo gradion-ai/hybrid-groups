@@ -400,7 +400,7 @@ class RequestServer(RequestHandler):
 
 class RequestClient:
     def __init__(self, handler: RequestHandler | None = None, host: str = "localhost", port: int = 8623):
-        self._handler = handler or RichConsoleHandler()
+        self._handler = handler or RichConsoleHandler(default_confirmation_response=True)
         self._server_url = f"ws://{host}:{port}"
         self._websocket: Any = None
         self._username: str | None = None

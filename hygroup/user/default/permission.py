@@ -8,10 +8,11 @@ from hygroup.utils import arun
 
 
 class DefaultPermissionStore(PermissionStore):
-    """Reference implementation of a permission store for persisting session-scoped and permanent
-    tool permissions.
+    """Database for tool execution permissions.
 
-    **THIS REFERENCE IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.**
+    Only session-scoped (level 2) and permanent (level 3) permissions are stored.
+
+    **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, store_path: Path | str = Path(".data", "users", "permissions.json")):

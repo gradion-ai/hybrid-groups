@@ -10,9 +10,11 @@ from hygroup.utils import arun
 
 
 class DefaultAgentRegistry(AgentRegistry):
-    """Reference implementation of an agent registry for storing agent configurations.
+    """Registry for agent configurations and agent factories.
 
-    **THIS REFERENCE IMPLEMENTATION IS FOR DEMONSTRATION PURPOSES ONLY, DO NOT USE IN PRODUCTION.**
+    Agent configurations are persisted in `registry_path`, agent factories are kept in memory.
+
+    **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
     """
 
     def __init__(self, registry_path: Path | str = Path(".data", "agents", "registry.json")):
@@ -41,6 +43,7 @@ class DefaultAgentRegistry(AgentRegistry):
             return DefaultAgent(name=name, settings=settings)
 
     async def get_registered_names(self) -> set[str]:
+        """Get the names of all registered agent configs and factories."""
         descriptions = await self.get_descriptions()
         return set(descriptions.keys())
 
@@ -67,12 +70,12 @@ class DefaultAgentRegistry(AgentRegistry):
         return None
 
     async def get_config(self, name: str) -> dict[str, Any] | None:
-        """Return the configuration for an agent."""
+        """Get the agent configuration registered under `name`."""
         configs = await self.get_configs()
         return configs.get(name)
 
     async def get_configs(self) -> dict[str, dict[str, Any]]:
-        """Return the configurations for all agents."""
+        """Get the configurations for all agents."""
         async with self._lock:
             return {agent["name"]: agent for agent in await arun(self._tinydb.all)}
 
@@ -84,7 +87,7 @@ class DefaultAgentRegistry(AgentRegistry):
         handoff: bool = False,
         emoji: str | None = None,
     ):
-        """Add settings for an agent."""
+        """Register an agent configuration."""
         Agent = Query()
 
         async with self._lock:
@@ -116,7 +119,7 @@ class DefaultAgentRegistry(AgentRegistry):
         handoff: bool | None = None,
         emoji: str | None = None,
     ):
-        """Update configuration for an existing agent."""
+        """Update and existing agent configuration."""
         Agent = Query()
 
         async with self._lock:
@@ -138,7 +141,7 @@ class DefaultAgentRegistry(AgentRegistry):
                 await arun(self._tinydb.update, update_doc, Agent.name == name)
 
     async def remove_config(self, name: str):
-        """Remove settings for an agent."""
+        """Remove an agent configuration."""
         Agent = Query()
 
         async with self._lock:

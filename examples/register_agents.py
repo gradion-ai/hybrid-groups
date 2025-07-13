@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-from examples.app_server import agent_registry, get_registered_agents, get_user_preferences
+from examples.app_server import agent_registry, get_user_preferences
 from examples.weather import get_weather_forecast
 from hygroup.agent.default import AgentSettings, MCPSettings
 
@@ -223,6 +223,10 @@ def general_agent_config():
         "handoff": True,
         "emoji": "brain",
     }
+
+
+async def get_registered_agents():
+    return await agent_registry.get_registered_agents()
 
 
 async def main():
