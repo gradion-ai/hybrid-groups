@@ -1,7 +1,3 @@
-## Advanced topics
+# App server
 
-- Environment variables
-- User registration
-- User secrets
-- User mapping
-- ...
+TODO

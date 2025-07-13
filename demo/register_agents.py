@@ -1,9 +1,9 @@
 import asyncio
 import os
 
-from examples.app_server import agent_registry, get_user_preferences
-from examples.weather import get_weather_forecast
+from demo.weather import get_weather_forecast
 from hygroup.agent.default import AgentSettings, MCPSettings
+from hygroup.scripts.server import agent_registry, get_user_preferences
 
 BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved, or if you need more info from the user to solve the problem.
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
@@ -231,14 +231,21 @@ async def get_registered_agents():
 
 async def main():
     await agent_registry.remove_configs()
-    await agent_registry.add_config(**scrape_agent_config())
-    await agent_registry.add_config(**search_agent_config())
+
     await agent_registry.add_config(**weather_agent_config())
     await agent_registry.add_config(**general_agent_config())
 
+    if os.environ.get("FIRECRAWL_API_KEY"):
+        # see https://docs.firecrawl.com/docs/api-reference/api-reference
+        await agent_registry.add_config(**scrape_agent_config())
+    if os.environ.get("BRAVE_API_KEY"):
+        # see https://api-dashboard.search.brave.com/app/keys
+        await agent_registry.add_config(**search_agent_config())
     if mcp_exec := os.environ.get("ZOTERO_MCP_EXEC"):
+        # see https://github.com/54yyyu/zotero-mcp
         await agent_registry.add_config(**zotero_agent_config(mcp_exec))
     if mcp_exec := os.environ.get("READER_MCP_EXEC"):
+        # see https://github.com/edricgsh/Readwise-Reader-MCP
         await agent_registry.add_config(**reader_agent_config(mcp_exec))
 
 

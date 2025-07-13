@@ -75,3 +75,13 @@
   margin-top: 0.0em;
   font-size: 0.8em;
 }
+
+.quickstart-image {
+  width: 80%;
+}
+
+.quickstart-image .thumbnail {
+  width: 100%;
+  height: auto;
+  display: block;
+}

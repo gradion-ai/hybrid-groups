@@ -1,4 +1,4 @@
-# Development Guide
+# Development Environment
 
 This guide provides instructions for setting up a development environment for `hybrid-groups`. Follow these steps to get started with development, testing, and contributing to the project.
 

@@ -1,6 +1,6 @@
 ## Agent builder
 
-The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of the app's home view. From there, you can open the agent editor by clicking the `Add Agent` button or by selecting `Edit` from an agent's menu. In the editor, users can build custom agents by defining their system prompt, model and tools. An agent's description and the agent activation policy ([example](prompts/policy.md)) determine if an agent is activated by background reasoning.
+The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of the app's home view. From there, you can open the agent editor by clicking the `Add Agent` button or by selecting `Edit` from an agent's menu. 
 
 <div class="image-row">
   <div class="image-item">
@@ -18,6 +18,8 @@ The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of t
     <p class="caption"><b>Figure 2:</b> Editor for configuring the system prompt, model and tools of an agent.</p>
   </div>
 </div>
+
+In the editor, users can build custom agents by defining their system prompt, model and tools. An agent's description and the agent activation policy ([example](prompts/policy.md)) determine if an agent is activated by background reasoning.
 
 !!! Tip "Advanced agents"
 
@@ -71,7 +73,7 @@ The `session_scope` setting determines the lifecycle of an MCP server and how pl
 
 !!! Hint
 
-    The `reader` and `zotero` agents in the [screenshot above](builder.md#agent-builder) use the [readwise-reader-mcp](https://github.com/edricgsh/Readwise-Reader-MCP) and [zotero-mcp](https://github.com/54yyyu/zotero-mcp) servers, respectively. To use them, follow their installation instructions and set the `READER_MCP_EXEC` and `ZOTERO_MCP_EXEC` environment variables as required by [examples/register_agents.py](https://github.com/gradion-ai/hybrid-groups/blob/main/examples/register_agents.py).
+    The `reader` and `zotero` agents in the [screenshot above](#agent-builder) use the [readwise-reader-mcp](https://github.com/edricgsh/Readwise-Reader-MCP) and [zotero-mcp](https://github.com/54yyyu/zotero-mcp) servers, respectively. To use them, follow their installation instructions and set the `READER_MCP_EXEC` and `ZOTERO_MCP_EXEC` environment variables as required by [demo/register_agents.py](https://github.com/gradion-ai/hybrid-groups/blob/main/demo/register_agents.py).
 
 ### Python coroutines
 

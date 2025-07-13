@@ -31,7 +31,7 @@ def open_browser(url: str, delay: float = 1.5):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="GitHub App Registration")
+    parser = argparse.ArgumentParser(description="App Registration")
     parser.add_argument(
         "app_type",
         choices=["github", "slack"],

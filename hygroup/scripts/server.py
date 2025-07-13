@@ -86,7 +86,7 @@ async def main(args):
     )
 
     # A gateway provides connectivity to platforms like Slack, GitHub, or a terminal.
-    # The terminal is used for internal experimentation and testing.
+    # A remote terminal interface can be used for internal experimentation and testing.
     gateway: Gateway
 
     match args.gateway:
