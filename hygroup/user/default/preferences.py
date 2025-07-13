@@ -6,7 +6,7 @@ import aiofiles
 import aiofiles.os
 
 
-class DefaultUserPreferences:
+class DefaultPreferenceStore:
     """Reference implementation of a user preferences store that persists user preferences as
     strings to be interpreted by agents.
 

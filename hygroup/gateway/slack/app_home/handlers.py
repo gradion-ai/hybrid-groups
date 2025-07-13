@@ -11,7 +11,7 @@ from hygroup.gateway.slack.app_home.policy.handlers import ActivationPolicyConfi
 from hygroup.gateway.slack.app_home.preferences.handlers import UserPreferenceConfigHandlers
 from hygroup.gateway.slack.app_home.secrets.handlers import SecretConfigHandlers
 from hygroup.gateway.slack.app_home.views import HomeViewBuilder
-from hygroup.user.default.preferences import DefaultUserPreferences
+from hygroup.user.default.preferences import DefaultPreferenceStore
 from hygroup.user.default.registry import DefaultUserRegistry
 
 
@@ -32,7 +32,7 @@ class SlackHomeHandlers:
         app: AsyncApp,
         agent_registry: DefaultAgentRegistry,
         user_registry: DefaultUserRegistry,
-        user_preferences: DefaultUserPreferences,
+        preference_store: DefaultPreferenceStore,
         selector_settings: AgentSelectorSettings,
         system_editor_ids: list[str] | None = None,
     ):
@@ -44,7 +44,7 @@ class SlackHomeHandlers:
         self._agent_config_handlers = AgentConfigHandlers(client, agent_registry)
         self._secret_config_handlers = SecretConfigHandlers(client, user_registry, self._resolve_system_user_id)
         self._user_preference_config_handlers = UserPreferenceConfigHandlers(
-            client, user_preferences, self._resolve_system_user_id
+            client, preference_store, self._resolve_system_user_id
         )
         self._activation_policy_config_handlers = ActivationPolicyConfigHandlers(client, selector_settings)
 

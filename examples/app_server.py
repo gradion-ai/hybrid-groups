@@ -16,14 +16,14 @@ from hygroup.session import SessionManager
 from hygroup.user import RequestHandler
 from hygroup.user.default import (
     DefaultPermissionStore,
-    DefaultUserPreferences,
+    DefaultPreferenceStore,
     DefaultUserRegistry,
     RequestServer,
     RichConsoleHandler,
 )
 
 agent_registry = DefaultAgentRegistry()
-user_preferences = DefaultUserPreferences()
+preference_store = DefaultPreferenceStore()
 
 
 async def get_registered_agents():
@@ -31,7 +31,7 @@ async def get_registered_agents():
 
 
 async def get_user_preferences(username: str):
-    preferences = await user_preferences.get_preferences(username)
+    preferences = await preference_store.get_preferences(username)
     preferences = preferences or "n/a"
     return f"User preferences for {username}:\n{preferences}"
 
@@ -99,7 +99,7 @@ async def main(args):
                 app=gateway._app,
                 agent_registry=agent_registry,
                 user_registry=user_registry,
-                user_preferences=user_preferences,
+                preference_store=preference_store,
                 selector_settings=selector_settings,
             )
             slack_home_handlers.register()
