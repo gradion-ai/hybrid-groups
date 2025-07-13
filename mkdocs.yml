@@ -84,7 +84,10 @@ markdown_extensions:
 nav:
   - User Guide:
     - Introduction: index.md
-    - Agent Builder: builder.md
+    - Installation: installation.md
+    - App server: app-server.md
+    - Agent builder: agent-builder.md
+    - Python SDK: python-sdk.md
 
 extra_css:
   - css/custom.css

@@ -2,12 +2,12 @@ import argparse
 import asyncio
 from getpass import getpass
 
-from hygroup.gateway.terminal import RemoteTerminalClient
+from hygroup.gateway.terminal import TerminalClient
 from hygroup.utils import arun
 
 
 async def main(args):
-    client = RemoteTerminalClient()
+    client = TerminalClient()
 
     if args.username is None:
         username = await arun(input, "Enter username: ")

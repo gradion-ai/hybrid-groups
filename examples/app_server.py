@@ -11,7 +11,7 @@ from hygroup.agent.select import AgentSelectorSettings
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
-from hygroup.gateway.terminal import LocalTerminalGateway, RemoteTerminalGateway
+from hygroup.gateway.terminal import TerminalGateway
 from hygroup.session import SessionManager
 from hygroup.user import RequestHandler
 from hygroup.user.default import (
@@ -104,15 +104,9 @@ async def main(args):
             )
             slack_home_handlers.register()
         case "terminal":
-            gateway = RemoteTerminalGateway(
+            gateway = TerminalGateway(
                 session_manager=manager,
                 session_id=args.session_id,
-            )
-        case "testing":
-            gateway = LocalTerminalGateway(
-                session_manager=manager,
-                initial_agent_name="gradion",
-                username="martin",
             )
 
     await gateway.start(join=True)
@@ -122,7 +116,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gateway", type=str, default="terminal", choices=["github", "slack", "terminal"])
+    parser.add_argument("--gateway", type=str, default="slack", choices=["github", "slack", "terminal"])
     parser.add_argument("--user-channel", action="store_true", default=False)
     parser.add_argument("--session-id", type=str, default=None, help="session id for terminal gateway")
 

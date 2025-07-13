@@ -1,6 +1,6 @@
 ## Agent builder
 
-The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of the app's home view. From there, you can open the agent editor by clicking the `Add Agent` button or by selecting `Edit` from an agent's menu. In the editor, users can build custom agents by defining their system prompt, model and tools.
+The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of the app's home view. From there, you can open the agent editor by clicking the `Add Agent` button or by selecting `Edit` from an agent's menu. In the editor, users can build custom agents by defining their system prompt, model and tools. An agent's description and the agent activation policy ([example](selector.md)) determine if an agent is activated by background reasoning.
 
 <div class="image-row">
   <div class="image-item">
@@ -19,7 +19,9 @@ The *Hybrid Groups* Slack app includes a simple agent builder at the bottom of t
   </div>
 </div>
 
-An agent's description and the agent activation policy ([example](selector.md)) determine if an agent is activated by background reasoning. For integrating more advanced agents or agentic systems, use the *Hybrid Groups* Python SDK.
+!!! Tip "Advanced agents"
+
+    For integrating more advanced agents or agentic systems, use the *Hybrid Groups* [Python SDK](python-sdk.md).
 
 ### Model
 

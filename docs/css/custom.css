@@ -58,10 +58,6 @@
   }
 }
 
-/*.md-typeset table:not([class]) {
-  font-size: inherit;
-}*/
-
 .image-row {
   display: flex;
   margin-top: 1.5em;

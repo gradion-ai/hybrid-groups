@@ -25,7 +25,7 @@ poetry self add "poetry-dynamic-versioning[plugin]"
 Install dependencies with Poetry:
 
 ```bash
-poetry install
+poetry install --with docs
 ```
 
 Install pre-commit hooks:
