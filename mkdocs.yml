@@ -88,6 +88,7 @@ nav:
     - Installation: installation.md
     - App server: app-server.md
     - Agent builder: agent-builder.md
+    - User registry: user-registry.md
     - Python SDK: python-sdk.md
 
 extra_css:

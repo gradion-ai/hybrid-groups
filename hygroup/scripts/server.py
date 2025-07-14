@@ -119,7 +119,6 @@ async def main(args):
         case "terminal":
             gateway = TerminalGateway(
                 session_manager=manager,
-                session_id=args.session_id,
             )
 
     await gateway.start(join=True)

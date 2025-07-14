@@ -6,17 +6,15 @@ Follow the [installation](installation.md) instructions for setting up the devel
 
 ## Agent registration
 
-Register example agents by running:
+Register example agents by running the following command. Without any additional API keys, this will add agents `general` and `weather` to the agent registry.
 
 ```shell
 python demo/register_agents.py
 ```
 
-Without any additional API keys, this will add agents `general` and `weather` to the agent registry.
-
 !!! Hint
 
-    Other agents in the [demo/register_agents.py](https://github.com/gradion-ai/hybrid-groups/blob/main/demo/register_agents.py) script require additional API keys for running their MCP servers. These can be added to `.env` if sharing API keys among users is acceptable. Otherwise, they should be added as user secrets via the Slack app's home view or programmatically with the Python SDK as demonstrated in [demo/register_user.py](https://github.com/gradion-ai/hybrid-groups/blob/main/demo/register_user.py), for example.
+    Other agents in the [demo/register_agents.py](https://github.com/gradion-ai/hybrid-groups/blob/main/demo/register_agents.py) script require additional API keys for running their MCP servers. These can be added to `.env` if sharing API keys among users is acceptable. For running MCP servers with user-specific API keys, users need to add them as user secrets in the Slack app's home view.
 
 ## App server
 
