@@ -1,10 +1,10 @@
 # Quickstart
 
-## Installation
+## App installation
 
-Follow the [installation instructions](installation.md) for setting up the development environment and installing the Slack and GitHub apps.
+Follow the [installation](installation.md) instructions for setting up the development environment and installing the Slack and GitHub apps.
 
-## Register agents
+## Agent registration
 
 Register example agents by running:
 
@@ -40,22 +40,22 @@ smee -u https://smee.io/<channel-id> -t http://127.0.0.1:8000/api/v1/github-webh
 
 ## Usage example
 
-Activate the `weather` agent via background reasoning by entering 
+Activate the `weather` agent via background reasoning by entering e.g.
 
 ```markdown
 how's the weather in vienna?
 ```
 
-- in the channel where the Slack app was added:
+in the channel where the Slack app was added
 
-    <div class="image-zoom quickstart-image">
-      <a href="../images/quickstart/quickstart-1.png" target="_blank"><img src="../images/quickstart/quickstart-1.png" class="thumbnail"></a>
-      <a href="../images/quickstart/quickstart-1.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-1.png" class="large"></a>
-    </div>
+<div class="image-zoom quickstart-image">
+  <a href="../images/quickstart/quickstart-1.png" target="_blank"><img src="../images/quickstart/quickstart-1.png" class="thumbnail"></a>
+  <a href="../images/quickstart/quickstart-1.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-1.png" class="large"></a>
+</div>
 
-- in the description of a new GitHub issue:
+or in the description of a new GitHub issue:
 
-    <div class="image-zoom quickstart-image">
-      <a href="../images/quickstart/quickstart-2.png" target="_blank"><img src="../images/quickstart/quickstart-2.png" class="thumbnail"></a>
-      <a href="../images/quickstart/quickstart-2.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-2.png" class="large"></a>
-    </div>
+<div class="image-zoom quickstart-image">
+  <a href="../images/quickstart/quickstart-2.png" target="_blank"><img src="../images/quickstart/quickstart-2.png" class="thumbnail"></a>
+  <a href="../images/quickstart/quickstart-2.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-2.png" class="large"></a>
+</div>

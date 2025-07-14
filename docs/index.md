@@ -1,6 +1,4 @@
-!!! Tip "Larger images"
-
-    Hover or click any image to view the full-size version.
+# Introduction
 
 ## Overview
 
@@ -9,22 +7,22 @@
 <div class="image-row">
   <div class="image-item">
     <div class="image-zoom">
-      <a href="images/intro/intro-1.png" target="_blank"><img src="images/intro/intro-1.png" class="thumbnail"></a>
-      <a href="images/intro/intro-1.png" target="_blank" class="large-link"><img src="images/intro/intro-1.png" class="large"></a>
+      <a href="images/overview/overview-1.png" target="_blank"><img src="images/overview/overview-1.png" class="thumbnail"></a>
+      <a href="images/overview/overview-1.png" target="_blank" class="large-link"><img src="images/overview/overview-1.png" class="large"></a>
     </div>
     <p class="caption"><b>Figure 1:</b> A <i>Hybrid Groups</i> thread in Slack.</p>
   </div>
   <div class="image-item">
     <div class="image-zoom">
-      <a href="images/intro/intro-2.png" target="_blank"><img src="images/intro/intro-2.png" class="thumbnail"></a>
-      <a href="images/intro/intro-2.png" target="_blank" class="large-link"><img src="images/intro/intro-2.png" class="large"></a>
+      <a href="images/overview/overview-2.png" target="_blank"><img src="images/overview/overview-2.png" class="thumbnail"></a>
+      <a href="images/overview/overview-2.png" target="_blank" class="large-link"><img src="images/overview/overview-2.png" class="large"></a>
     </div>
     <p class="caption"><b>Figure 2:</b> The <i>Hybrid Groups</i> Slack app home view.</p>
   </div>
   <div class="image-item">
     <div class="image-zoom">
-      <a href="images/intro/intro-3.png" target="_blank"><img src="images/intro/intro-3-crop.png" class="thumbnail"></a>
-      <a href="images/intro/intro-3.png" target="_blank" class="large-link"><img src="images/intro/intro-3.png" class="large"></a>
+      <a href="images/overview/overview-3.png" target="_blank"><img src="images/overview/overview-3-crop.png" class="thumbnail"></a>
+      <a href="images/overview/overview-3.png" target="_blank" class="large-link"><img src="images/overview/overview-3.png" class="large"></a>
     </div>
     <p class="caption"><b>Figure 3:</b> A <i>Hybrid Groups</i> thread in GitHub.</p>
   </div>
