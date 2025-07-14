@@ -429,6 +429,19 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    App server
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -440,6 +453,61 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slack" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Terminal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#separate-user-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      Separate user channel
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -459,6 +527,29 @@
   
   <span class="md-ellipsis">
     Agent builder
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    User registry
     
   </span>
   
@@ -519,6 +610,50 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slack" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Terminal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#separate-user-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      Separate user channel
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -537,7 +672,45 @@
 
 
 <h1 id="app-server">App server</h1>
-<p>TODO</p>
+<h2 id="slack">Slack</h2>
+<p>To serve the Slack app, run:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
+</span></code></pre></div>
+<p>This auto-approves all tool executions. To enable manual approval of tool executions via <a href="https://api.slack.com/surfaces/messages#ephemeral">ephemeral messages</a> use the <code>--user-channel slack</code> option:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack<span class="w"> </span>--user-channel<span class="w"> </span>slack
+</span></code></pre></div>
+<p>Alternatively, use a terminal-based, <a href="#separate-user-channel">separate user channel</a>:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack<span class="w"> </span>--user-channel<span class="w"> </span>terminal
+</span></code></pre></div>
+<h2 id="github">GitHub</h2>
+<p>To serve the GitHub app, run:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github
+</span></code></pre></div>
+<p>The GitHub app server additionally requires a <a href="https://smee.io/">smee.io</a> channel for webhook payload delivery. Start a new channel on the <a href="https://smee.io/">smee.io</a> page, install the <a href="https://github.com/probot/smee-client">smee client</a> and connect to the channel with your <code>channel-id</code>:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>smee<span class="w"> </span>-u<span class="w"> </span>https://smee.io/&lt;channel-id&gt;<span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
+</span></code></pre></div>
+<p>This auto-approves all tool execution permissions. In contrast to Slack, the GitHub integration doesn't include a built-in user channel for approving tool execution permissions. The only option is a terminal-based, <a href="#separate-user-channel">separate user channel</a>:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github<span class="w"> </span>--user-channel<span class="w"> </span>terminal
+</span></code></pre></div>
+<h2 id="terminal">Terminal</h2>
+<p>To serve a terminal-based chat client, for demonstration or testing purposes, run:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>terminal
+</span></code></pre></div>
+<p>Then start the client with</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.client<span class="w"> </span>--username<span class="w"> </span>&lt;username&gt;
+</span></code></pre></div>
+<p>where <code>&lt;username&gt;</code> is a username of your choice or a <a href="../user-registry/">registered username</a>. If registered with a user password, provide the same password at login, otherwise leave it empty.</p>
+<h2 id="separate-user-channel">Separate user channel</h2>
+<p>A terminal-based, separate user channel for approving tool execution can be established by starting the app server with the <code>--user-channel terminal</code> option and then a channel client with:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.channel<span class="w"> </span>--username<span class="w"> </span>&lt;username&gt;
+</span></code></pre></div>
+<p>where <code>&lt;username&gt;</code> is</p>
+<ul>
+<li>a Slack member id (e.g. <code>U061F7AURQ6</code>) when running the app server with <code>--gateway slack</code></li>
+<li>a GitHub username when running the app server with <code>--gateway github</code></li>
+<li>a matching username when running the app server with <code>--gateway terminal</code></li>
+<li>a <a href="../user-registry/">registered username</a> when running the app server with any <code>--gateway</code> argument</li>
+</ul>
 
 
 

@@ -11,10 +11,10 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../agent-builder/">
       
       
-        <link rel="next" href="../installation/">
+        <link rel="next" href="../python-sdk/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Quickstart - Hybrid Groups</title>
+        <title>User registry - Hybrid Groups</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#quickstart" class="md-skip">
+        <a href="#user-registry" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Quickstart
+              User registry
             
           </span>
         </div>
@@ -371,32 +371,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Quickstart
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
         
   
   
@@ -407,62 +385,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#app-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      App installation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#agent-registration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Agent registration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#app-server" class="md-nav__link">
-    <span class="md-ellipsis">
-      App server
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      Usage example
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -541,10 +463,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../user-registry/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -555,6 +486,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -610,50 +542,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#app-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      App installation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#agent-registration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Agent registration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#app-server" class="md-nav__link">
-    <span class="md-ellipsis">
-      App server
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      Usage example
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -671,42 +559,21 @@
   
 
 
-<h1 id="quickstart">Quickstart</h1>
-<h2 id="app-installation">App installation</h2>
-<p>Follow the <a href="../installation/">installation</a> instructions for setting up the development environment and installing the Slack and GitHub apps.</p>
-<h2 id="agent-registration">Agent registration</h2>
-<p>Register example agents by running the following command. Without any additional API keys, this will add agents <code>general</code> and <code>weather</code> to the agent registry.</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>demo/register_agents.py
+<h1 id="user-registry">User registry</h1>
+<p>The <a href="../app-server/">app server</a> automatically maintains a user registry for storing user secrets. Manual registration of users is optional but can be useful in the following cases:</p>
+<ul>
+<li>Mapping a Slack and GitHub username to a common <em>Hybrid Groups</em> username. The backend then uses this common username for message sender and receiver identification.</li>
+<li>Secure login with a common username and a user pasword into a terminal-based <a href="../app-server/#separate-user-channel">user channel</a> or <a href="../app-server/#terminal">chat client</a>.</li>
+</ul>
+<p>To start user registration, run:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.register
 </span></code></pre></div>
-<div class="admonition hint">
-<p class="admonition-title">Hint</p>
-<p>Other agents in the <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/demo/register_agents.py">demo/register_agents.py</a> script require additional API keys for running their MCP servers. These can be added to <code>.env</code> if sharing API keys among users is acceptable. For running MCP servers with user-specific API keys, users need to add them as user secrets in the Slack app's home view.</p>
-</div>
-<h2 id="app-server">App server</h2>
-<p>To serve the Slack app, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
-</span></code></pre></div>
-<p>To serve the GitHub app, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github
-</span></code></pre></div>
-<p>The GitHub app server additionally requires a <a href="https://smee.io/">smee.io</a> channel for webhook payload delivery. Start a new channel on the <a href="https://smee.io/">smee.io</a> page, install the <a href="https://github.com/probot/smee-client">smee client</a> and connect to the channel with your <code>channel-id</code>:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>smee<span class="w"> </span>-u<span class="w"> </span>https://smee.io/&lt;channel-id&gt;<span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
-</span></code></pre></div>
-<h2 id="usage-example">Usage example</h2>
-<p>Activate the <code>weather</code> agent via background reasoning by entering e.g.</p>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>how&#39;s the weather in vienna?
-</span></code></pre></div>
-<p>in the channel where the Slack app was added</p>
-<div class="image-zoom quickstart-image">
-  <a href="../images/quickstart/quickstart-1.png" target="_blank"><img src="../images/quickstart/quickstart-1.png" class="thumbnail"></a>
-  <a href="../images/quickstart/quickstart-1.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-1.png" class="large"></a>
-</div>
-
-<p>or in the description of a new GitHub issue:</p>
-<div class="image-zoom quickstart-image">
-  <a href="../images/quickstart/quickstart-2.png" target="_blank"><img src="../images/quickstart/quickstart-2.png" class="thumbnail"></a>
-  <a href="../images/quickstart/quickstart-2.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-2.png" class="large"></a>
-</div>
+<p>Then follow the instructions for providing</p>
+<ul>
+<li>a common username and an optional user password</li>
+<li>user secrets in the format <code>KEY=VALUE</code> (optional)</li>
+<li>Slack and GitHub usernames (for user mapping)</li>
+</ul>
 
 
 
