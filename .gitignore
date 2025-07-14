@@ -9,4 +9,6 @@ __pycache__
 .data
 .claude/
 .secrets/
+extra
 sandbox*
+site
