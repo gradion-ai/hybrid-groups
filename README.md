@@ -5,8 +5,8 @@
 > [!NOTE]
 > Find out more in the [user guide](https://gradion-ai.github.io/hybrid-groups/).
 
-![Hybrid Groups](docs/images/intro/intro-1.png)
+![Hybrid Groups](docs/images/overview/overview-1.png)
 
-![Hybrid Groups](docs/images/intro/intro-2.png)
+![Hybrid Groups](docs/images/overview/overview-2.png)
 
-![Hybrid Groups](docs/images/intro/intro-3.png)
+![Hybrid Groups](docs/images/overview/overview-3.png)
