@@ -23,7 +23,7 @@ In the editor, users can build custom agents by defining their system prompt, mo
 
 !!! Tip "Advanced agents"
 
-    For integrating more advanced agents or agentic systems, use the *Hybrid Groups* [Python SDK](python-sdk.md).
+    For integrating more advanced agents or agentic systems, use the *Hybrid Groups* Python SDK.
 
 ### Model
 
