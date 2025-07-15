@@ -233,7 +233,7 @@ async def main():
     await agent_registry.remove_configs()
 
     await agent_registry.add_config(**weather_agent_config())
-    # await agent_registry.add_config(**general_agent_config())
+    await agent_registry.add_config(**general_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference

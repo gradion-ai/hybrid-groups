@@ -4,6 +4,14 @@
 
 Follow the [installation](installation.md) instructions for setting up the development environment and installing the Slack and GitHub apps.
 
+## Gemini API key
+
+A [GEMINI_API_KEY](https://aistudio.google.com/apikey) is required for background reasoning and by demo agents. Place it in a `.env` file in the project's root directory.
+
+```env title=".env"
+GEMINI_API_KEY=...
+```
+
 ## Agent registration
 
 Register example agents by running the following command. Without any additional API keys, this will add agents `general` and `weather` to the agent registry.
@@ -57,3 +65,5 @@ or in the description of a new GitHub issue:
   <a href="../images/quickstart/quickstart-2.png" target="_blank"><img src="../images/quickstart/quickstart-2.png" class="thumbnail"></a>
   <a href="../images/quickstart/quickstart-2.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-2.png" class="large"></a>
 </div>
+
+For directly mentioning the `weather` agent in Slack, use `@weather` at the beginning of a message, in GitHub use `@hybrid-groups/weather` (and replace `hybrid-groups` with the GitHub app name you've chosen).

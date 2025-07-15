@@ -3,6 +3,8 @@
 ## Development environment
 
 ```bash
+git clone https://github.com/gradion-ai/hybrid-groups.git
+cd hybrid-groups
 conda env create -f environment.yml
 conda activate hybrid-groups
 poetry install
@@ -30,7 +32,7 @@ After setup, you must manually add the app to any Slack channels you want it to 
 
 ## GitHub app
 
-To set up and install the *Hybrid Groups* GitHub app, run:
+To set up and install the *Hybrid Groups* GitHub app in one or more repositories, run:
 
 ```shell
 python -m hygroup.setup.apps github
