@@ -1,75 +1,74 @@
 import asyncio
 import os
+import textwrap
 
 from demo.weather import get_weather_forecast
 from hygroup.agent.default import AgentSettings, MCPSettings
 from hygroup.scripts.server import agent_registry, get_user_preferences
 
+INSTRUCTION_TEMPLATE = """{role_description}
+
+You are a diligent agent. You must continue working until the user's query is completely resolved before ending your turn. Only terminate if the task is done or if you need more information from the user. If you are unsure about any part of the user's request, use your tools to find the information; do not guess or invent answers.
+
+Your instructions are:
+1. Your input is a query in the format <query sender="sender_name" ...>. You MUST identify the sender_name.
+2. Before proceeding, use the `get_user_preferences` tool with the sender_name as the argument to obtain the sender's preferences. This is a mandatory first step.
+3. Plan your actions before using tools and reflect on the outcomes of tool calls to decide the next action.
+4. Follow the agent-specific steps below to perform your main task.
+
+{agent_specific_steps}
+
+5. Formulate your final response according to the user preferences obtained in step 2.
+"""
+
+
+def apply_template(role_description: str, agent_specific_steps: str) -> str:
+    return INSTRUCTION_TEMPLATE.format(
+        role_description=role_description,
+        agent_specific_steps=textwrap.indent(agent_specific_steps, "  "),
+    )
+
+
+SCRAPE_AGENT_ROLE = "You are an agent that accurately scrapes the content of individual web pages."
+SCRAPE_AGENT_STEPS = """- Use the `firecrawl_scrape` tool to scrape the web page requested by the user."""
+SCRAPE_AGENT_INSTRUCTIONS = apply_template(SCRAPE_AGENT_ROLE, SCRAPE_AGENT_STEPS)
+
+
+SEARCH_AGENT_ROLE = "You are an agent that searches the web to find up-to-date information."
+SEARCH_AGENT_STEPS = """- Use the `brave_web_search` tool to perform a web search based on the user's query."""
+SEARCH_AGENT_INSTRUCTIONS = apply_template(SEARCH_AGENT_ROLE, SEARCH_AGENT_STEPS)
+
+
+ZOTERO_AGENT_ROLE = "You are an expert at reading from and updating a Zotero library."
+ZOTERO_AGENT_STEPS = """- To handle the user's request, use the Zotero-related tools you have available.
+- For searching items, you MUST always use the `zotero_semantic_search` tool.
+- For each item found in the search results, you MUST make a parallel call to the `zotero_get_item_metadata` tool to retrieve its title and a valid link.
+- You MUST include the retrieved links in your final response. Never invent links."""
+ZOTERO_AGENT_INSTRUCTIONS = apply_template(ZOTERO_AGENT_ROLE, ZOTERO_AGENT_STEPS)
+
+
+READER_AGENT_ROLE = "You are an expert at managing a Readwise Reader library, including reading lists and items."
+READER_AGENT_STEPS = """- Use the `readwise` tools you have available to read from or update the user's items."""
+READER_AGENT_INSTRUCTIONS = apply_template(READER_AGENT_ROLE, READER_AGENT_STEPS)
+
+
+WEATHER_AGENT_ROLE = "You are an agent that provides weather forecasts for any location and date."
+WEATHER_AGENT_STEPS = """- Use the `get_weather_forecast` tool to get the weather forecast.
+- You MUST use this tool for any date the user provides, provided it is **today or any date in the future**, including dates far in the future."""
+WEATHER_AGENT_INSTRUCTIONS = apply_template(WEATHER_AGENT_ROLE, WEATHER_AGENT_STEPS)
+
+
+# This prompt is from the tiny-agents dataset at https://huggingface.co/datasets/tiny-agents/tiny-agents
 BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved, or if you need more info from the user to solve the problem.
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
 You MUST plan extensively before each function call, and reflect extensively on the outcomes of the previous function calls. DO NOT do this entire process by making function calls only, as this can impair your ability to solve the problem and think insightfully.
 """
 
-SCRAPE_AGENT_INSTRUCTIONS = """You can scrape individual web pages using the firecrawl_scrape tool.
-1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
-2. Use the get_weather_forecast tool to get the weather forecast. Always use the get_weather_forecast tool for any date provided, even if it is far in the future.
-3. Respond to the query sender based on the sender's preferences.
-"""
-
-SEARCH_AGENT_INSTRUCTIONS = """You can search the web and respond to query senders based on their preferences.
-1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
-2. Use the brave_web_search tool to search the web.
-3. Respond to the query sender based on the sender's preferences.
-"""
-
-ZOTERO_AGENT_INSTRUCTIONS = """You are an expert at reading and updating a Zotero library.
-1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
-2. Use the Zotero-related tools you have available to read and update the library. For searching items, always use zotero_semantic_search.
-   - For each item in the result use the zotero_get_item_metadata tool to get link and title of the item. Make parallel calls to zotero_get_item_metadata.
-   - Always include links for items in your response. Never hallucinate links, always get links with zotero_get_item_metadata.
-3. Respond to the query sender based on the sender's preferences.
-"""
-
-READER_AGENT_INSTRUCTIONS = """You are an expert at reading and updating Readwise Reader, an application for organizing reading lists.
-1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
-2. Use the readwise tools you have available to read and update a user's reading items.
-3. Respond to the query sender based on the sender's preferences.
-"""
-
-WEATHER_AGENT_INSTRUCTIONS = """You can get weather forecasts for today or dates in the future.
-1. If not done yet, use the get_user_preferences tool with the sender as argument to obtain the sender's preferences.
-2. Use the get_weather_forecast tool to get the weather forecast. Always use the get_weather_forecast tool for any date provided, even if it is far in the future.
-3. Respond to the query sender based on the sender's preferences.
-"""
 
 GENERAL_AGENT_INSTRUCTIONS = """You can answer questions about available agents in the system using the get_registered_agents tool.
 If you receive a query that one of the registered agents can handle delegate to that agent. Otherwise try to answer the query yourself.
 Never delegate to yourself, the "general" agent.
 """
-
-
-def browser_agent_config():
-    playwright_server_settings = MCPSettings(
-        server_config={
-            "command": "npx",
-            "args": ["@playwright/mcp@latest"],
-        },
-        session_scope=True,
-    )
-
-    agent_settings = AgentSettings(
-        model="gemini-2.5-flash",
-        instructions=BROWSER_AGENT_INSTRUCTIONS,
-        mcp_settings=[playwright_server_settings],
-    )
-
-    return {
-        "name": "browser",
-        "description": "An agent that can use an internet browser.",
-        "settings": agent_settings,
-        "handoff": False,
-        "emoji": "earth_americas",
-    }
 
 
 def scrape_agent_config():
@@ -89,6 +88,7 @@ def scrape_agent_config():
         model="gemini-2.5-flash",
         instructions=SCRAPE_AGENT_INSTRUCTIONS,
         mcp_settings=[firecrawl_settings],
+        tools=[get_user_preferences],
     )
 
     return {
@@ -205,6 +205,30 @@ def weather_agent_config():
         "settings": agent_settings,
         "handoff": False,
         "emoji": "mostly_sunny",
+    }
+
+
+def browser_agent_config():
+    playwright_server_settings = MCPSettings(
+        server_config={
+            "command": "npx",
+            "args": ["@playwright/mcp@latest"],
+        },
+        session_scope=True,
+    )
+
+    agent_settings = AgentSettings(
+        model="gemini-2.5-flash",
+        instructions=BROWSER_AGENT_INSTRUCTIONS,
+        mcp_settings=[playwright_server_settings],
+    )
+
+    return {
+        "name": "browser",
+        "description": "An agent that can use an internet browser.",
+        "settings": agent_settings,
+        "handoff": False,
+        "emoji": "earth_americas",
     }
 
 
