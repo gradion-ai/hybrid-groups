@@ -433,6 +433,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gemini-api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      Gemini API key
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#agent-registration" class="md-nav__link">
     <span class="md-ellipsis">
       Agent registration
@@ -626,6 +635,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gemini-api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      Gemini API key
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#agent-registration" class="md-nav__link">
     <span class="md-ellipsis">
       Agent registration
@@ -674,9 +692,13 @@
 <h1 id="quickstart">Quickstart</h1>
 <h2 id="app-installation">App installation</h2>
 <p>Follow the <a href="../installation/">installation</a> instructions for setting up the development environment and installing the Slack and GitHub apps.</p>
+<h2 id="gemini-api-key">Gemini API key</h2>
+<p>A <a href="https://aistudio.google.com/apikey">GEMINI_API_KEY</a> is required for background reasoning and by demo agents. Place it in a <code>.env</code> file in the project's root directory.</p>
+<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>GEMINI_API_KEY=...
+</span></code></pre></div>
 <h2 id="agent-registration">Agent registration</h2>
 <p>Register example agents by running the following command. Without any additional API keys, this will add agents <code>general</code> and <code>weather</code> to the agent registry.</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>demo/register_agents.py
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>demo/register_agents.py
 </span></code></pre></div>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
@@ -684,17 +706,17 @@
 </div>
 <h2 id="app-server">App server</h2>
 <p>To serve the Slack app, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
 </span></code></pre></div>
 <p>To serve the GitHub app, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github
 </span></code></pre></div>
 <p>The GitHub app server additionally requires a <a href="https://smee.io/">smee.io</a> channel for webhook payload delivery. Start a new channel on the <a href="https://smee.io/">smee.io</a> page, install the <a href="https://github.com/probot/smee-client">smee client</a> and connect to the channel with your <code>channel-id</code>:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>smee<span class="w"> </span>-u<span class="w"> </span>https://smee.io/&lt;channel-id&gt;<span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>smee<span class="w"> </span>-u<span class="w"> </span>https://smee.io/&lt;channel-id&gt;<span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
 </span></code></pre></div>
 <h2 id="usage-example">Usage example</h2>
 <p>Activate the <code>weather</code> agent via background reasoning by entering e.g.</p>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>how&#39;s the weather in vienna?
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>how&#39;s the weather in vienna?
 </span></code></pre></div>
 <p>in the channel where the Slack app was added</p>
 <div class="image-zoom quickstart-image">
@@ -707,6 +729,8 @@
   <a href="../images/quickstart/quickstart-2.png" target="_blank"><img src="../images/quickstart/quickstart-2.png" class="thumbnail"></a>
   <a href="../images/quickstart/quickstart-2.png" target="_blank" class="large-link"><img src="../images/quickstart/quickstart-2.png" class="large"></a>
 </div>
+
+<p>For directly mentioning the <code>weather</code> agent in Slack, use <code>@weather</code> at the beginning of a message, in GitHub use <code>@hybrid-groups/weather</code> (and replace <code>hybrid-groups</code> with the GitHub app name you've chosen).</p>
 
 
 

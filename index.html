@@ -683,22 +683,22 @@
 <tr>
 <td><strong>Agent activation</strong></td>
 <td><div class="image-zoom"><a href="images/features/feature-2.png" target="_blank"><img src="images/features/feature-2.png" class="thumbnail"></a><a href="images/features/feature-2.png" target="_blank" class="large-link"><img src="images/features/feature-2.png" class="large"></a></div></td>
-<td>An agent can be activated either via background reasoning or by directly mentioning it at the beginning of a user message. Mentioning an agent bypasses background reasoning, resulting in lower response latencies.</td>
+<td>Agents can be activated either via background reasoning or by directly mentioning an agent at the beginning of a user message. Mentioning an agent bypasses background reasoning, resulting in lower response latencies.</td>
+</tr>
+<tr>
+<td><strong>Identity-aware actions</strong></td>
+<td><div class="image-zoom"><a href="images/features/feature-6.png" target="_blank"><img src="images/features/feature-6.png" class="thumbnail"></a><a href="images/features/feature-6.png" target="_blank" class="large-link"><img src="images/features/feature-6.png" class="large"></a></div></td>
+<td>Agents can perform actions on behalf of specific users by executing tools with the requesting user's identity and permissions. Users provide secrets, such as API keys, to authorize agents to securely access private resources. These secrets are encrypted at rest and are never shared across users.</td>
+</tr>
+<tr>
+<td><strong>Action approval</strong></td>
+<td><div class="image-zoom"><a href="images/features/feature-7.png" target="_blank"><img src="images/features/feature-7.png" class="thumbnail"></a><a href="images/features/feature-7.png" target="_blank" class="large-link"><img src="images/features/feature-7.png" class="large"></a></div></td>
+<td>Tool execution can be approved once, for the duration of a session or permanently on a per-user basis. A permission request is sent to a user via a private channel. In Slack, for example, a permission request is sent as <a href="https://api.slack.com/surfaces/messages#ephemeral">ephemeral message</a> that is only visible to the user who triggered the execution.</td>
 </tr>
 <tr>
 <td><strong>User preferences</strong></td>
 <td><div class="image-zoom"><a href="images/features/feature-5.png" target="_blank"><img src="images/features/feature-5.png" class="thumbnail"></a><a href="images/features/feature-5.png" target="_blank" class="large-link"><img src="images/features/feature-5.png" class="large"></a></div></td>
 <td>Users can set preferences in plain English to personalize how agents interact with them. Agents respect these settings for every user in a session, tailoring their behavior and response style to each person's preferences.</td>
-</tr>
-<tr>
-<td><strong>User secrets</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-6.png" target="_blank"><img src="images/features/feature-6.png" class="thumbnail"></a><a href="images/features/feature-6.png" target="_blank" class="large-link"><img src="images/features/feature-6.png" class="large"></a></div></td>
-<td>Users can provide secrets, such as API keys, to authorize agents to perform actions on their behalf. These secrets are encrypted at rest and used at runtime to securely access private resources for that user. They are never shared with other users.</td>
-</tr>
-<tr>
-<td><strong>Tool permissions</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-7.png" target="_blank"><img src="images/features/feature-7.png" class="thumbnail"></a><a href="images/features/feature-7.png" target="_blank" class="large-link"><img src="images/features/feature-7.png" class="large"></a></div></td>
-<td>Agents use tools to perform actions. Tool execution can be approved once, for the duration of a session or permanently on a per-user basis. A permission request is sent to a user via a private channel. In Slack, for example, a permission request is sent as <a href="https://api.slack.com/surfaces/messages#ephemeral">ephemeral message</a> that is only visible to the user who triggered the execution.</td>
 </tr>
 <tr>
 <td><strong>Task handoff</strong></td>

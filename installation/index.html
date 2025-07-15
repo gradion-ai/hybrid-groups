@@ -655,9 +655,11 @@
 
 <h1 id="installation">Installation</h1>
 <h2 id="development-environment">Development environment</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>conda<span class="w"> </span>activate<span class="w"> </span>hybrid-groups
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>poetry<span class="w"> </span>install
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/gradion-ai/hybrid-groups.git
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>hybrid-groups
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>conda<span class="w"> </span>activate<span class="w"> </span>hybrid-groups
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>poetry<span class="w"> </span>install
 </span></code></pre></div>
 <p>Find more details in <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/DEVELOPMENT.md">DEVELOPMENT.md</a>.</p>
 <h2 id="slack-app">Slack app</h2>
@@ -671,7 +673,7 @@
 </span></code></pre></div>
 <p>After setup, you must manually add the app to any Slack channels you want it to be active in. You can do this from the channel's menu under <code>Open channel details</code> -&gt; <code>Integrations</code> -&gt; <code>Add apps</code>.</p>
 <h2 id="github-app">GitHub app</h2>
-<p>To set up and install the <em>Hybrid Groups</em> GitHub app, run:</p>
+<p>To set up and install the <em>Hybrid Groups</em> GitHub app in one or more repositories, run:</p>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.setup.apps<span class="w"> </span>github
 </span></code></pre></div>
 <p>This will add the following variables to your <code>.env</code> file:</p>
