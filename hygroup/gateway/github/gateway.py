@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 
 import uvicorn
@@ -108,6 +109,16 @@ class GithubGateway(Gateway):
     def _resolve_github_user_id(self, system_user_id: str) -> str:
         return self._system_user_mapping.get(system_user_id, system_user_id)
 
+    def _resolve_issue_references(self, text: str, repository_full_name: str) -> str:
+        owner, name = repository_full_name.split("/")
+
+        def replace(match: re.Match[str]) -> str:
+            issue_number = match.group(1)
+            session_id = f"{owner}-{name}-{issue_number}"
+            return f"thread:{session_id}"
+
+        return re.sub(r"#(\d+)", replace, text)
+
     def _conversation_id(self, event: GithubEvent) -> str:
         return f"{event.repository_owner}-{event.repository_name}-{event.issue_number}"
 
@@ -185,6 +196,9 @@ class GithubGateway(Gateway):
 
         # replace all @mentions in text with resolved usernames (without @)
         text = resolve_mentions(text, self._resolve_system_user_id)
+
+        # translate issue references to thread references
+        text = self._resolve_issue_references(text, conversation.repository.repository_full_name)
 
         if receiver_resolved in await conversation.session.agent_names():
             logger.info(
