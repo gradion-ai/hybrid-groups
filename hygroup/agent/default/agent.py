@@ -135,7 +135,7 @@ class AgentBase(Generic[D], Agent):
         # delegate agent
         self.agent: AgentImpl[None, D] = AgentImpl(
             model=model,
-            instructions=settings.instructions,
+            system_prompt=settings.instructions,
             model_settings=settings.model_settings,
             output_type=output_type,
         )
