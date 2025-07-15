@@ -24,7 +24,6 @@ from hygroup.agent.base import (
     FeedbackRequest,
     Message,
     PermissionRequest,
-    Thread,
 )
 from hygroup.agent.default.prompt import InputFormatter, format_input
 from hygroup.agent.default.utils import resolve_config_variables
@@ -184,13 +183,12 @@ class AgentBase(Generic[D], Agent):
         self,
         request: AgentRequest,
         updates: Sequence[Message] = (),
-        threads: Sequence[Thread] = (),
         stream: bool = False,
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]:
         queue = asyncio.Queue()  # type: ignore
         self._ctx_queue.set(queue)
 
-        task = asyncio.create_task(self._run(request=request, updates=updates, threads=threads, stream=stream))
+        task = asyncio.create_task(self._run(request=request, updates=updates, stream=stream))
 
         while True:
             if task.done() and task.exception():
@@ -206,9 +204,9 @@ class AgentBase(Generic[D], Agent):
                     case AgentResponse(final=True):
                         break
 
-    async def _run(self, request: AgentRequest, updates: Sequence[Message], threads: Sequence[Thread], stream: bool):
+    async def _run(self, request: AgentRequest, updates: Sequence[Message], stream: bool):
         queue = self._ctx_queue.get()
-        agent_input = self.input_formatter(request, self.name, updates, threads)
+        agent_input = self.input_formatter(request, self.name, updates)
 
         if stream:
             async with self.agent.run_stream(agent_input, message_history=self._history) as result:

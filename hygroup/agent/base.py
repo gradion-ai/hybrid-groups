@@ -6,18 +6,19 @@ from typing import Any, AsyncIterator, Sequence
 
 
 @dataclass
+class Thread:
+    session_id: str
+    messages: list["Message"]
+
+
+@dataclass
 class Message:
     sender: str
     receiver: str | None
     text: str
+    threads: list[Thread] = field(default_factory=list)
     handoffs: dict[str, str] | None = None
     id: str | None = None
-
-
-@dataclass
-class Thread:
-    session_id: str
-    messages: list[Message]
 
 
 @dataclass
@@ -104,7 +105,6 @@ class Agent(ABC):
         self,
         request: AgentRequest,
         updates: Sequence[Message] = (),
-        threads: Sequence[Thread] = (),
         stream: bool = False,
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]: ...
 

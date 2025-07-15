@@ -16,7 +16,7 @@ from hygroup.agent import (
     PermissionRequest,
 )
 from hygroup.gateway.base import Gateway
-from hygroup.gateway.utils import extract_mention, extract_thread_references, replace_all_mentions
+from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
 from hygroup.user import RequestHandler
 
@@ -42,7 +42,6 @@ class SlackThread:
                 query=msg["text"],
                 sender=msg["sender_resolved"],
                 receiver=msg["receiver_resolved"],
-                thread_refs=msg["thread_refs"],
                 message_id=msg["id"],
             )
         else:
@@ -60,11 +59,9 @@ class SlackThread:
         query: str,
         sender: str,
         receiver: str,
-        thread_refs: list[str],
         message_id: str | None = None,
     ):
-        threads = await self.session.manager.load_threads(thread_refs)
-        request = AgentRequest(query=query, sender=sender, threads=threads, id=message_id)
+        request = AgentRequest(query=query, sender=sender, id=message_id)
         await self.session.invoke(request=request, receiver=receiver)
 
 
@@ -355,10 +352,14 @@ class SlackGateway(Gateway, RequestHandler):
     def _parse_slack_message(self, message: dict) -> dict:
         sender = message["user"]
         sender_resolved = self._resolve_system_user_id(sender)
-        receiver, text = extract_mention(message["text"])
+
+        # check if there is an initial @mention in the message
+        receiver, text = extract_initial_mention(message["text"])
         receiver_resolved = None if receiver is None else self._resolve_system_user_id(receiver)
-        text = replace_all_mentions(text, self._resolve_system_user_id)
-        thread_refs = extract_thread_references(text)
+
+        # replace all @mentions in text with resolved usernames (without @)
+        text = resolve_mentions(text, self._resolve_system_user_id)
+
         return {
             "id": message["ts"],
             "channel": message.get("channel"),
@@ -367,7 +368,6 @@ class SlackGateway(Gateway, RequestHandler):
             "receiver": receiver,
             "receiver_resolved": receiver_resolved,
             "text": text,
-            "thread_refs": thread_refs,
         }
 
     async def _load_thread_history(self, channel: str, thread_ts: str) -> list[dict]:

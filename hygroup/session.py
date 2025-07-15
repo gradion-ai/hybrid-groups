@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import uuid
 from asyncio import Future, Queue, Task, create_task, sleep
 from dataclasses import asdict
@@ -59,14 +60,12 @@ class SessionAgent:
                 match item:
                     case Message():
                         self._updates.append(item)
-                    case AgentRequest(sender=sender, threads=threads) as request, secrets:
+                    case AgentRequest(sender=sender) as request, secrets:
                         # -------------------------------------
                         #  TODO: trace query
                         # -------------------------------------
                         async with self.agent.request_scope(secrets=secrets):
-                            async for elem in self.agent.run(
-                                request=request, updates=self._updates, threads=threads, stream=False
-                            ):
+                            async for elem in self.agent.run(request=request, updates=self._updates, stream=False):
                                 match elem:
                                     case PermissionRequest():
                                         # -------------------------------------
@@ -179,6 +178,15 @@ class Session:
         agent_responses = [m for m in self._messages if m.sender in agent_names or m.sender == "system"]
         return len(agent_responses)
 
+    async def _load_referenced_threads(self, text: str) -> list[Thread]:
+        refs = self.extract_thread_references(text)
+        return await self.manager.load_threads(refs)
+
+    @staticmethod
+    def extract_thread_references(text: str) -> list[str]:
+        pattern = r"thread:([a-zA-Z0-9.-]+)"
+        return re.findall(pattern, text)
+
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str):
         if permission := await self.permission_store.get_permission(request.tool_name, receiver, self.id):
             request.respond(permission)
@@ -204,7 +212,11 @@ class Session:
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str):
         message = Message(sender=sender, receiver=receiver, text=response.text, handoffs=response.handoffs or None)
-        await self.update(message)
+
+        # If an agent response contains thread references, we don't load the threads
+        # because the corresponding request or a message that triggered the request
+        # already contains the loaded threads.
+        await self.update(message, reference=False)
 
         for agent, query in response.handoffs.items():
             await self.invoke(request=AgentRequest(query=query, sender=receiver), receiver=agent)
@@ -266,9 +278,16 @@ class Session:
                 return
 
             agent_request = AgentRequest(query=selection.query, sender=message.sender, id=message.id)
-            await self.invoke(agent_request, selection.agent_name)
+            await self.invoke(agent_request, selection.agent_name, selected=True)
 
-    async def update(self, message: Message):
+    async def update(self, message: Message, reference: bool = True):
+        if not message.threads and reference:
+            # Load any threads referenced with `thread:...` in the message text.
+            message.threads = await self._load_referenced_threads(message.text)
+
+        # Add message to this session's message history. These are
+        # are the messages that users see on the platforms integrated
+        # by gateways.
         self._messages.append(message)
 
         if self.group:
@@ -279,7 +298,7 @@ class Session:
         coro = self.select(message)
         await self._selector_queue.put(coro)
 
-    async def invoke(self, request: AgentRequest, receiver: str):
+    async def invoke(self, request: AgentRequest, receiver: str, selected: bool = False):
         if receiver not in self._agents:
             try:
                 await self.load_agent(receiver)
@@ -300,16 +319,28 @@ class Session:
 
             # get secrets of authenticated sender
             secrets = self.user_registry.get_secrets(request.sender)
+
+            if not selected:
+                # Load referenced threads only if this invocation wasn't an agent selection.
+                # If it was a selection, others have already been updated with the message that
+                # contains the loaded threads.
+                request.threads = await self._load_referenced_threads(request.query)
+
             # invoke receiver agent with request
             await self._agents[receiver].invoke(request, secrets)
-            # notify others about this request
-            message = Message(
-                sender=request.sender,
-                receiver=receiver,
-                text=request.query,
-                id=request.id,
-            )
-            await self.update(message)
+
+            if not selected:
+                # Only update others in the group if this invocation wasn't an agent selection.
+                # If it was a selection, others have already been updated with the message that
+                # triggered the selection.
+                message = Message(
+                    sender=request.sender,
+                    receiver=receiver,
+                    text=request.query,
+                    threads=request.threads,
+                    id=request.id,
+                )
+                await self.update(message)
         else:
             await self.handle_system_response(
                 response=f'Agent "{receiver}" does not exist',

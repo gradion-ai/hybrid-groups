@@ -19,7 +19,8 @@ from pydantic_ai.models.google import GoogleModelSettings
 from pydantic_core import to_jsonable_python
 
 from hygroup.agent.base import AgentRegistry, Message
-from hygroup.agent.select.prompt import INSTRUCTIONS, format_message
+from hygroup.agent.default.prompt import format_message
+from hygroup.agent.select.prompt import INSTRUCTIONS
 from hygroup.agent.utils import model_from_dict
 
 
