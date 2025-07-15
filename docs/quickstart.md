@@ -1,5 +1,29 @@
 # Quickstart
 
+!!! Tip "Docker"
+
+    *Hybrid Groups* provides a Docker container to run the Slack and GitHub apps without a local installation.      
+
+    1. Setup the app (prints the setup URL to follow in the output) - **only required once per app**:
+    ```bash    
+    docker run --rm -it \
+      -v "$(pwd)/.data-docker":/app/.data \
+      -p 8801:8801 \
+      ghcr.io/gradion-ai/hybrid-groups:latest \
+      setup <slack | github>            
+    ```
+    **Important**: when running the container on a remote host, supply the hostname or IP address via the `--host` parameter.
+    
+    2. Run the server:
+    ```bash
+    docker run --rm -it \
+      -v "$(pwd)/.data-docker":/app/.data \
+      ghcr.io/gradion-ai/hybrid-groups:latest \
+      server <slack | github>
+    ```
+    For Slack, add `--user-channel slack` to enable [user channels](./app-server/#slack).
+    
+
 ## App installation
 
 Follow the [installation](installation.md) instructions for setting up the development environment and installing the Slack and GitHub apps.
@@ -38,10 +62,11 @@ To serve the GitHub app, run:
 python -m hygroup.scripts.server --gateway github
 ```
 
-The GitHub app server additionally requires a [smee.io](https://smee.io/) channel for webhook payload delivery. Start a new channel on the [smee.io](https://smee.io/) page, install the [smee client](https://github.com/probot/smee-client) and connect to the channel with your `channel-id`:
+The GitHub app server additionally requires a [smee.io](https://smee.io/) channel for webhook payload delivery. A channel is generated during the GitHub app setup and stored in the `.env` file as `GITHUB_APP_WEBHOOK_URL`. To connect to the channel, install the [smee client](https://github.com/probot/smee-client) and run:
 
 ```shell
-smee -u https://smee.io/<channel-id> -t http://127.0.0.1:8000/api/v1/github-webhook
+source .env \
+&& smee -u $GITHUB_APP_WEBHOOK_URL -t http://127.0.0.1:8000/api/v1/github-webhook
 ```
 
 ## Usage example

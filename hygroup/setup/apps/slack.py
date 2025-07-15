@@ -3,6 +3,8 @@ from typing import Any, Dict, Tuple
 
 import aiohttp
 
+HYBRID_GROUPS_APP_NAME = "Hybrid Groups"
+
 MANIFEST_TEMPLATE: Dict[str, Any] = {
     "display_information": {"name": ""},
     "features": {
@@ -55,6 +57,7 @@ SLACK_AUTH_TEST_URL = "https://slack.com/api/auth.test"
 
 class SlackAppSetupService:
     async def create_manifest(self, app_name: str) -> Dict[str, Any]:
+        app_name = HYBRID_GROUPS_APP_NAME
         manifest = dict(MANIFEST_TEMPLATE)
         manifest["display_information"]["name"] = app_name
         manifest["features"]["bot_user"]["display_name"] = app_name

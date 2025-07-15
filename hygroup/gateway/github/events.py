@@ -22,7 +22,7 @@ class GithubEvent:
 @dataclass
 class IssueOpened(GithubEvent):
     title: str
-    description: str
+    description: str | None
 
 
 @dataclass

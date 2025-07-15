@@ -28,10 +28,11 @@ To serve the GitHub app, run:
 python -m hygroup.scripts.server --gateway github
 ```
 
-The GitHub app server additionally requires a [smee.io](https://smee.io/) channel for webhook payload delivery. Start a new channel on the [smee.io](https://smee.io/) page, install the [smee client](https://github.com/probot/smee-client) and connect to the channel with your `channel-id`:
+The GitHub app server additionally requires a [smee.io](https://smee.io/) channel for webhook payload delivery. A channel is generated during the GitHub app setup and stored in the `.env` file as `GITHUB_APP_WEBHOOK_URL`. To connect to the channel, install the [smee client](https://github.com/probot/smee-client) and run:
 
 ```shell
-smee -u https://smee.io/<channel-id> -t http://127.0.0.1:8000/api/v1/github-webhook
+source .env \
+&& smee -u $GITHUB_APP_WEBHOOK_URL -t http://127.0.0.1:8000/api/v1/github-webhook
 ```
 
 This auto-approves all tool execution permissions. In contrast to Slack, the GitHub integration doesn't include a built-in user channel for approving tool execution permissions. The only option is a terminal-based, [separate user channel](#separate-user-channel):

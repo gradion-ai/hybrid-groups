@@ -6,7 +6,6 @@ from pydantic import BaseModel
 class GitHubAppCreateRequest(BaseModel):
     app_name: str
     organization: str | None = None
-    webhook_url: str
 
 
 class GitHubAppManifest(BaseModel):
@@ -22,6 +21,7 @@ class GitHubAppManifest(BaseModel):
 class GitHubAppCredentials(BaseModel):
     app_id: int
     slug: str
+    name: str
     client_secret: str
     webhook_secret: str
     pem: str

@@ -1,26 +1,47 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const createForm = document.getElementById('slack-app-create-form');
-    const completeForm = document.getElementById('slack-app-complete-form');
-    const createButton = document.getElementById('create-app-button');
-    const completeButton = document.getElementById('complete-setup-button');
+    // Static app name
+    const APP_NAME = "Hybrid Groups";
 
-    const createErrorContainer = document.getElementById('create-form-error');
-    const createErrorMessage = document.getElementById('create-form-error-message');
-    const completeErrorContainer = document.getElementById('complete-form-error');
-    const completeErrorMessage = document.getElementById('complete-form-error-message');
+    // Form references
+    const configForm = document.getElementById('slack-app-config-form');
+    const appLevelForm = document.getElementById('slack-app-level-form');
+    const botTokenForm = document.getElementById('slack-bot-token-form');
 
+    // Button references
+    const startConfigButton = document.getElementById('start-configuration-button');
+    const configTokenNextButton = document.getElementById('config-token-next-button');
+    const appTokenNextButton = document.getElementById('app-token-next-button');
+    const completeSetupButton = document.getElementById('complete-setup-button');
+
+    // Error container references
+    const configErrorContainer = document.getElementById('config-form-error');
+    const configErrorMessage = document.getElementById('config-form-error-message');
+    const appLevelErrorContainer = document.getElementById('app-level-form-error');
+    const appLevelErrorMessage = document.getElementById('app-level-form-error-message');
+    const botTokenErrorContainer = document.getElementById('bot-token-form-error');
+    const botTokenErrorMessage = document.getElementById('bot-token-form-error-message');
+
+    // Phase container references
     const phase1Container = document.getElementById('phase-1-container');
     const phase2Container = document.getElementById('phase-2-container');
+    const phase3Container = document.getElementById('phase-3-container');
+    const phase4Container = document.getElementById('phase-4-container');
     const successContainer = document.getElementById('success-container');
 
+    // Progress indicator references
+    const progressSteps = document.querySelectorAll('.progress-step');
+
+    // Display element references
     const appIdDisplay = document.getElementById('app-id-display');
-    const appNameDisplay = document.getElementById('app-name-display');
+    const appCreatedInfo = document.getElementById('app-created-info');
     const appUserIdDisplay = document.getElementById('app-user-id-display');
-    const appLevelTokensLink = document.getElementById('app-level-tokens-link');
-    const oauthPermissionsLink = document.getElementById('oauth-permissions-link');
+    const appLevelTokensButton = document.getElementById('app-level-tokens-button');
+    const installAppButton = document.getElementById('install-app-button');
 
     let appData = null;
+    let currentPhase = 1;
 
+    // Token validation functions
     const isValidConfigToken = (token) => {
         return token.startsWith('xoxe');
     };
@@ -33,83 +54,125 @@ document.addEventListener('DOMContentLoaded', () => {
         return token.startsWith('xoxb-');
     };
 
-    const validateCreateForm = () => {
-        const appName = createForm.app_name.value.trim();
-        const configToken = createForm.config_token.value.trim();
-        const isValid = appName && configToken && isValidConfigToken(configToken);
-        createButton.disabled = !isValid;
-        return isValid;
+    // Phase navigation functions
+    const updateProgressIndicator = (phase) => {
+        progressSteps.forEach((step, index) => {
+            if (index + 1 <= phase) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
     };
 
-    const validateCompleteForm = () => {
-        const appToken = completeForm.app_token.value.trim();
-        const botToken = completeForm.bot_token.value.trim();
-        const isValid = appToken && botToken && isValidAppToken(appToken) && isValidBotToken(botToken);
-        completeButton.disabled = !isValid;
-        return isValid;
-    };
+    const showPhase = (phase) => {
+        // Hide all phases
+        const allPhases = [phase1Container, phase2Container, phase3Container, phase4Container, successContainer];
+        allPhases.forEach(container => container.style.display = 'none');
 
-    const showCreateError = (message) => {
-        createErrorMessage.textContent = message;
-        createErrorContainer.classList.add('show');
-        createErrorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    };
-
-    const hideCreateError = () => {
-        createErrorContainer.classList.remove('show');
-    };
-
-    const showCompleteError = (message) => {
-        completeErrorMessage.textContent = message;
-        completeErrorContainer.classList.add('show');
-        completeErrorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    };
-
-    const hideCompleteError = () => {
-        completeErrorContainer.classList.remove('show');
-    };
-
-    const showPhase2 = (data) => {
-        appData = data;
-        appIdDisplay.textContent = data.app_id;
-        appNameDisplay.textContent = data.app_name;
-        appLevelTokensLink.href = `https://api.slack.com/apps/${data.app_id}/general`;
-        oauthPermissionsLink.href = `https://api.slack.com/apps/${data.app_id}/install-on-team`;
-
-        // Hide initial info section
-        const initialInfoSection = document.getElementById('initial-info-section');
-        if (initialInfoSection) {
-            initialInfoSection.style.display = 'none';
+        // Show current phase
+        switch (phase) {
+            case 1:
+                phase1Container.style.display = 'block';
+                break;
+            case 2:
+                phase2Container.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'auto' });
+                break;
+            case 3:
+                phase3Container.style.display = 'block';
+                // Show app created info if app was created
+                if (appData) {
+                    appCreatedInfo.style.display = 'block';
+                    appIdDisplay.textContent = appData.app_id;
+                }
+                window.scrollTo({ top: 0, behavior: 'auto' });
+                break;
+            case 4:
+                phase4Container.style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'auto' });
+                break;
+            case 'success':
+                successContainer.style.display = 'block';
+                break;
         }
 
-        phase1Container.style.display = 'none';
-        phase2Container.style.display = 'block';
-        validateCompleteForm();
+        currentPhase = phase;
+        if (phase !== 'success') {
+            updateProgressIndicator(phase);
+        }
     };
 
-    const showSuccess = (data) => {
-        appUserIdDisplay.textContent = data.app_user_id;
-
-        phase2Container.style.display = 'none';
-        successContainer.style.display = 'block';
+    // Form validation functions
+    const validateConfigForm = () => {
+        const configToken = configForm.config_token.value.trim();
+        const isValid = configToken && isValidConfigToken(configToken);
+        configTokenNextButton.disabled = !isValid;
+        return isValid;
     };
 
+    const validateAppLevelForm = () => {
+        const appToken = appLevelForm.app_token.value.trim();
+        const isValid = appToken && isValidAppToken(appToken);
+        appTokenNextButton.disabled = !isValid;
+        return isValid;
+    };
+
+    const validateBotTokenForm = () => {
+        const botToken = botTokenForm.bot_token.value.trim();
+        const isValid = botToken && isValidBotToken(botToken);
+        completeSetupButton.disabled = !isValid;
+        return isValid;
+    };
+
+    // Error display functions
+    const showConfigError = (message) => {
+        configErrorMessage.textContent = message;
+        configErrorContainer.classList.add('show');
+        configErrorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    const hideConfigError = () => {
+        configErrorContainer.classList.remove('show');
+    };
+
+    const showAppLevelError = (message) => {
+        appLevelErrorMessage.textContent = message;
+        appLevelErrorContainer.classList.add('show');
+        appLevelErrorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    const hideAppLevelError = () => {
+        appLevelErrorContainer.classList.remove('show');
+    };
+
+    const showBotTokenError = (message) => {
+        botTokenErrorMessage.textContent = message;
+        botTokenErrorContainer.classList.add('show');
+        botTokenErrorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    const hideBotTokenError = () => {
+        botTokenErrorContainer.classList.remove('show');
+    };
+
+    // API call functions
     const createSlackApp = async () => {
-        if (!validateCreateForm()) return;
+        if (!validateConfigForm()) return;
 
-        const configToken = createForm.config_token.value.trim();
+        const configToken = configForm.config_token.value.trim();
         if (!isValidConfigToken(configToken)) {
-            showCreateError('App Configuration Token must start with "xoxe-" and be valid');
+            showConfigError('App Configuration Token must start with "xoxe-" and be valid');
             return;
         }
 
-        createButton.disabled = true;
-        createButton.innerHTML = '<span class="spinner"></span>Creating App...';
-        hideCreateError();
+        configTokenNextButton.disabled = true;
+        configTokenNextButton.innerHTML = '<span class="spinner"></span>Creating App...';
+        hideConfigError();
 
         try {
             const formData = {
-                app_name: createForm.app_name.value.trim(),
+                app_name: APP_NAME,
                 config_token: configToken
             };
 
@@ -129,38 +192,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(result.error || 'Failed to create Slack app');
             }
 
-            showPhase2(result);
+            appData = result;
+            showPhase(3);
         } catch (error) {
-            showCreateError(error.message);
-            createButton.disabled = false;
-            createButton.innerHTML = 'Create Slack App';
+            showConfigError(error.message);
+            configTokenNextButton.disabled = false;
+            configTokenNextButton.innerHTML = 'Next';
         }
     };
 
     const completeSlackSetup = async () => {
-        if (!validateCompleteForm() || !appData) return;
+        if (!validateBotTokenForm() || !appData) return;
 
-        const appToken = completeForm.app_token.value.trim();
-        const botToken = completeForm.bot_token.value.trim();
+        const appToken = appLevelForm.app_token.value.trim();
+        const botToken = botTokenForm.bot_token.value.trim();
 
         if (!isValidAppToken(appToken)) {
-            showCompleteError('App-Level Token must start with "xapp-" and be valid');
+            showBotTokenError('App-Level Token must start with "xapp-" and be valid');
             return;
         }
 
         if (!isValidBotToken(botToken)) {
-            showCompleteError('Bot User OAuth Token must start with "xoxb-" and be valid');
+            showBotTokenError('Bot User OAuth Token must start with "xoxb-" and be valid');
             return;
         }
 
-        completeButton.disabled = true;
-        completeButton.innerHTML = '<span class="spinner"></span>Completing Setup...';
-        hideCompleteError();
+        completeSetupButton.disabled = true;
+        completeSetupButton.innerHTML = '<span class="spinner"></span>Completing Setup...';
+        hideBotTokenError();
 
         try {
             const formData = {
                 app_id: appData.app_id,
-                app_name: appData.app_name,
+                app_name: APP_NAME,
                 app_token: appToken,
                 bot_token: botToken
             };
@@ -181,25 +245,81 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(result.error || 'Failed to complete setup');
             }
 
-            showSuccess(result);
+            appUserIdDisplay.textContent = result.app_user_id;
+            showPhase('success');
         } catch (error) {
-            showCompleteError(error.message);
-            completeButton.disabled = false;
-            completeButton.innerHTML = 'Complete Setup';
+            showBotTokenError(error.message);
+            completeSetupButton.disabled = false;
+            completeSetupButton.innerHTML = 'Complete Setup';
         }
     };
 
-    createForm.addEventListener('input', validateCreateForm);
-    createButton.addEventListener('click', (e) => {
+    // Event listeners
+    startConfigButton.addEventListener('click', () => {
+        showPhase(2);
+    });
+
+    configTokenNextButton.addEventListener('click', (e) => {
         e.preventDefault();
         createSlackApp();
     });
 
-    completeForm.addEventListener('input', validateCompleteForm);
-    completeButton.addEventListener('click', (e) => {
+    appTokenNextButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (validateAppLevelForm()) {
+            showPhase(4);
+        }
+    });
+
+    completeSetupButton.addEventListener('click', (e) => {
         e.preventDefault();
         completeSlackSetup();
     });
 
-    validateCreateForm();
+    // Input validation event listeners
+    if (configForm) {
+        configForm.addEventListener('input', validateConfigForm);
+    }
+
+    if (appLevelForm) {
+        appLevelForm.addEventListener('input', validateAppLevelForm);
+    }
+
+    if (botTokenForm) {
+        botTokenForm.addEventListener('input', validateBotTokenForm);
+    }
+
+    // Click handler for app-level tokens button
+    if (appLevelTokensButton) {
+        appLevelTokensButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!appData || !appData.app_id) {
+                return false;
+            }
+
+            // Open the URL in a new tab
+            const url = `https://api.slack.com/apps/${appData.app_id}/general?selected=app_level_tokens`;
+            window.open(url, '_blank');
+            return false;
+        });
+    }
+
+    // Click handler for install app button
+    if (installAppButton) {
+        installAppButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!appData || !appData.app_id) {
+                return false;
+            }
+
+            // Open the URL in a new tab
+            const url = `https://api.slack.com/apps/${appData.app_id}/install-on-team`;
+            window.open(url, '_blank');
+            return false;
+        });
+    }
 });
