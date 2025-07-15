@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 
 import uvicorn
@@ -23,7 +24,7 @@ from hygroup.gateway.github.events import (
 from hygroup.gateway.github.service import GithubService
 from hygroup.gateway.github.webhook.app import create_app
 from hygroup.gateway.github.webhook.config import AppSettings
-from hygroup.gateway.utils import extract_mention, extract_thread_references, replace_all_mentions
+from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,16 @@ class GithubGateway(Gateway):
     def _resolve_github_user_id(self, system_user_id: str) -> str:
         return self._system_user_mapping.get(system_user_id, system_user_id)
 
+    def _resolve_issue_references(self, text: str, repository_full_name: str) -> str:
+        owner, name = repository_full_name.split("/")
+
+        def replace(match: re.Match[str]) -> str:
+            issue_number = match.group(1)
+            session_id = f"{owner}-{name}-{issue_number}"
+            return f"thread:{session_id}"
+
+        return re.sub(r"#(\d+)", replace, text)
+
     def _conversation_id(self, event: GithubEvent) -> str:
         return f"{event.repository_owner}-{event.repository_name}-{event.issue_number}"
 
@@ -175,13 +186,19 @@ class GithubGateway(Gateway):
     ):
         sender_resolved = self._resolve_system_user_id(username)
 
-        receiver, text = extract_mention(message)
-        receiver_resolved = (
-            None if receiver is None else self._resolve_system_user_id(self._remove_receiver_prefix(receiver))
-        )
+        # check if there is an initial @mention in the message
+        receiver_prefixed, text = extract_initial_mention(message)
+        if receiver_prefixed is None:
+            receiver_resolved = None
+        else:
+            receiver = self._remove_receiver_prefix(receiver_prefixed)
+            receiver_resolved = self._resolve_system_user_id(receiver)
 
-        text = replace_all_mentions(text, self._resolve_system_user_id)
-        thread_refs = extract_thread_references(text)
+        # replace all @mentions in text with resolved usernames (without @)
+        text = resolve_mentions(text, self._resolve_system_user_id)
+
+        # translate issue references to thread references
+        text = self._resolve_issue_references(text, conversation.repository.repository_full_name)
 
         if receiver_resolved in await conversation.session.agent_names():
             logger.info(
@@ -193,7 +210,6 @@ class GithubGateway(Gateway):
             request = AgentRequest(
                 query=text,
                 sender=sender_resolved,
-                threads=await self._session_manager.load_threads(thread_refs),
                 id=message_id,
             )
             await conversation.session.invoke(
@@ -259,6 +275,10 @@ class GithubGateway(Gateway):
 
         receiver_resolved = self._resolve_github_user_id(receiver)
         sender_resolved = self._resolve_github_user_id(sender)
+
+        # --------------------------------------------
+        #  FIXME: display handoffs
+        # --------------------------------------------
 
         text = f"[{sender_resolved}] " if sender_resolved != self._github_app_username else ""
         text += f"@{receiver_resolved} {response.text}"

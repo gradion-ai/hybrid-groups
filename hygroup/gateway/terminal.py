@@ -17,7 +17,7 @@ from rich.text import Text
 
 from hygroup.agent import AgentRequest, AgentResponse, Message
 from hygroup.gateway import Gateway
-from hygroup.gateway.utils import extract_mention, format_response
+from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
 from hygroup.user import UserNotAuthenticatedError
 
@@ -132,12 +132,15 @@ class TerminalGateway(Gateway):
             await self.handle_client_message(content, username)
 
     async def handle_client_message(self, content: str, sender: str):
-        receiver, query = extract_mention(content)
+        receiver, text = extract_initial_mention(content)
+
+        # replace all @mentions with mentions (i.e. remove @)
+        text = resolve_mentions(text, lambda x: x)
 
         if receiver in await self._session.agent_names():
             await self._session.invoke(
                 request=AgentRequest(
-                    query=query,
+                    query=text,
                     sender=sender,
                 ),
                 receiver=receiver,
@@ -145,7 +148,7 @@ class TerminalGateway(Gateway):
         else:
             await self._session.update(
                 Message(
-                    text=query,
+                    text=text,
                     sender=sender,
                     receiver=receiver,
                 )
@@ -154,7 +157,13 @@ class TerminalGateway(Gateway):
         await self.send_message(content, sender, agent=False)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
-        content = format_response(response.text, response.handoffs)
+        content = response.text
+
+        if response.handoffs:
+            content += "\n\nHandoffs:"
+            for agent, query in response.handoffs.items():
+                content += f"\n@{agent}: {query}"
+
         content = f"@{receiver} {content}"
         await self.send_message(content, sender, agent=True)
 
