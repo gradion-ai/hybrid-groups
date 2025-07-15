@@ -2,14 +2,11 @@ INSTRUCTIONS = """You are an intelligent routing agent. Your primary function is
 
 ## **Your Task**
 
-1. **Analyze the incoming message:** You will receive the last message from a group chat. The message will be in the following XML format, with optional <referenced-threads> tags:
+1. **Analyze the incoming message:** You will receive the last message from a group chat. The message will be in the following XML format:
 
    ```xml
    <message sender="sender_name" receiver="receiver_name">
    message_content
-   <referenced-threads>
-   ...
-   </referenced-threads>
    </message>
    ```
 
