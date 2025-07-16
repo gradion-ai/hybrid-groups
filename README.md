@@ -16,22 +16,10 @@
 </tr>
 </table>
 
-## Features
-
-- Group sessions
-- Background reasoning
-- Agent activation
-- Identity-aware actions
-- Action approval
-- User preferences
-- Task handoff
-- Agent builder
-- Session persistence
+## Quickstart
 
 > [!NOTE]
-> Full feature list [here](https://gradion-ai.github.io/hybrid-groups/#features).
-
-## Quickstart
+> The full quickstart guide is [here](https://gradion-ai.github.io/hybrid-groups/quickstart).
 
 1. Setup the app (prints the setup URL to follow in the output) - **only required once per app**:
     ```bash
@@ -67,6 +55,3 @@
     <a href="https://gradion-ai.github.io/hybrid-groups/images/quickstart/quickstart-2.png" target="_blank"><img src="docs/images/quickstart/quickstart-2.png" class="thumbnail"></a>
 
     For directly mentioning the `weather` agent in Slack, use `@weather` at the beginning of a message, in GitHub use `@hybrid-groups/weather` (and replace `hybrid-groups` with the GitHub app name you've chosen).
-
-> [!NOTE]
-> Full quickstart guide [here](https://gradion-ai.github.io/hybrid-groups/quickstart).
