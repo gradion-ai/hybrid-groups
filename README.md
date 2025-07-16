@@ -14,7 +14,7 @@
 <tr>
 <td><a href="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-1.png" target="_blank"><img src="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-1.png" alt="Hybrid Groups" /></a></td>
 <td><a href="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-2.png" target="_blank"><img src="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-2.png" alt="Hybrid Groups" /></a></td>
-<td><a href="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-3.png" target="_blank"><img src="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-3.png" alt="Hybrid Groups" /></a></td>
+<td><a href="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-3.png" target="_blank"><img src="https://gradion-ai.github.io/hybrid-groups/images/overview/overview-3-crop.png" alt="Hybrid Groups" /></a></td>
 </tr>
 </table>
 
