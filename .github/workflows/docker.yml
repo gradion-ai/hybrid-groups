@@ -3,6 +3,8 @@ name: Docker publish
 on:
   push:
     branches: [ main ]
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   publish:
@@ -24,12 +26,48 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/gradion-ai/hybrid-groups
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Check if image exists
+        id: check
+        run: |
+          if docker pull ghcr.io/gradion-ai/hybrid-groups:sha-${GITHUB_SHA::7} 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Image already exists for SHA ${GITHUB_SHA::7}"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Image does not exist for SHA ${GITHUB_SHA::7}"
+          fi
+
       - name: Build and push
+        if: steps.check.outputs.exists != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
           push: true
-          tags: |
-            ghcr.io/gradion-ai/hybrid-groups:${{ github.sha }}
-            ghcr.io/gradion-ai/hybrid-groups:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Retag existing image
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          SOURCE_TAG="ghcr.io/gradion-ai/hybrid-groups:sha-${GITHUB_SHA::7}"
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            if [ "$tag" != "$SOURCE_TAG" ]; then
+              echo "Retagging $SOURCE_TAG as $tag"
+              docker tag "$SOURCE_TAG" "$tag"
+              docker push "$tag"
+            fi
+          done
