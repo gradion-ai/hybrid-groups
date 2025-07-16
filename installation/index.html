@@ -447,6 +447,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#python-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      Python package
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#development-environment" class="md-nav__link">
     <span class="md-ellipsis">
       Development environment
@@ -608,6 +617,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#python-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      Python package
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#development-environment" class="md-nav__link">
     <span class="md-ellipsis">
       Development environment
@@ -654,35 +672,39 @@
 
 
 <h1 id="installation">Installation</h1>
+<h2 id="python-package">Python package</h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>hybrid-groups
+</span></code></pre></div>
 <h2 id="development-environment">Development environment</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/gradion-ai/hybrid-groups.git
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>hybrid-groups
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>conda<span class="w"> </span>activate<span class="w"> </span>hybrid-groups
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>poetry<span class="w"> </span>install
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/gradion-ai/hybrid-groups.git
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>hybrid-groups
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>conda<span class="w"> </span>activate<span class="w"> </span>hybrid-groups
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>poetry<span class="w"> </span>install
 </span></code></pre></div>
 <p>Find more details in <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/DEVELOPMENT.md">DEVELOPMENT.md</a>.</p>
 <h2 id="slack-app">Slack app</h2>
 <p>To set up and install the <em>Hybrid Groups</em> Slack app to your workspace, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.setup.apps<span class="w"> </span>slack
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.setup.apps<span class="w"> </span>slack
 </span></code></pre></div>
 <p>This will add the following variables to your <code>.env</code> file:</p>
-<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>SLACK_BOT_TOKEN=...
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>SLACK_APP_TOKEN=...
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>SLACK_APP_ID=...
+<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>SLACK_BOT_TOKEN=...
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>SLACK_APP_TOKEN=...
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>SLACK_APP_ID=...
 </span></code></pre></div>
 <p>After setup, you must manually add the app to any Slack channels you want it to be active in. You can do this from the channel's menu under <code>Open channel details</code> -&gt; <code>Integrations</code> -&gt; <code>Add apps</code>.</p>
 <h2 id="github-app">GitHub app</h2>
 <p>To set up and install the <em>Hybrid Groups</em> GitHub app in one or more repositories, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.setup.apps<span class="w"> </span>github
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.setup.apps<span class="w"> </span>github
 </span></code></pre></div>
 <p>This will add the following variables to your <code>.env</code> file:</p>
-<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>GITHUB_APP_ID=...
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>GITHUB_APP_USERNAME=...
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>GITHUB_APP_CLIENT_SECRET=...
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>GITHUB_APP_WEBHOOK_SECRET=...
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>GITHUB_APP_PRIVATE_KEY_PATH=...
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>GITHUB_APP_INSTALLATION_ID=...
+<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>GITHUB_APP_ID=...
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>GITHUB_APP_USERNAME=...
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>GITHUB_APP_CLIENT_SECRET=...
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>GITHUB_APP_WEBHOOK_SECRET=...
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>GITHUB_APP_PRIVATE_KEY_PATH=...
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>GITHUB_APP_INSTALLATION_ID=...
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>GITHUB_APP_WEBHOOK_URL...
 </span></code></pre></div>
 
 
