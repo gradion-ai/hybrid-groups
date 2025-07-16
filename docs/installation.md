@@ -1,5 +1,11 @@
 # Installation
 
+## Python package
+
+```bash
+pip install hybrid-groups
+```
+
 ## Development environment
 
 ```bash
