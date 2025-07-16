@@ -2,7 +2,7 @@
 
 !!! Tip "Docker"
 
-    *Hybrid Groups* provides a Docker container to run the Slack and GitHub apps without a local installation.      
+    As an alternative to a [local environment setup](#app-installation), use our Docker container to install and run the Slack and GitHub apps:
 
     1. Setup the app (prints the setup URL to follow in the output) - **only required once per app**:
     ```bash    
@@ -12,7 +12,7 @@
       ghcr.io/gradion-ai/hybrid-groups:latest \
       setup <slack | github>            
     ```
-    **Important**: when running the container on a remote host, supply the hostname or IP address via the `--host` parameter.
+    **Important**: when running the container on a remote host, supply the hostname or IP address via the `--host` parameter. After setting up the Slack app, add it to any Slack channels you want it to be active in. You can do this from the channel's menu under `Open channel details` -> `Integrations` -> `Add apps`.
     
     2. Run the server:
     ```bash
@@ -21,12 +21,13 @@
       ghcr.io/gradion-ai/hybrid-groups:latest \
       server <slack | github>
     ```
-    For Slack, add `--user-channel slack` to enable [user channels](./app-server/#slack).
-    
+    To enable [user channels](app-server.md#slack) in Slack, append the `--user-channel slack` option.
+
+    3. Verify with a [usage example](#usage-example) that your installation works.
 
 ## App installation
 
-Follow the [installation](installation.md) instructions for setting up the development environment and installing the Slack and GitHub apps.
+Follow the [installation](installation.md) instructions for setting up a [development environment](installation.md#development-environment) and installing the Slack and GitHub apps.
 
 ## Gemini API key
 
