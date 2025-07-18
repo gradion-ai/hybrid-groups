@@ -2,7 +2,7 @@
 
 ## Overview
 
-*Hybrid Groups* is a multi-user, multi-agent platform that enables teams to collaborate with proactive and reactive agents in Slack and GitHub. It adds background reasoning to Slack threads and GitHub issues to intelligently activate agents based on chat messages and context. Agents reason, act and respond specific to a user's identity, preferences and history, and can take actions on behalf of a user. In Slack, users can build custom agents with a simple [agent builder](agent-builder.md). More advanced agents or agentic systems can be integrated with the *Hybrid Groups* Python SDK.
+*Hybrid Groups* is a multi-user, multi-agent collaboration platform that enables users to interact with both agents and other users in group chats on Slack and GitHub. Agents act and respond according to each user's identity, preferences and privileges, enabling secure access to a user's private resources while collaborating in a team.
 
 <div class="image-row">
   <div class="image-item">
