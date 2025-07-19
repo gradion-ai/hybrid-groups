@@ -23,26 +23,31 @@
 > [!NOTE]
 > The full quickstart guide is [here](https://gradion-ai.github.io/hybrid-groups/quickstart).
 
-1. Setup the app (prints the setup URL to follow in the output) - **only required once per app**:
+1. Configure the app type to install and run, `slack` or `github`:
+    ```bash
+    export APP_TYPE=slack # or "github"
+    ```
+
+2. Setup the app (prints the setup URL to follow in the output) - **only required once per app**:
     ```bash
     docker run --rm -it \
         -v "$(pwd)/.data-docker":/app/.data \
         -p 8801:8801 \
         ghcr.io/gradion-ai/hybrid-groups:latest \
-        setup <slack | github>
+        setup $APP_TYPE
     ```
     **Important**: when running the container on a remote host, supply the hostname or IP address via the `--host` parameter. After setting up the Slack app, add it to any Slack channels you want it to be active in. You can do this from the channel's menu under `Open channel details` -> `Integrations` -> `Add apps`.
 
-2. Run the server:
+3. Run the server:
     ```bash
     docker run --rm -it \
         -v "$(pwd)/.data-docker":/app/.data \
         ghcr.io/gradion-ai/hybrid-groups:latest \
-        server <slack | github>
+        server $APP_TYPE
     ```
     To enable [user channels](https://gradion-ai.github.io/hybrid-groups/app-server/#slack) in Slack, append the `--user-channel slack` option.
 
-3. Verify that your installation works. For example, activate the `weather` agent via background reasoning by entering
+4. Verify that your installation works. For example, activate the `weather` agent via background reasoning by entering
 
     ```markdown
     how's the weather in vienna?
