@@ -694,22 +694,27 @@
 <p class="admonition-title">Docker</p>
 <p>As an alternative to a <a href="#app-installation">local environment setup</a>, use our Docker container to install and run the Slack and GitHub apps:</p>
 <ol>
+<li>Configure the app type to install and run, <code>slack</code> or <code>github</code>:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">APP_TYPE</span><span class="o">=</span>slack<span class="w"> </span><span class="c1"># or &quot;github&quot;</span>
+</span></code></pre></div>
+<ol>
 <li>
 <p>Setup the app (prints the setup URL to follow in the output) - <strong>only required once per app</strong>:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.data-docker&quot;</span>:/app/.data<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">8801</span>:8801<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>ghcr.io/gradion-ai/hybrid-groups:latest<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>setup<span class="w"> </span>&lt;slack<span class="w"> </span><span class="p">|</span><span class="w"> </span>github&gt;<span class="w">            </span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.data-docker&quot;</span>:/app/.data<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">8801</span>:8801<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>ghcr.io/gradion-ai/hybrid-groups:latest<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>setup<span class="w"> </span><span class="nv">$APP_TYPE</span>
 </span></code></pre></div>
 <strong>Important</strong>: when running the container on a remote host, supply the hostname or IP address via the <code>--host</code> parameter. After setting up the Slack app, add it to any Slack channels you want it to be active in. You can do this from the channel's menu under <code>Open channel details</code> -&gt; <code>Integrations</code> -&gt; <code>Add apps</code>.</p>
 </li>
 <li>
 <p>Run the server:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.data-docker&quot;</span>:/app/.data<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>ghcr.io/gradion-ai/hybrid-groups:latest<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>server<span class="w"> </span>&lt;slack<span class="w"> </span><span class="p">|</span><span class="w"> </span>github&gt;
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.data-docker&quot;</span>:/app/.data<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>ghcr.io/gradion-ai/hybrid-groups:latest<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>server<span class="w"> </span><span class="nv">$APP_TYPE</span>
 </span></code></pre></div>
 To enable <a href="../app-server/#slack">user channels</a> in Slack, append the <code>--user-channel slack</code> option.</p>
 </li>
@@ -722,11 +727,11 @@ To enable <a href="../app-server/#slack">user channels</a> in Slack, append the 
 <p>Follow the <a href="../installation/">installation</a> instructions for setting up a <a href="../installation/#development-environment">development environment</a> and installing the Slack and GitHub apps.</p>
 <h2 id="gemini-api-key">Gemini API key</h2>
 <p>A <a href="https://aistudio.google.com/apikey">GEMINI_API_KEY</a> is required for background reasoning and by demo agents. Place it in a <code>.env</code> file in the project's root directory.</p>
-<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>GEMINI_API_KEY=...
+<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>GEMINI_API_KEY=...
 </span></code></pre></div>
 <h2 id="agent-registration">Agent registration</h2>
 <p>Register example agents by running the following command. Without any additional API keys, this will add agents <code>general</code> and <code>weather</code> to the agent registry.</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>demo/register_agents.py
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>demo/register_agents.py
 </span></code></pre></div>
 <div class="admonition hint">
 <p class="admonition-title">Hint</p>
@@ -734,18 +739,18 @@ To enable <a href="../app-server/#slack">user channels</a> in Slack, append the 
 </div>
 <h2 id="app-server">App server</h2>
 <p>To serve the Slack app, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
 </span></code></pre></div>
 <p>To serve the GitHub app, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github
 </span></code></pre></div>
 <p>The GitHub app server additionally requires a <a href="https://smee.io/">smee.io</a> channel for webhook payload delivery. A channel is generated during the GitHub app setup and stored in the <code>.env</code> file as <code>GITHUB_APP_WEBHOOK_URL</code>. To connect to the channel, install the <a href="https://github.com/probot/smee-client">smee client</a> and run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">source</span><span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="o">&amp;&amp;</span><span class="w"> </span>smee<span class="w"> </span>-u<span class="w"> </span><span class="nv">$GITHUB_APP_WEBHOOK_URL</span><span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">source</span><span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="o">&amp;&amp;</span><span class="w"> </span>smee<span class="w"> </span>-u<span class="w"> </span><span class="nv">$GITHUB_APP_WEBHOOK_URL</span><span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
 </span></code></pre></div>
 <h2 id="usage-example">Usage example</h2>
 <p>Activate the <code>weather</code> agent via background reasoning by entering e.g.</p>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>how&#39;s the weather in vienna?
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>how&#39;s the weather in vienna?
 </span></code></pre></div>
 <p>in the channel where the Slack app was added</p>
 <div class="image-zoom quickstart-image">
