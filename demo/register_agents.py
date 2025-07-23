@@ -71,6 +71,14 @@ Never delegate to yourself, the "general" agent.
 """
 
 
+NOTES_AGENT_ROLE = "You are an agent that organizes notes in a specific directory."
+NOTES_AGENT_STEPS = """- The notes are located in the directory /Users/martin/Development/workspace/notes.
+- This directory contains a `RULES.md` file that you MUST read first to understand how to organize the notes.
+- Strictly follow the rules from `RULES.md` to handle the user's request.
+- Use the available tools to interact with the file system and search the web."""
+NOTES_AGENT_INSTRUCTIONS = apply_template(NOTES_AGENT_ROLE, NOTES_AGENT_STEPS)
+
+
 def scrape_agent_config():
     firecrawl_settings = MCPSettings(
         server_config={
@@ -232,6 +240,45 @@ def browser_agent_config():
     }
 
 
+def notes_agent_config():
+    brave_search_settings = MCPSettings(
+        server_config={
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+            "env": {
+                "BRAVE_API_KEY": "${BRAVE_API_KEY}",
+            },
+        },
+        session_scope=False,
+    )
+
+    desktop_commander_settings = MCPSettings(
+        server_config={
+            "command": "npx",
+            "args": ["@wonderwhy-er/desktop-commander@latest"],
+        },
+        session_scope=True,
+    )
+
+    agent_settings = AgentSettings(
+        model="gemini-2.5-flash",
+        instructions=NOTES_AGENT_INSTRUCTIONS,
+        mcp_settings=[
+            brave_search_settings,
+            desktop_commander_settings,
+        ],
+        tools=[get_user_preferences],
+    )
+
+    return {
+        "name": "notes",
+        "description": "An agent that can organize notes in a local directory.",
+        "settings": agent_settings,
+        "handoff": False,
+        "emoji": "notebook",
+    }
+
+
 def general_agent_config():
     agent_settings = AgentSettings(
         model="gemini-2.5-flash",
@@ -258,6 +305,7 @@ async def main():
 
     await agent_registry.add_config(**weather_agent_config())
     await agent_registry.add_config(**general_agent_config())
+    await agent_registry.add_config(**notes_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference
