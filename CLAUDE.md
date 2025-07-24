@@ -17,6 +17,7 @@ Additional commands are:
 
 ```bash
 # Code quality checks (linting, formatting, type checking)
+# IMPORTANT: code quality checks only work for files that have been added to git
 invoke code-check
 invoke cc  # alias
 
