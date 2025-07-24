@@ -8,6 +8,14 @@
     <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/gradion-ai/hybrid-groups?color=blueviolet"></a>
 </p>
 
+<div align="left">
+  <a href="https://www.youtube.com/watch?v=OxOmRsNin4o">
+    <img src="docs/images/overview/video.jpg" alt="Watch the video" style="width: 50%;">
+  </a>
+</div>
+
+## Overview
+
 [*Hybrid Groups*](https://gradion-ai.github.io/hybrid-groups/) is a multi-user, multi-agent collaboration platform that enables users to interact with both agents and other users in group chats on Slack and GitHub. Agents act and respond according to each user's identity, preferences and privileges, enabling secure access to a user's private resources while collaborating in a team.
 
 <table>
