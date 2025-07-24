@@ -75,6 +75,7 @@ NOTES_AGENT_ROLE = "You are an agent that organizes notes in a specific director
 NOTES_AGENT_STEPS = """- The notes are located in the directory /Users/martin/Development/workspace/notes.
 - This directory contains a `RULES.md` file that you MUST read first to understand how to organize the notes.
 - Strictly follow the rules from `RULES.md` to handle the user's request.
+- All file operations MUST be performed exclusively within the notes directory.
 - Use the available tools to interact with the file system and search the web."""
 NOTES_AGENT_INSTRUCTIONS = apply_template(NOTES_AGENT_ROLE, NOTES_AGENT_STEPS)
 
@@ -241,21 +242,10 @@ def browser_agent_config():
 
 
 def notes_agent_config():
-    brave_search_settings = MCPSettings(
+    claude_mcp_settings = MCPSettings(
         server_config={
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-            "env": {
-                "BRAVE_API_KEY": "${BRAVE_API_KEY}",
-            },
-        },
-        session_scope=False,
-    )
-
-    desktop_commander_settings = MCPSettings(
-        server_config={
-            "command": "npx",
-            "args": ["@wonderwhy-er/desktop-commander@latest"],
+            "command": "claude",
+            "args": ["mcp", "serve"],
         },
         session_scope=True,
     )
@@ -263,10 +253,7 @@ def notes_agent_config():
     agent_settings = AgentSettings(
         model="gemini-2.5-flash",
         instructions=NOTES_AGENT_INSTRUCTIONS,
-        mcp_settings=[
-            brave_search_settings,
-            desktop_commander_settings,
-        ],
+        mcp_settings=[claude_mcp_settings],
         tools=[get_user_preferences],
     )
 
