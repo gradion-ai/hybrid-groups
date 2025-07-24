@@ -64,34 +64,41 @@ class SessionAgent:
                         # -------------------------------------
                         #  TODO: trace query
                         # -------------------------------------
-                        async with self.agent.request_scope(secrets=secrets):
-                            async for elem in self.agent.run(request=request, updates=self._updates, stream=False):
-                                match elem:
-                                    case PermissionRequest():
-                                        # -------------------------------------
-                                        #  TODO: trace permission request
-                                        # -------------------------------------
-                                        await self.session.handle_permission_request(
-                                            request=elem, sender=self.agent.name, receiver=sender
-                                        )
-                                    case FeedbackRequest():
-                                        # -------------------------------------
-                                        #  TODO: trace feedback request
-                                        # -------------------------------------
-                                        await self.session.handle_feedback_request(
-                                            request=elem, sender=self.agent.name, receiver=sender
-                                        )
-                                    case AgentResponse():
-                                        # -------------------------------------
-                                        #  TODO: trace result
-                                        # -------------------------------------
-                                        await self.session.handle_agent_response(
-                                            response=elem, sender=self.agent.name, receiver=sender
-                                        )
+                        try:
+                            async with self.agent.request_scope(secrets=secrets):
+                                async for elem in self.agent.run(request=request, updates=self._updates, stream=False):
+                                    match elem:
+                                        case PermissionRequest():
+                                            # -------------------------------------
+                                            #  TODO: trace permission request
+                                            # -------------------------------------
+                                            await self.session.handle_permission_request(
+                                                request=elem, sender=self.agent.name, receiver=sender
+                                            )
+                                        case FeedbackRequest():
+                                            # -------------------------------------
+                                            #  TODO: trace feedback request
+                                            # -------------------------------------
+                                            await self.session.handle_feedback_request(
+                                                request=elem, sender=self.agent.name, receiver=sender
+                                            )
+                                        case AgentResponse():
+                                            # -------------------------------------
+                                            #  TODO: trace result
+                                            # -------------------------------------
+                                            await self.session.handle_agent_response(
+                                                response=elem, sender=self.agent.name, receiver=sender
+                                            )
 
-                            # agent now has notifications part of
-                            # its history, so we can clear it
-                            self._updates = []
+                                # agent now has notifications part of
+                                # its history, so we can clear it
+                                self._updates = []
+                        except Exception as e:
+                            logger.exception(e)
+                            await self.session.handle_system_response(
+                                response=f"Execution of agent {self.agent.name} failed.",
+                                receiver=sender,
+                            )
 
 
 class Session:
