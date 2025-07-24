@@ -30,6 +30,32 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Cache conda
+        uses: actions/cache@v4
+        env:
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
+
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          environment-file: environment.yml
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: ${{ vars.CI_POETRY_VERSION }}
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          poetry env info
+          poetry install
+          pip list
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta
@@ -50,7 +76,7 @@ jobs:
           # assignee_trigger: "claude-bot"
 
           # Optional: Allow Claude to run specific commands
-          allowed_tools: "Bash(invoke:*),Bash(poetry:*),Bash(pytest:*)"
+          allowed_tools: "Bash(python:*),Bash(poetry:*),Bash(invoke:*),Bash(pytest:*)"
 
           # Optional: Add custom instructions for Claude to customize its behavior for your project
           # custom_instructions: |
