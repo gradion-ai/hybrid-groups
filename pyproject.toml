@@ -6,11 +6,12 @@ authors = [
     { name = "Martin Krasser", email = "martin@gradion.ai" },
     { name = "Christoph Stumpf", email = "chris@gradion.ai" },
 ]
-requires-python = "~=3.11"
+requires-python = ">=3.11,<3.14"
 readme = "README.md"
 license = "Apache-2.0"
 dependencies = [
-    "pydantic-ai[mcp]>=0.3.3,<0.4",
+    "pydantic-ai>=0.3.3,<0.4",
+    "mcp>=1.12.2,<2",
     "aioconsole>=0.8.1,<0.9",
     "slack-bolt>=1.23.0,<2",
     "aiohttp>=3.11.16,<4",
@@ -74,7 +75,6 @@ line-length = 120
 "**/__init__.py" = ["F401"]
 
 [tool.mypy]
-python_version = 3.11
 check_untyped_defs = true
 ignore_missing_imports = true
 
