@@ -17,7 +17,6 @@ Additional commands are:
 
 ```bash
 # Code quality checks (linting, formatting, type checking)
-# IMPORTANT: code quality checks only work for files that have been added to git
 invoke code-check
 invoke cc  # alias
 
@@ -25,4 +24,14 @@ invoke cc  # alias
 invoke build-docs  # Build documentation with MkDocs
 invoke serve-docs  # Serve documentation locally at http://localhost:8000
 invoke deploy-docs  # Deploy documentation to GitHub Pages
+```
+
+Important: When running code quality checks on newly generated files, they must be added to git before running the checks:
+
+```bash
+# add newly generated file to git
+git add <new-file>
+
+# run code quality checks on all git-managed files
+invoke cc  # alias
 ```

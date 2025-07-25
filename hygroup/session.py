@@ -64,8 +64,8 @@ class SessionAgent:
                         # -------------------------------------
                         #  TODO: trace query
                         # -------------------------------------
-                        try:
-                            async with self.agent.request_scope(secrets=secrets):
+                        async with self.agent.request_scope(secrets=secrets):
+                            try:
                                 async for elem in self.agent.run(request=request, updates=self._updates, stream=False):
                                     match elem:
                                         case PermissionRequest():
@@ -89,16 +89,15 @@ class SessionAgent:
                                             await self.session.handle_agent_response(
                                                 response=elem, sender=self.agent.name, receiver=sender
                                             )
-
                                 # agent now has notifications part of
                                 # its history, so we can clear it
                                 self._updates = []
-                        except Exception as e:
-                            logger.exception(e)
-                            await self.session.handle_system_response(
-                                response=f"Execution of agent '{self.agent.name}' failed.",
-                                receiver=sender,
-                            )
+                            except Exception as e:
+                                logger.exception(e)
+                                await self.session.handle_system_response(
+                                    response=f"Execution of agent '{self.agent.name}' failed.",
+                                    receiver=sender,
+                                )
 
 
 class Session:
