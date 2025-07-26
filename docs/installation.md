@@ -11,9 +11,8 @@ pip install hybrid-groups
 ```bash
 git clone https://github.com/gradion-ai/hybrid-groups.git
 cd hybrid-groups
-conda env create -f environment.yml
-conda activate hybrid-groups
-poetry install
+uv sync
+source .venv/bin/activate
 ```
 
 Find more details in [DEVELOPMENT.md](https://github.com/gradion-ai/hybrid-groups/blob/main/DEVELOPMENT.md).

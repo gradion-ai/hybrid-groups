@@ -9,23 +9,16 @@ git clone https://github.com/gradion-ai/hybrid-groups.git
 cd hybrid-groups
 ```
 
-Create a new Conda environment and activate it:
+Install dependencies and create virtual environment:
 
 ```bash
-conda env create -f environment.yml
-conda activate hybrid-groups
+uv sync
 ```
 
-Install the poetry dynamic versioning plugin:
+Activate the virtual environment:
 
 ```bash
-poetry self add "poetry-dynamic-versioning[plugin]"
-```
-
-Install dependencies with Poetry:
-
-```bash
-poetry install --with docs
+source .venv/bin/activate
 ```
 
 Install pre-commit hooks:
