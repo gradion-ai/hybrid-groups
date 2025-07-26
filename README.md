@@ -10,7 +10,7 @@
 
 <div align="left">
   <a href="https://www.youtube.com/watch?v=OxOmRsNin4o">
-    <img src="docs/images/overview/video.jpg" alt="Watch the video" style="width: 50%;">
+    <img src="https://raw.githubusercontent.com/gradion-ai/hybrid-groups/main/docs/images/overview/video.jpg" alt="Watch the video" style="width: 50%;">
   </a>
 </div>
 
