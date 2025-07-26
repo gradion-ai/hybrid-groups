@@ -1,44 +1,34 @@
 FROM ubuntu:22.04
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3-pip \
-    python3.10-venv \
     curl \
     wget \
     ca-certificates \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js 22.x
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
-    && bash /tmp/miniconda.sh -b -p /opt/conda \
-    && rm /tmp/miniconda.sh
+# Install uv version 0.8.3
+COPY --from=ghcr.io/astral-sh/uv:0.8.3 /uv /uvx /bin/
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
-
+# Install smee-client globally
 RUN npm install -g smee-client
 
-ENV PATH="/opt/conda/bin:${PATH}"
-ENV PATH="/root/.local/bin:${PATH}"
-
-RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main \
-    && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r \
-    && conda update -n base -c defaults conda
-
+# Set working directory
 WORKDIR /app
 
-COPY environment.yml /app/
+# Copy dependency files first for better Docker layer caching
+COPY pyproject.toml uv.lock /app/
 
-RUN conda env create -f /app/environment.yml -n hybrid-groups
+# Install Python dependencies using uv (skip project install to avoid git dependency)
+RUN uv sync --locked --no-dev --no-install-project
 
-COPY pyproject.toml poetry.lock /app/
-RUN poetry config virtualenvs.create false
-RUN conda run --no-capture-output -n hybrid-groups poetry install --no-root
-
+# Copy application files
 COPY hygroup /app/hygroup
 COPY demo /app/demo
 COPY logging.yaml /app/
@@ -47,7 +37,9 @@ COPY docker/server.sh /app/
 COPY docker/entrypoint.sh /app/
 RUN chmod +x /app/setup.sh /app/server.sh /app/entrypoint.sh
 
+# Expose ports
 EXPOSE 8000
 EXPOSE 8801
 
-ENTRYPOINT ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate hybrid-groups && /app/entrypoint.sh \"$@\"", "--"]
+# Use uv to run the entrypoint with activated virtual environment
+ENTRYPOINT ["/bin/bash", "-c", "source /app/.venv/bin/activate && /app/entrypoint.sh \"$@\"", "--"]
