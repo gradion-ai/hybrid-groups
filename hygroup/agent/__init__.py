@@ -8,6 +8,7 @@ from hygroup.agent.base import (
     PermissionRequest,
     Thread,
 )
+from hygroup.agent.prompt import InputFormatter
 from hygroup.agent.select import (
     AgentSelection,
     AgentSelectionConfirmationRequest,

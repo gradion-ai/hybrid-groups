@@ -25,8 +25,8 @@ from hygroup.agent.base import (
     Message,
     PermissionRequest,
 )
-from hygroup.agent.default.prompt import InputFormatter, format_input
 from hygroup.agent.default.utils import resolve_config_variables
+from hygroup.agent.prompt import InputFormatter, format_input
 from hygroup.agent.utils import model_from_dict
 
 D = TypeVar("D")
