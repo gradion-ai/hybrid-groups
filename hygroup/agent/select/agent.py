@@ -27,6 +27,7 @@ from hygroup.agent.utils import model_from_dict
 class AgentSelection(BaseModel):
     agent_name: str | None = None
     query: str | None = None
+    response: str | None = None
 
 
 @dataclass

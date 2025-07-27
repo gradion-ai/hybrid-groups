@@ -281,6 +281,14 @@ class Session:
                         session_id=self.id,
                     )
                     await self._gateway_queue.put(coro)
+
+                # If agent_name is None but response is provided, send it as a system message
+                if selection.agent_name is None and selection.response is not None:
+                    await self.handle_system_response(
+                        response=selection.response,
+                        receiver=message.sender,
+                    )
+
                 return
 
             agent_request = AgentRequest(query=selection.query, sender=message.sender, id=message.id)
