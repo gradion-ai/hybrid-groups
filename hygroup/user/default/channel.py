@@ -181,6 +181,11 @@ class RichConsoleHandler(RequestHandler):
             f"[{self.query_color}]Query:[/{self.query_color}] {request.selection_result.selection.query or '(none)'}",
             highlight=False,
         )
+        await arun(
+            self.console.print,
+            f"[{self.query_color}]Response:[/{self.query_color}] {request.selection_result.selection.response or '(none)'}",
+            highlight=False,
+        )
 
         if self.default_confirmation_response is not None:
             return request.respond(self.default_confirmation_response, None)
@@ -392,6 +397,7 @@ class RequestServer(RequestHandler):
                 "query": request.selection_result.selection.query,
                 "thoughts": request.selection_result.thoughts,
                 "agent_name": request.selection_result.selection.agent_name,
+                "response": request.selection_result.selection.response,
                 "sender": sender,
                 "session_id": session_id,
             }
@@ -533,9 +539,10 @@ class RequestClient:
                     query = data.get("query", "")
                     thoughts = data.get("thoughts", [])
                     agent_name = data.get("agent_name")
+                    response = data.get("response")
 
                     # Create AgentSelection and AgentSelectionResult
-                    selection = AgentSelection(agent_name=agent_name, query=query)
+                    selection = AgentSelection(agent_name=agent_name, query=query, response=response)
                     selection_result = AgentSelectionResult(selection=selection, thoughts=thoughts)
 
                     # Create request object

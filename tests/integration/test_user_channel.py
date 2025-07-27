@@ -56,6 +56,7 @@ class MockRequestHandler(RequestHandler):
             {
                 "query": request.selection_result.selection.query,
                 "agent_name": request.selection_result.selection.agent_name,
+                "response": request.selection_result.selection.response,
                 "thoughts": request.selection_result.thoughts,
                 "sender": sender,
                 "receiver": receiver,
@@ -303,6 +304,7 @@ async def test_mixed_requests(request_server: RequestServer, request_client):
     conf_call = handler.confirmation_calls[0]
     assert conf_call["query"] == "Mixed task"
     assert conf_call["agent_name"] == "mixed_agent"
+    assert conf_call["response"] is None
     assert conf_call["thoughts"] == ["Mixed thought"]
     assert conf_call["sender"] == "selector"
     assert conf_call["session_id"] == "session3"
@@ -361,6 +363,7 @@ async def test_confirmation_request_confirmed(request_server: RequestServer, req
     call = handler.confirmation_calls[0]
     assert call["query"] == "Help me with this task"
     assert call["agent_name"] == "test_agent"
+    assert call["response"] is None
     assert call["thoughts"] == ["I think test_agent is best suited"]
     assert call["sender"] == "selector"
     assert call["receiver"] == "martin"
@@ -392,6 +395,7 @@ async def test_confirmation_request_rejected(request_server: RequestServer, requ
     call = handler.confirmation_calls[0]
     assert call["query"] == "Analyze this data"
     assert call["agent_name"] == "agent_a"
+    assert call["response"] is None
     assert call["sender"] == "selector"
     assert call["session_id"] == "session456"
 
@@ -424,6 +428,7 @@ async def test_confirmation_request_with_thoughts(request_server: RequestServer,
     # Verify all thoughts were transmitted
     assert len(handler.confirmation_calls) == 1
     call = handler.confirmation_calls[0]
+    assert call["response"] is None
     assert call["thoughts"] == thoughts
     assert len(call["thoughts"]) == 3
 
@@ -459,6 +464,7 @@ async def test_multiple_confirmation_requests(request_server: RequestServer, req
         call = handler.confirmation_calls[i]
         assert call["query"] == f"Task {i}"
         assert call["agent_name"] == f"agent_{i}"
+        assert call["response"] is None
         assert call["thoughts"] == [f"Thought {i}.1", f"Thought {i}.2"]
         assert call["session_id"] == f"session_{i}"
 
@@ -483,3 +489,66 @@ async def test_confirmation_request_when_user_not_connected(request_server: Requ
     # Should get rejection response with specific message
     assert result.confirmed is False
     assert result.comment == "User not connected"
+
+
+@pytest.mark.asyncio
+async def test_confirmation_request_with_response_no_agent(request_server: RequestServer, request_client):
+    """Test confirmation request when agent_name is None but response is provided."""
+    client, handler = request_client
+    handler.confirmation_response = (True, None)
+
+    # Create confirmation request with response but no agent
+    future: Future = Future()
+    selection = AgentSelection(agent_name=None, query=None, response="I can help you with that directly")
+    selection_result = AgentSelectionResult(selection=selection, thoughts=["This is a simple question I can answer"])
+    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
+
+    # Handle request on server (should propagate to client) and await response
+    await request_server.handle_confirmation_request(request, "selector", "martin", "session123")
+    result = await request.response()
+
+    # Verify client handler was called
+    assert len(handler.confirmation_calls) == 1
+    call = handler.confirmation_calls[0]
+    assert call["query"] is None
+    assert call["agent_name"] is None
+    assert call["response"] == "I can help you with that directly"
+    assert call["thoughts"] == ["This is a simple question I can answer"]
+    assert call["sender"] == "selector"
+    assert call["receiver"] == "martin"
+    assert call["session_id"] == "session123"
+
+    # Verify response was received by server
+    assert result.confirmed is True
+    assert result.comment is None
+
+
+@pytest.mark.asyncio
+async def test_confirmation_request_with_agent_and_response(request_server: RequestServer, request_client):
+    """Test confirmation request when both agent_name and response are provided."""
+    client, handler = request_client
+    handler.confirmation_response = (True, None)
+
+    # Create confirmation request with both agent and response
+    future: Future = Future()
+    selection = AgentSelection(
+        agent_name="test_agent", query="Help with complex task", response="This response should also be transmitted"
+    )
+    selection_result = AgentSelectionResult(selection=selection, thoughts=["Agent needed for complex task"])
+    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
+
+    # Handle request on server and await response
+    await request_server.handle_confirmation_request(request, "selector", "martin", "session456")
+    result = await request.response()
+
+    # Verify all fields are transmitted
+    assert len(handler.confirmation_calls) == 1
+    call = handler.confirmation_calls[0]
+    assert call["query"] == "Help with complex task"
+    assert call["agent_name"] == "test_agent"
+    assert call["response"] == "This response should also be transmitted"
+    assert call["thoughts"] == ["Agent needed for complex task"]
+
+    # Verify response was received by server
+    assert result.confirmed is True
+    assert result.comment is None
