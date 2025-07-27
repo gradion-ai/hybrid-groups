@@ -7,7 +7,7 @@ import pytest
 from dotenv import load_dotenv
 from pydantic_ai.settings import ModelSettings
 
-from hygroup.agent.default.agent import AgentSettings
+from hygroup.agent.default.agent import AgentSettings, DefaultAgent
 from hygroup.agent.default.registry import DefaultAgentRegistry
 from tests.integration.example_tools import current_time, get_weather_forecast
 
@@ -202,6 +202,7 @@ async def test_full_workflow_with_multiple_tools():
         agent = await registry.create_agent("multi_tool")
 
         # Verify both tools are present
+        assert isinstance(agent, DefaultAgent)
         assert len(agent.settings.tools) == 2
         tool_names = {tool.__name__ for tool in agent.settings.tools}
         assert "get_weather_forecast" in tool_names

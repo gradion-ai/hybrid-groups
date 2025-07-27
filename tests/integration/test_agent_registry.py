@@ -1,5 +1,3 @@
-"""Test suite for AgentFactory implementation."""
-
 import os
 from pathlib import Path
 from typing import Any, Iterator
@@ -10,7 +8,6 @@ from pydantic_ai.settings import ModelSettings
 
 from hygroup.agent.default import AgentSettings, DefaultAgent, DefaultAgentRegistry, HandoffAgent, MCPSettings
 
-# Load environment variables
 load_dotenv()
 
 
@@ -213,6 +210,7 @@ async def test_agent_settings_roundtrip(registry: DefaultAgentRegistry, api_key:
     )
 
     agent = await registry.create_agent("roundtrip-agent")
+    assert isinstance(agent, DefaultAgent)
     restored_settings = agent.settings
 
     assert restored_settings.model == original_settings.model
@@ -321,6 +319,7 @@ async def test_model_dict_persistence(registry: DefaultAgentRegistry, test_agent
     agent = await registry2.create_agent("persist-dict-agent")
 
     # Verify model dict was preserved
+    assert isinstance(agent, DefaultAgent)
     assert isinstance(agent.settings.model, dict)
     assert agent.settings.model["class"] == "pydantic_ai.models.openai.OpenAIModel"
     assert agent.settings.model["args"]["model_name"] == "gpt-4"
@@ -473,6 +472,7 @@ async def test_update_config_settings(
 
     # Verify initial settings
     agent = await registry.create_agent("settings-update")
+    assert isinstance(agent, DefaultAgent)
     assert agent.settings.model == "gpt-3.5-turbo"
     assert agent.settings.instructions == "You are a helpful assistant."
 
@@ -481,6 +481,7 @@ async def test_update_config_settings(
 
     # Verify updated settings
     updated_agent = await registry.create_agent("settings-update")
+    assert isinstance(updated_agent, DefaultAgent)
     assert updated_agent.settings.model == "gpt-4"
     assert updated_agent.settings.instructions == "You can handoff to other agents."
     assert updated_agent.settings.human_feedback is False
