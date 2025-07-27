@@ -4,8 +4,8 @@ from typing import Any
 
 from tinydb import Query, TinyDB
 
-from hygroup.agent.base import AgentRegistry
-from hygroup.agent.default.agent import AgentBase, AgentFactory, AgentSettings, DefaultAgent, HandoffAgent
+from hygroup.agent.base import Agent, AgentFactory, AgentRegistry
+from hygroup.agent.default.agent import AgentSettings, DefaultAgent, HandoffAgent
 from hygroup.utils import arun
 
 
@@ -25,7 +25,7 @@ class DefaultAgentRegistry(AgentRegistry):
         self._tinydb = TinyDB(str(self.registry_path), indent=2)
         self._lock = asyncio.Lock()
 
-    async def create_agent(self, name: str) -> AgentBase:
+    async def create_agent(self, name: str) -> Agent:
         """Create an agent from config or factory registered under `name`."""
         if doc := self._factories.get(name):
             return doc["factory"]()

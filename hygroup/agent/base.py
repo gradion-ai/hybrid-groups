@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from asyncio import Future
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator, Callable, Sequence
 
 
 @dataclass
@@ -141,3 +141,6 @@ class AgentRegistry(ABC):
 
         configs = await self.get_descriptions()
         return "\n".join([f"- {name}: {description}" for name, description in configs.items()])
+
+
+AgentFactory = Callable[[], Agent]
