@@ -1,3 +1,4 @@
+import uuid
 from abc import ABC, abstractmethod
 from asyncio import Future
 from contextlib import asynccontextmanager
@@ -18,22 +19,41 @@ class Message:
     text: str
     threads: list[Thread] = field(default_factory=list)
     handoffs: dict[str, str] | None = None
+
     id: str | None = None
+    """Id of the gateway message represented by this message."""
 
 
 @dataclass
-class AgentRequest(ABC):
+class AgentRequest:
     query: str
     sender: str
     threads: list[Thread] = field(default_factory=list)
-    id: str | None = None
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    """Id of this request."""
+    message_id: str | None = None
+    """Id of the gateway message that triggered this request."""
 
 
 @dataclass
-class AgentResponse(ABC):
+class AgentActivation:
+    agent_name: str | None
+
+    message_id: str | None = None
+    """Id of the gateway message that activated agent."""
+    request_id: str | None = None
+    """Id of the request that activated agent."""
+
+
+@dataclass
+class AgentResponse:
     text: str
-    final: bool
+    final: bool = True
     handoffs: dict[str, str] = field(default_factory=dict)
+
+    request_id: str | None = None
+    """Id of the request that triggered this response."""
 
 
 @dataclass

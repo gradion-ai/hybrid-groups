@@ -1,6 +1,6 @@
+import asyncio
 import logging
 import os
-from asyncio import Lock
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -8,8 +8,10 @@ from markdown_to_mrkdwn import SlackMarkdownConverter
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
+from slack_sdk.web.async_slack_response import AsyncSlackResponse
 
 from hygroup.agent import (
+    AgentActivation,
     AgentRequest,
     AgentResponse,
     Message,
@@ -26,8 +28,9 @@ class SlackThread:
     channel: str
     session: Session
     permission_requests: dict[str, PermissionRequest] = field(default_factory=dict)
-    activated: bool = False
-    lock: Lock = Lock()
+    response_ids: dict[str, str] = field(default_factory=dict)
+    response_upd: dict[str, asyncio.Task] = field(default_factory=dict)
+    lock: asyncio.Lock = asyncio.Lock()
 
     @property
     def id(self) -> str:
@@ -61,7 +64,7 @@ class SlackThread:
         receiver: str,
         message_id: str | None = None,
     ):
-        request = AgentRequest(query=query, sender=sender, id=message_id)
+        request = AgentRequest(query=query, sender=sender, message_id=message_id)
         await self.session.invoke(request=request, receiver=receiver)
 
 
@@ -71,9 +74,17 @@ class SlackGateway(Gateway, RequestHandler):
         session_manager: SessionManager,
         user_mapping: dict[str, str] = {},
         handle_permission_requests: bool = False,
+        wip_emoji: str = "beer",
+        wip_update_interval: float = 10.0,
+        wip_update_max: int = 10,
     ):
         self.session_manager = session_manager
         self.delegate_handler = session_manager.request_handler
+        self.handle_permission_requests = handle_permission_requests
+
+        self.wip_emoji = wip_emoji
+        self.wip_update_interval = wip_update_interval
+        self.wip_update_max = wip_update_max
 
         if handle_permission_requests:
             # Gateway handles permission requests itself, delegating
@@ -122,25 +133,56 @@ class SlackGateway(Gateway, RequestHandler):
     async def handle_confirmation_request(self, *args, **kwargs):
         await self.delegate_handler.handle_confirmation_request(*args, **kwargs)
 
-    async def handle_agent_activation(self, agent_name: str | None, message_id: str, session_id: str):
+    async def handle_agent_activation(self, activation: AgentActivation, session_id: str):
         thread = self._threads[session_id]
 
-        match agent_name:
-            case None:
-                emoji = "ballot_box_with_check"
-            case "selector":
-                emoji = "eyes"
-            case _:
-                emoji = "robot_face"
+        if activation.message_id:
+            match activation.agent_name:
+                case None:
+                    emoji = "ballot_box_with_check"
+                case "selector":
+                    emoji = "eyes"
+                case _:
+                    emoji = "robot_face"
 
-        await self._client.reactions_add(
-            channel=thread.channel,
-            timestamp=message_id,
-            name=emoji,
-        )
+            await self._client.reactions_add(
+                channel=thread.channel,
+                timestamp=activation.message_id,
+                name=emoji,
+            )
+
+        if activation.request_id and activation.agent_name:
+            # Send initial work-in-progress message
+            response = await self._send_wip_message(thread, activation.agent_name)
+            response_id = response.data["ts"]
+
+            # Coroutine for updating the work-in-progress message
+            wip_coro = self._update_wip_message(
+                thread=thread,
+                sender=activation.agent_name,
+                message_id=response_id,
+            )
+            thread.response_ids[activation.request_id] = response_id
+            thread.response_upd[activation.request_id] = asyncio.create_task(wip_coro)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         thread = self._threads[session_id]
+
+        if request_id := response.request_id:
+            # Cancel beer timer task if it exists
+            if wip_task := thread.response_upd.pop(request_id, None):
+                wip_task.cancel()
+                try:
+                    await wip_task
+                except asyncio.CancelledError:
+                    pass
+
+            if response_id := thread.response_ids.pop(request_id, None):
+                await self._client.chat_delete(
+                    channel=thread.channel,
+                    thread_ts=thread.id,
+                    ts=response_id,
+                )
 
         receiver_resolved = self._resolve_slack_user_id(receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
@@ -161,33 +203,13 @@ class SlackGateway(Gateway, RequestHandler):
                 },
             },
         ]
-        await self._post_slack_message(thread, text, sender, blocks=blocks)
+        await self._send_slack_message(thread, text, sender, blocks=blocks)
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):  # type: ignore
         corr_id = str(uuid4())
 
         thread = self._threads[session_id]
         thread.permission_requests[corr_id] = request
-
-        # A more robust approach would be https://api.slack.com/methods/conversations.replies
-        # to determine if there is an active thread, but it has too restrictive rate limits.
-        if request._num_agent_responses == 0 and not thread.activated:
-            text = "Initializing :thread: ..."
-            blocks = [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": self._converter.convert(text),
-                    },
-                },
-            ]
-            await self._post_slack_message(thread, text, sender, blocks=blocks)
-
-            # Since multiple initial permission requests may be delivered before the first agent
-            # response, we mark the thread as activated after the first permission request in
-            # order to avoid sending multiple initialization notifications.
-            thread.activated = True
 
         text = f"*Execute action:*\n\n```\n{request.call}\n```\n\n"
         blocks = [
@@ -244,7 +266,7 @@ class SlackGateway(Gateway, RequestHandler):
         # or not.
         # ----------------------------------------------------------------------------------
 
-        await self._post_slack_message(
+        await self._send_slack_message(
             thread=thread,
             text=text,
             sender=sender,
@@ -252,7 +274,30 @@ class SlackGateway(Gateway, RequestHandler):
             user=self._resolve_slack_user_id(receiver),
         )
 
-    async def _post_slack_message(self, thread: SlackThread, text: str, sender: str, **kwargs):
+    async def _update_wip_message(self, thread: SlackThread, sender: str, message_id: str):
+        try:
+            for i in range(2, self.wip_update_max):
+                await asyncio.sleep(self.wip_update_interval)
+                await self._send_wip_message(thread, sender, i, ts=message_id)
+        except asyncio.CancelledError:
+            # Task was cancelled, this is expected
+            pass
+
+    async def _send_wip_message(self, thread: SlackThread, sender: str, progress: int = 1, **kwargs):
+        beers = f":{self.wip_emoji}:" * progress
+        text = f"{beers} *brewing ...*"
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": self._converter.convert(text),
+                },
+            },
+        ]
+        return await self._send_slack_message(thread, text, sender, blocks=blocks, **kwargs)
+
+    async def _send_slack_message(self, thread: SlackThread, text: str, sender: str, **kwargs) -> AsyncSlackResponse:
         if thread.session.agent_registry:
             emoji = await thread.session.agent_registry.get_emoji(sender)
         else:
@@ -260,12 +305,14 @@ class SlackGateway(Gateway, RequestHandler):
 
         emoji = emoji or "robot_face"
 
-        if "user" in kwargs:
+        if "ts" in kwargs:
+            coro = self._client.chat_update
+        elif "user" in kwargs:
             coro = self._client.chat_postEphemeral
         else:
             coro = self._client.chat_postMessage
 
-        await coro(
+        return await coro(
             channel=thread.channel,
             thread_ts=thread.id,
             text=text,

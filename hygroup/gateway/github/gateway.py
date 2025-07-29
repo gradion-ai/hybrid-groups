@@ -7,6 +7,7 @@ import uvicorn
 from github import Auth, GithubIntegration
 
 from hygroup.agent import (
+    AgentActivation,
     AgentRequest,
     AgentResponse,
     Message,
@@ -211,7 +212,7 @@ class GithubGateway(Gateway):
             request = AgentRequest(
                 query=text,
                 sender=sender_resolved,
-                id=message_id,
+                message_id=message_id,
             )
             await conversation.session.invoke(
                 request=request,
@@ -290,14 +291,17 @@ class GithubGateway(Gateway):
             text=text,
         )
 
-    async def handle_agent_activation(self, agent_name: str | None, message_id: str, session_id: str):
+    async def handle_agent_activation(self, activation: AgentActivation, session_id: str):
         conversation = self._conversations.get(session_id)
         if conversation is None:
             logger.warning("Conversation for session not found (session_id='%s')", session_id)
             return
 
+        if not activation.message_id:
+            return
+
         emoji = None
-        match agent_name:
+        match activation.agent_name:
             case None:
                 emoji = "+1"
             case "selector":
@@ -306,16 +310,16 @@ class GithubGateway(Gateway):
                 emoji = "rocket"
 
         if emoji is not None:
-            if message_id == "issue-description":
+            if activation.message_id == "issue-description":
                 await self._github_service.add_reaction_to_issue_description(
                     repository_name=conversation.repository.repository_full_name,
                     issue_number=conversation.issue.issue_number,
                     reaction=emoji,
                 )
-            elif message_id.startswith("issue-comment"):
+            elif activation.message_id.startswith("issue-comment"):
                 await self._github_service.add_reaction_to_issue_comment(
                     repository_name=conversation.repository.repository_full_name,
                     issue_number=conversation.issue.issue_number,
-                    comment_id=int(message_id.split("__")[1]),
+                    comment_id=int(activation.message_id.split("__")[1]),
                     reaction=emoji,
                 )
