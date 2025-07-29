@@ -3,7 +3,7 @@ import logging
 import re
 import uuid
 from asyncio import Future, Queue, Task, create_task, sleep
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +12,7 @@ import aiofiles.os
 
 from hygroup.agent import (
     Agent,
+    AgentActivation,
     AgentRegistry,
     AgentRequest,
     AgentResponse,
@@ -60,7 +61,7 @@ class SessionAgent:
                 match item:
                     case Message():
                         self._updates.append(item)
-                    case AgentRequest(sender=sender) as request, secrets:
+                    case AgentRequest(sender=sender, id=request_id) as request, secrets:
                         # -------------------------------------
                         #  TODO: trace query
                         # -------------------------------------
@@ -86,16 +87,21 @@ class SessionAgent:
                                             # -------------------------------------
                                             #  TODO: trace result
                                             # -------------------------------------
+                                            response = replace(elem, request_id=request_id)
                                             await self.session.handle_agent_response(
-                                                response=elem, sender=self.agent.name, receiver=sender
+                                                response=response, sender=self.agent.name, receiver=sender
                                             )
                                 # agent now has notifications part of
                                 # its history, so we can clear it
                                 self._updates = []
                             except Exception as e:
                                 logger.exception(e)
+                                response = AgentResponse(
+                                    text=f"Execution of agent '{self.agent.name}' failed.",
+                                    request_id=request_id,
+                                )
                                 await self.session.handle_system_response(
-                                    response=f"Execution of agent '{self.agent.name}' failed.",
+                                    response=response,
                                     receiver=sender,
                                 )
 
@@ -213,7 +219,6 @@ class Session:
     async def handle_feedback_request(self, request: FeedbackRequest, sender: str, receiver: str):
         coro = self._request_handler.handle_feedback_request(request, sender, receiver, session_id=self.id)
         await self._request_handler_queue.put(coro)
-
         await request.response()
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str):
@@ -230,16 +235,17 @@ class Session:
         coro = self.gateway.handle_agent_response(response, sender, receiver, session_id=self.id)
         await self._gateway_queue.put(coro)
 
-    async def handle_system_response(self, response: str, receiver: str):
-        coro = self.gateway.handle_agent_response(
-            response=AgentResponse(text=response, final=True),
+    async def handle_system_response(self, response: AgentResponse, receiver: str):
+        await self.handle_agent_response(
+            response=response,
             sender="system",
             receiver=receiver,
-            session_id=self.id,
         )
-        await self._gateway_queue.put(coro)
 
     async def select(self, message: Message):
+        if message.sender == "selector":
+            return
+
         # agent names currently available in registry
         agent_names = await self.agent_names()
 
@@ -248,11 +254,15 @@ class Session:
             await self._selector.add(message)
             return
 
-        if message.id:
-            coro = self.gateway.handle_agent_activation(
-                agent_name="selector", message_id=message.id, session_id=self.id
-            )
-            await self._gateway_queue.put(coro)
+        activation = AgentActivation(
+            agent_name="selector",
+            message_id=message.id,
+        )
+        coro = self.gateway.handle_agent_activation(
+            activation=activation,
+            session_id=self.id,
+        )
+        await self._gateway_queue.put(coro)
 
         selection_result = await self._selector.run(message)
         selection = selection_result.selection
@@ -274,25 +284,35 @@ class Session:
             confirmation_response = await confirmation_request.response()
 
             if not confirmation_response.confirmed or selection.agent_name is None or selection.query is None:
-                if message.id:
-                    coro = self.gateway.handle_agent_activation(
-                        agent_name=None,
-                        message_id=message.id,
-                        session_id=self.id,
-                    )
-                    await self._gateway_queue.put(coro)
+                activation = AgentActivation(
+                    agent_name=None,
+                    message_id=message.id,
+                )
+                coro = self.gateway.handle_agent_activation(
+                    activation=activation,
+                    session_id=self.id,
+                )
+                await self._gateway_queue.put(coro)
 
-                # If agent_name is None but response is provided, send it as a system message
-                if selection.agent_name is None and selection.response is not None:
-                    await self.handle_system_response(
-                        response=selection.response,
+                if selection.response is not None:
+                    await self.handle_agent_response(
+                        response=AgentResponse(text=selection.response),
+                        sender="selector",
                         receiver=message.sender,
                     )
 
                 return
 
-            agent_request = AgentRequest(query=selection.query, sender=message.sender, id=message.id)
-            await self.invoke(agent_request, selection.agent_name, selected=True)
+            agent_request = AgentRequest(
+                query=selection.query,
+                sender=message.sender,
+                message_id=message.id,
+            )
+            await self.invoke(
+                request=agent_request,
+                receiver=selection.agent_name,
+                selected=True,
+            )
 
     async def update(self, message: Message, reference: bool = True):
         if not message.threads and reference:
@@ -317,19 +337,26 @@ class Session:
             try:
                 await self.load_agent(receiver)
             except ValueError:
+                response = AgentResponse(
+                    text=f'Agent "{receiver}" not registered',
+                    request_id=request.id,
+                )
                 return await self.handle_system_response(
-                    response=f'Agent "{receiver}" not registered',
+                    response=response,
                     receiver=request.sender,
                 )
 
         if receiver in self._agents:
-            if request.id:
-                coro = self.gateway.handle_agent_activation(
-                    agent_name=receiver,
-                    message_id=request.id,
-                    session_id=self.id,
-                )
-                await self._gateway_queue.put(coro)
+            activation = AgentActivation(
+                agent_name=receiver,
+                message_id=request.message_id,
+                request_id=request.id,
+            )
+            coro = self.gateway.handle_agent_activation(
+                activation=activation,
+                session_id=self.id,
+            )
+            await self._gateway_queue.put(coro)
 
             # get secrets of authenticated sender
             secrets = self.user_registry.get_secrets(request.sender)
@@ -352,12 +379,16 @@ class Session:
                     receiver=receiver,
                     text=request.query,
                     threads=request.threads,
-                    id=request.id,
+                    id=request.message_id,
                 )
                 await self.update(message)
         else:
+            response = AgentResponse(
+                text=f'Agent "{receiver}" does not exist',
+                request_id=request.id,
+            )
             await self.handle_system_response(
-                response=f'Agent "{receiver}" does not exist',
+                response=response,
                 receiver=request.sender,
             )
 

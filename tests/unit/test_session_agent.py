@@ -91,9 +91,10 @@ async def test_worker_handles_agent_run_exception(session_agent, mock_agent, moc
         mock_logger.exception.assert_called_once_with(test_exception)
 
         # Verify system response was sent
-        mock_session.handle_system_response_mock.assert_called_once_with(
-            response="Execution of agent 'test_agent' failed.", receiver=sender
-        )
+        call_args = mock_session.handle_system_response_mock.call_args
+        assert call_args[1]["receiver"] == sender
+        assert call_args[1]["response"].text == "Execution of agent 'test_agent' failed."
+        assert call_args[1]["response"].final is True
 
 
 @pytest.mark.asyncio
@@ -122,9 +123,12 @@ async def test_worker_handles_agent_run_success(session_agent, mock_agent, mock_
         mock_logger.exception.assert_not_called()
 
         # Verify agent response was handled
-        mock_session.handle_agent_response_mock.assert_called_once_with(
-            response=test_response, sender="test_agent", receiver=sender
-        )
+        call_args = mock_session.handle_agent_response_mock.call_args
+        assert call_args[1]["sender"] == "test_agent"
+        assert call_args[1]["receiver"] == sender
+        assert call_args[1]["response"].text == "Test response"
+        assert call_args[1]["response"].final is True
+        assert call_args[1]["response"].request_id is not None  # request_id is added by SessionAgent
 
         # Verify system response was NOT called
         mock_session.handle_system_response_mock.assert_not_called()
@@ -178,9 +182,12 @@ async def test_worker_continues_after_exception(session_agent, mock_agent, mock_
 
         # Verify second request was processed successfully
         mock_logger.exception.assert_not_called()
-        mock_session.handle_agent_response_mock.assert_called_once_with(
-            response=second_response, sender="test_agent", receiver=sender
-        )
+        call_args = mock_session.handle_agent_response_mock.call_args
+        assert call_args[1]["sender"] == "test_agent"
+        assert call_args[1]["receiver"] == sender
+        assert call_args[1]["response"].text == "Second response"
+        assert call_args[1]["response"].final is True
+        assert call_args[1]["response"].request_id is not None
         mock_session.handle_system_response_mock.assert_not_called()
 
 
@@ -222,6 +229,7 @@ async def test_worker_handles_different_exception_types(
         mock_logger.exception.assert_called_once_with(test_exception)
 
         # Verify system response was sent with generic message regardless of exception type
-        mock_session.handle_system_response_mock.assert_called_once_with(
-            response="Execution of agent 'test_agent' failed.", receiver=sender
-        )
+        call_args = mock_session.handle_system_response_mock.call_args
+        assert call_args[1]["receiver"] == sender
+        assert call_args[1]["response"].text == "Execution of agent 'test_agent' failed."
+        assert call_args[1]["response"].final is True
