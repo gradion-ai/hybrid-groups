@@ -75,6 +75,7 @@ class SlackGateway(Gateway, RequestHandler):
         user_mapping: dict[str, str] = {},
         handle_permission_requests: bool = False,
         wip_emoji: str = "beer",
+        wip_update: bool | None = None,
         wip_update_interval: float = 10.0,
         wip_update_max: int = 10,
     ):
@@ -85,6 +86,10 @@ class SlackGateway(Gateway, RequestHandler):
         self.wip_emoji = wip_emoji
         self.wip_update_interval = wip_update_interval
         self.wip_update_max = wip_update_max
+
+        # by default, disable animation of work-in-progress messages when permission requests are
+        # displayed (to the initiating user), which can be seen as a kind of progress indicator.
+        self.wip_update = not handle_permission_requests if wip_update is None else wip_update
 
         if handle_permission_requests:
             # Gateway handles permission requests itself, delegating
@@ -162,8 +167,11 @@ class SlackGateway(Gateway, RequestHandler):
                 sender=activation.agent_name,
                 message_id=response_id,
             )
+
             thread.response_ids[activation.request_id] = response_id
-            thread.response_upd[activation.request_id] = asyncio.create_task(wip_coro)
+
+            if self.wip_update:
+                thread.response_upd[activation.request_id] = asyncio.create_task(wip_coro)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         thread = self._threads[session_id]
