@@ -50,7 +50,7 @@ def resolve_mentions(text: str | None, resolver: Callable[[str], str]) -> str | 
     # First replace <@userid> format
     text = re.sub(r"<@([/\w-]+)>", resolve_bracket_mention, text)
 
-    # Then replace @username format
-    text = re.sub(r"@([/\w-]+)", resolve_at_mention, text)
+    # Then replace @username format (avoid matching email addresses)
+    text = re.sub(r"(?<!\w)@([/\w-]+)", resolve_at_mention, text)
 
     return text

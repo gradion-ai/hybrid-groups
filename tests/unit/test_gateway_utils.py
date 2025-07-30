@@ -84,9 +84,30 @@ def test_extract_mention_with_special_chars_in_remaining_text():
         ("no mentions here", {}, "no mentions here"),
         # Edge cases
         ("@@double", {}, "@double"),  # Double @ should leave one @
-        ("email@example.com", {}, "emailexample.com"),  # @ in email gets removed
+        ("email@example.com", {}, "email@example.com"),  # Email should remain intact
         ("@", {}, "@"),  # Single @ with nothing after (no match)
         ("<@>", {}, "<@>"),  # Empty brackets (no match)
+        # Email address test cases (should not be modified)
+        ("first.last@example.com", {}, "first.last@example.com"),
+        ("user+tag@domain.co.uk", {}, "user+tag@domain.co.uk"),
+        ("test@sub.domain.org", {}, "test@sub.domain.org"),
+        ("admin@company-name.com", {}, "admin@company-name.com"),
+        ("123@numbers.net", {}, "123@numbers.net"),
+        # Mixed email and mentions
+        ("Contact @support at help@company.com", {"support": "team"}, "Contact team at help@company.com"),
+        (
+            "Email me@company.com or ping @admin",
+            {"admin": "administrator"},
+            "Email me@company.com or ping administrator",
+        ),
+        ("@bot please send to user@domain.com", {"bot": "assistant"}, "assistant please send to user@domain.com"),
+        # Multiple emails in text
+        ("Send to admin@company.com and user@domain.org", {}, "Send to admin@company.com and user@domain.org"),
+        # Email in various contexts
+        ("(user@example.com)", {}, "(user@example.com)"),
+        ("[admin@company.com]", {}, "[admin@company.com]"),
+        ("'test@domain.org'", {}, "'test@domain.org'"),
+        ('"contact@company.com"', {}, '"contact@company.com"'),
         # Multiple mentions in complex text
         (
             "Hey @bot, can you help @user1 and @user2 with <@U123>?",
