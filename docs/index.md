@@ -6,7 +6,7 @@
 
 ## Overview
 
-*Hybrid Groups* is a multi-user, multi-agent collaboration platform that enables users to interact with both agents and other users in group chats on Slack and GitHub. Agents act and respond according to each user's identity, preferences and privileges, enabling secure access to a user's private resources while collaborating in a team.
+*Hybrid Groups* is a multi-user, multi-agent collaboration platform that enables users to interact with both agents and other users in group chats on Slack and GitHub. Agents act and respond according to each user's identity, preferences and privileges, enabling secure access to a user's private resources while collaborating in a team. Agents can also contribute proactively based on context and ongoing conversations.
 
 <div class="image-row">
   <div class="image-item">
