@@ -15,7 +15,7 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.text import Text
 
-from hygroup.agent import AgentRequest, AgentResponse, Message
+from hygroup.agent import AgentResponse, Message
 from hygroup.gateway import Gateway
 from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
@@ -137,23 +137,13 @@ class TerminalGateway(Gateway):
         # replace all @mentions with mentions (i.e. remove @)
         text = resolve_mentions(text, lambda x: x)
 
-        if receiver in await self._session.agent_names():
-            await self._session.invoke(
-                request=AgentRequest(
-                    query=text,
-                    sender=sender,
-                ),
-                receiver=receiver,
-            )
-        else:
-            await self._session.update(
-                Message(
-                    text=text,
-                    sender=sender,
-                    receiver=receiver,
-                )
-            )
+        message = Message(
+            text=text,
+            sender=sender,
+            receiver=receiver,
+        )
 
+        await self._session.process_message(message)
         await self.send_message(content, sender, agent=False)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):

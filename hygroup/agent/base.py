@@ -52,6 +52,8 @@ class AgentResponse:
     final: bool = True
     handoffs: dict[str, str] = field(default_factory=dict)
 
+    message_id: str | None = None
+    """Id of the gateway message that activated agent."""
     request_id: str | None = None
     """Id of the request that triggered this response."""
 

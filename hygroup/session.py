@@ -61,7 +61,9 @@ class SessionAgent:
                 match item:
                     case Message():
                         self._updates.append(item)
-                    case AgentRequest(sender=sender, id=request_id) as request, secrets, response_channel:
+                    case AgentRequest(
+                        sender=sender, id=request_id, message_id=message_id
+                    ) as request, secrets, response_channel:
                         # needed by agent invocation tools
                         self.session._secrets_var.set(secrets)
 
@@ -90,7 +92,7 @@ class SessionAgent:
                                             # -------------------------------------
                                             #  TODO: trace result
                                             # -------------------------------------
-                                            response = replace(elem, request_id=request_id)
+                                            response = replace(elem, request_id=request_id, message_id=message_id)
                                             if response_channel is not None:
                                                 await response_channel.put(response)
                                             else:
@@ -245,19 +247,21 @@ class Session:
         await request.response()
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str):
+        if response.text:
+            message = Message(sender=sender, receiver=receiver, text=response.text, handoffs=None)
+            await self.update_agents(message, exclude=sender)
+
         if sender == "system" and not response.text:
-            # system agent decided to take no action
-            return
-
-        message = Message(sender=sender, receiver=receiver, text=response.text, handoffs=response.handoffs or None)
-
-        # If an agent response contains thread references, we don't load the threads
-        # because the corresponding request or a message that triggered the request
-        # already contains the loaded threads.
-        await self.update(message, reference=False)
-
-        for agent, query in response.handoffs.items():
-            await self.invoke(request=AgentRequest(query=query, sender=receiver), receiver=agent)
+            activation = AgentActivation(
+                agent_name=None,
+                message_id=response.message_id,
+                request_id=response.request_id,
+            )
+            coro = self.gateway.handle_agent_activation(
+                activation=activation,
+                session_id=self.id,
+            )
+            await self._gateway_queue.put(coro)
 
         coro = self.gateway.handle_agent_response(response, sender, receiver, session_id=self.id)
         await self._gateway_queue.put(coro)
@@ -343,6 +347,72 @@ class Session:
             )
     """
 
+    async def process_message(self, message: Message):
+        if not message.threads:
+            # Load any threads referenced with `thread:...` in the message text.
+            message.threads = await self._load_referenced_threads(message.text)
+
+        request = AgentRequest(
+            query=message.text,
+            sender=message.sender,
+            threads=message.threads,
+            message_id=message.id,
+        )
+
+        if message.receiver in await self.agent_names():
+            await self.update_agents(message, exclude=message.receiver)
+            await self.invoke_receiver(request, message.receiver)
+        else:
+            await self.update_agents(message, exclude="system")
+            await self.invoke_receiver(request, "system")
+            # TODO: process message as an inbound message
+            ...
+
+    async def invoke_receiver(self, request: AgentRequest, receiver: str):
+        # -------------------------------------
+        #  FIXME: run this if block atomically
+        # -------------------------------------
+        if receiver not in self._agents:
+            try:
+                await self.load_agent(receiver)
+            except ValueError:
+                response = AgentResponse(
+                    text=f'Agent "{receiver}" not registered',
+                    request_id=request.id,
+                )
+                return await self.handle_system_response(
+                    response=response,
+                    receiver=request.sender,
+                )
+
+        activation = AgentActivation(
+            agent_name=receiver,
+            message_id=request.message_id,
+            request_id=request.id,
+        )
+        coro = self.gateway.handle_agent_activation(
+            activation=activation,
+            session_id=self.id,
+        )
+        await self._gateway_queue.put(coro)
+
+        # get secrets of authenticated sender
+        secrets = self.user_registry.get_secrets(request.sender)
+
+        # invoke receiver agent with request
+        await self._agents[receiver].invoke(request, secrets)
+
+    async def update_agents(self, message: Message, exclude: str):
+        # Add message to this session's message history. These are
+        # are the messages that users see on the platforms integrated
+        # by gateways.
+        self._messages.append(message)
+
+        for agent_name, agent in self._agents.items():
+            if agent_name != exclude:
+                await agent.update(message)
+
+    """
     async def update(self, message: Message, reference: bool = True):
         if not message.threads and reference:
             # Load any threads referenced with `thread:...` in the message text.
@@ -375,6 +445,7 @@ class Session:
                 receiver="system",
                 selected=True,  # TODO: investigate this ...
             )
+    """
 
     # -------------------------------------
     #  Special tool for system agent
@@ -409,6 +480,7 @@ class Session:
 
         return response.text
 
+    """
     async def invoke(self, request: AgentRequest, receiver: str, selected: bool = False):
         # -------------------------------------
         #  FIXME: run this if block atomically
@@ -471,6 +543,7 @@ class Session:
                 response=response,
                 receiver=request.sender,
             )
+    """
 
     def contains(self, id: str) -> bool:
         return any(message.id == id for message in self._messages)

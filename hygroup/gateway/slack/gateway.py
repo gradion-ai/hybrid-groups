@@ -12,7 +12,6 @@ from slack_sdk.web.async_slack_response import AsyncSlackResponse
 
 from hygroup.agent import (
     AgentActivation,
-    AgentRequest,
     AgentResponse,
     Message,
     PermissionRequest,
@@ -40,32 +39,14 @@ class SlackThread:
         if self.session.contains(msg["id"]):
             return  # idempotency
 
-        if msg["receiver_resolved"] in await self.session.agent_names():
-            await self._invoke_agent(
-                query=msg["text"],
-                sender=msg["sender_resolved"],
-                receiver=msg["receiver_resolved"],
-                message_id=msg["id"],
-            )
-        else:
-            await self.session.update(
-                Message(
-                    sender=msg["sender_resolved"],
-                    receiver=msg["receiver_resolved"],
-                    text=msg["text"],
-                    id=msg["id"],
-                )
-            )
+        message = Message(
+            sender=msg["sender_resolved"],
+            receiver=msg["receiver_resolved"],
+            text=msg["text"],
+            id=msg["id"],
+        )
 
-    async def _invoke_agent(
-        self,
-        query: str,
-        sender: str,
-        receiver: str,
-        message_id: str | None = None,
-    ):
-        request = AgentRequest(query=query, sender=sender, message_id=message_id)
-        await self.session.invoke(request=request, receiver=receiver)
+        await self.session.process_message(message)
 
 
 class SlackGateway(Gateway, RequestHandler):
@@ -191,6 +172,9 @@ class SlackGateway(Gateway, RequestHandler):
                     thread_ts=thread.id,
                     ts=response_id,
                 )
+
+        if not response.text:
+            return
 
         receiver_resolved = self._resolve_slack_user_id(receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
