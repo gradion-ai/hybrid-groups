@@ -2,7 +2,8 @@ import json
 import logging
 import re
 import uuid
-from asyncio import Future, Queue, Task, create_task, sleep
+from asyncio import Queue, Task, create_task, sleep
+from contextvars import ContextVar
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -16,9 +17,6 @@ from hygroup.agent import (
     AgentRegistry,
     AgentRequest,
     AgentResponse,
-    AgentSelectionConfirmationRequest,
-    AgentSelector,
-    AgentSelectorSettings,
     FeedbackRequest,
     Message,
     PermissionRequest,
@@ -51,8 +49,10 @@ class SessionAgent:
     async def update(self, message: Message):
         await self._queue.put(message)
 
-    async def invoke(self, request: AgentRequest, secrets: dict[str, str] | None = None):
-        await self._queue.put((request, secrets))
+    async def invoke(
+        self, request: AgentRequest, secrets: dict[str, str] | None = None, response_channel: Queue | None = None
+    ):
+        await self._queue.put((request, secrets, response_channel))
 
     async def worker(self):
         async with self.agent.session_scope():
@@ -61,7 +61,10 @@ class SessionAgent:
                 match item:
                     case Message():
                         self._updates.append(item)
-                    case AgentRequest(sender=sender, id=request_id) as request, secrets:
+                    case AgentRequest(sender=sender, id=request_id) as request, secrets, response_channel:
+                        # needed by agent invocation tools
+                        self.session._secrets_var.set(secrets)
+
                         # -------------------------------------
                         #  TODO: trace query
                         # -------------------------------------
@@ -88,9 +91,12 @@ class SessionAgent:
                                             #  TODO: trace result
                                             # -------------------------------------
                                             response = replace(elem, request_id=request_id)
-                                            await self.session.handle_agent_response(
-                                                response=response, sender=self.agent.name, receiver=sender
-                                            )
+                                            if response_channel is not None:
+                                                await response_channel.put(response)
+                                            else:
+                                                await self.session.handle_agent_response(
+                                                    response=response, sender=self.agent.name, receiver=sender
+                                                )
                                 # agent now has notifications part of
                                 # its history, so we can clear it
                                 self._updates = []
@@ -100,10 +106,13 @@ class SessionAgent:
                                     text=f"Execution of agent '{self.agent.name}' failed.",
                                     request_id=request_id,
                                 )
-                                await self.session.handle_system_response(
-                                    response=response,
-                                    receiver=sender,
-                                )
+                                if response_channel is not None:
+                                    await response_channel.put(response)
+                                else:
+                                    await self.session.handle_system_response(
+                                        response=response,
+                                        receiver=sender,
+                                    )
 
 
 class Session:
@@ -120,7 +129,7 @@ class Session:
         self.agent_registry: AgentRegistry = self.manager.agent_registry
         self.user_registry: UserRegistry = self.manager.user_registry
         self.permission_store: PermissionStore = self.manager.permission_store
-        self.selector_settings: AgentSelectorSettings | None = self.manager.selector_settings
+        # self.selector_settings: AgentSelectorSettings | None = self.manager.selector_settings
 
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
@@ -134,12 +143,26 @@ class Session:
         self._request_handler_task: Task = create_task(self._request_handler_worker())
         self._request_handler = self.manager.request_handler
 
-        self._selector_queue: Queue = Queue()
-        self._selector_task: Task = create_task(self._selector_worker())
-        self._selector: AgentSelector = AgentSelector(
-            registry=self.agent_registry,
-            settings=self.selector_settings,
-        )
+        # self._selector_queue: Queue = Queue()
+        # self._selector_task: Task = create_task(self._selector_worker())
+        # self._selector: AgentSelector = AgentSelector(
+        #    registry=self.agent_registry,
+        #    settings=self.selector_settings,
+        # )
+
+        from hygroup.user.default.preferences import DefaultPreferenceStore
+
+        self.preferences_store = DefaultPreferenceStore()
+
+        from hygroup.agent.system.agent import SystemAgent, system_agent_settings
+
+        system_agent = SystemAgent(settings=system_agent_settings)
+        system_agent.tool(requires_permission=True)(self.invoke_agent)
+        system_agent.tool(requires_permission=True)(self.get_user_preferences)
+        system_agent.tool(requires_permission=True)(self.agent_registry.get_registered_agents)
+        self.add_agent(system_agent)
+
+        self._secrets_var = ContextVar[dict[str, str]]("secrets")
 
     async def _gateway_worker(self):
         # for sequential (but not atomic) execution of gateway methods
@@ -149,9 +172,9 @@ class Session:
         # for sequential (but not atomic) execution of request handler methods
         await self._worker(self._request_handler_queue)
 
-    async def _selector_worker(self):
-        # for sequential (but not atomic) execution of select()
-        await self._worker(self._selector_queue)
+    # async def _selector_worker(self):
+    #    # for sequential (but not atomic) execution of select()
+    #    await self._worker(self._selector_queue)
 
     async def _worker(self, queue: Queue):
         while True:
@@ -222,6 +245,10 @@ class Session:
         await request.response()
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str):
+        if sender == "system" and not response.text:
+            # system agent decided to take no action
+            return
+
         message = Message(sender=sender, receiver=receiver, text=response.text, handoffs=response.handoffs or None)
 
         # If an agent response contains thread references, we don't load the threads
@@ -242,6 +269,7 @@ class Session:
             receiver=receiver,
         )
 
+    """
     async def select(self, message: Message):
         if message.sender == "selector":
             return
@@ -313,6 +341,7 @@ class Session:
                 receiver=selection.agent_name,
                 selected=True,
             )
+    """
 
     async def update(self, message: Message, reference: bool = True):
         if not message.threads and reference:
@@ -329,10 +358,61 @@ class Session:
                 if agent_name not in [message.sender, message.receiver]:
                     await agent.update(message)
 
-        coro = self.select(message)
-        await self._selector_queue.put(coro)
+        # Experimental deactivation of selector ...
+        # coro = self.select(message)
+        # await self._selector_queue.put(coro)
+
+        agent_names = await self.agent_names()
+
+        if message.receiver == "system" or (message.sender not in agent_names and message.receiver not in agent_names):
+            agent_request = AgentRequest(
+                query=message.text,
+                sender=message.sender,
+                message_id=message.id,
+            )
+            await self.invoke(
+                request=agent_request,
+                receiver="system",
+                selected=True,  # TODO: investigate this ...
+            )
+
+    # -------------------------------------
+    #  Special tool for system agent
+    # -------------------------------------
+    async def get_user_preferences(self, username: str):
+        preferences = await self.preferences_store.get_preferences(username)
+        preferences = preferences or "n/a"
+        return f"User preferences for {username}:\n{preferences}"
+
+    # -------------------------------------
+    #  Special tool for system agent
+    # -------------------------------------
+    async def invoke_agent(self, agent_name: str, query: str) -> str:
+        """
+        Invoke an agent identified by agent_name with the given query and return its response.
+        """
+        # -------------------------------------
+        #  FIXME: run this if block atomically
+        # -------------------------------------
+        if agent_name not in self._agents:
+            try:
+                await self.load_agent(agent_name)
+            except ValueError:
+                return f'Agent "{agent_name}" not registered'
+
+        request = AgentRequest(query=query, sender="system")
+        secrets = self._secrets_var.get()
+
+        response_channel: Queue = Queue()
+        await self._agents[agent_name].invoke(request, secrets, response_channel)
+        response = await response_channel.get()
+
+        return response.text
 
     async def invoke(self, request: AgentRequest, receiver: str, selected: bool = False):
+        # -------------------------------------
+        #  FIXME: run this if block atomically
+        # -------------------------------------
         if receiver not in self._agents:
             try:
                 await self.load_agent(receiver)
@@ -411,7 +491,7 @@ class Session:
             "messages": [asdict(message) for message in self._messages],
             "agents": {name: adapter.get_state() for name, adapter in self._agents.items()},
         }
-        state_dict["selector"] = self._selector.get_state()
+        # state_dict["selector"] = self._selector.get_state()
         await self.manager.save_session_state(self.id, state_dict)
 
     async def load(self):
@@ -423,7 +503,7 @@ class Session:
                 self._agents[name].set_state(state)
 
         # restore selector agent state
-        self._selector.set_state(state_dict["selector"])
+        # self._selector.set_state(state_dict["selector"])
 
         # restore thread messages
         self._messages = [Message(**message) for message in state_dict["messages"]]
@@ -436,14 +516,14 @@ class SessionManager:
         user_registry: UserRegistry,
         permission_store: PermissionStore,
         request_handler: RequestHandler,
-        selector_settings: AgentSelectorSettings | None = None,
+        # selector_settings: AgentSelectorSettings | None = None,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registry = agent_registry
         self.user_registry = user_registry
         self.permission_store = permission_store
         self.request_handler = request_handler
-        self.selector_settings = selector_settings
+        # self.selector_settings = selector_settings
 
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)

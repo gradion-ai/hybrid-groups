@@ -82,7 +82,7 @@ async def main(args):
         user_registry=user_registry,
         permission_store=permission_store,
         request_handler=request_handler,
-        selector_settings=selector_settings,
+        # selector_settings=selector_settings,
     )
 
     # A gateway provides connectivity to platforms like Slack, GitHub, or a terminal.
