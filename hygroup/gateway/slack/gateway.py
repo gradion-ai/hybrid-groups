@@ -175,13 +175,7 @@ class SlackGateway(Gateway, RequestHandler):
         receiver_resolved = self._resolve_slack_user_id(receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
-        response_text = response.text
-        if response.handoffs:
-            response_text += "\n\n**Handoffs:**"
-            for agent, query in response.handoffs.items():
-                response_text += f"\n- `{agent}`: {query}"
-
-        text = f"{receiver_resolved_formatted} {response_text}"
+        text = f"{receiver_resolved_formatted} {response.text}"
         blocks = [
             {
                 "type": "section",

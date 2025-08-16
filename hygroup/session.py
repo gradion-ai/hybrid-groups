@@ -239,7 +239,7 @@ class Session:
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str):
         if response.text:
-            message = Message(sender=sender, receiver=receiver, text=response.text, handoffs=None)
+            message = Message(sender=sender, receiver=receiver, text=response.text)
             await self.update_agents(message, exclude=sender)
 
         coro = self.gateway.handle_agent_response(response, sender, receiver, session_id=self.id)

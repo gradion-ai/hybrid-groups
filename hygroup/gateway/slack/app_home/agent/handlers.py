@@ -118,15 +118,6 @@ class AgentConfigHandlers:
         tools_str = view["state"]["values"]["agent_tools"]["tools_input"].get("value") or ""
         emoji = view["state"]["values"]["agent_emoji"]["emoji_input"].get("value") or ""
 
-        # Extract checkboxes from input block
-        selected_options = (
-            view["state"]["values"]
-            .get("agent_handoff_options", {})
-            .get("agent_options", {})
-            .get("selected_options", [])
-        )
-        handoff = any(option["value"] == "handoff" for option in selected_options)
-
         # Get existing agent names for validation
         existing_names = await self._get_agent_names()
 
@@ -166,7 +157,6 @@ class AgentConfigHandlers:
             mcp_settings=mcp_data or [],
             model_settings=model_settings_data,
             tools=tools_data or [],
-            handoff=handoff,
             emoji=emoji.strip(),
         )
 
@@ -207,15 +197,6 @@ class AgentConfigHandlers:
         tools_str = view["state"]["values"]["agent_tools"]["tools_input"].get("value") or ""
         emoji = view["state"]["values"]["agent_emoji"]["emoji_input"].get("value") or ""
 
-        # Extract checkboxes from input block
-        selected_options = (
-            view["state"]["values"]
-            .get("agent_handoff_options", {})
-            .get("agent_options", {})
-            .get("selected_options", [])
-        )
-        handoff = any(option["value"] == "handoff" for option in selected_options)
-
         # Validate all fields (excluding name since it can't be changed)
         errors = AgentValidator.validate_agent_data(
             agent_name,  # Use existing name
@@ -252,7 +233,6 @@ class AgentConfigHandlers:
             mcp_settings=mcp_data or [],
             model_settings=model_settings_data,
             tools=tools_data or [],
-            handoff=handoff,
             emoji=emoji.strip(),
         )
 

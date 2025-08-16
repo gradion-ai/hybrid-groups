@@ -214,7 +214,7 @@ class AgentBase(Generic[D], Agent):
                     data = await result.validate_structured_output(structured_message, allow_partial=not is_last)
                     if not is_last:
                         text = self._text(data)
-                        response = AgentResponse(text=text[stream_pos:], final=False, handoffs={})
+                        response = AgentResponse(text=text[stream_pos:], final=False)
                         stream_pos = len(text)
                         if response.text:
                             await queue.put(response)
@@ -222,7 +222,7 @@ class AgentBase(Generic[D], Agent):
             result = await self.agent.run(agent_input, message_history=self._history)
             data = result.output
 
-        await queue.put(AgentResponse(text=self._text(data), final=True, handoffs=self._handoffs(data)))
+        await queue.put(AgentResponse(text=self._text(data), final=True))
         self._history.extend(result.new_messages())
 
     @staticmethod
@@ -267,9 +267,6 @@ class AgentBase(Generic[D], Agent):
 
     @abstractmethod
     def _text(self, data: D) -> str: ...
-
-    def _handoffs(self, data: D) -> dict[str, str]:
-        return {}
 
     async def ask_user(self, question: str) -> str:
         """Ask the user for clarifications or further input if you cannot complete the task."""
