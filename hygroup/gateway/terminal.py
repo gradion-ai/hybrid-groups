@@ -149,8 +149,9 @@ class TerminalGateway(Gateway):
     async def handle_agent_activation(self, activation: AgentActivation, session_id: str): ...
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
-        content = f"@{receiver} {response.text}"
-        await self.send_message(content, sender, agent=True)
+        if response.text:
+            content = f"@{receiver} {response.text}"
+            await self.send_message(content, sender, agent=True)
 
     async def send_message(self, content: str, sender: str, agent: bool = False):
         message = {
