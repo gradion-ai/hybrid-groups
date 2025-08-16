@@ -280,13 +280,6 @@ class SlackGateway(Gateway, RequestHandler):
         return await self._send_slack_message(thread, text, sender, blocks=blocks, **kwargs)
 
     async def _send_slack_message(self, thread: SlackThread, text: str, sender: str, **kwargs) -> AsyncSlackResponse:
-        if thread.session.agent_registry:
-            emoji = await thread.session.agent_registry.get_emoji(sender)
-        else:
-            emoji = None
-
-        emoji = emoji or "robot_face"
-
         if "ts" in kwargs:
             coro = self._client.chat_update
         elif "user" in kwargs:
@@ -294,12 +287,20 @@ class SlackGateway(Gateway, RequestHandler):
         else:
             coro = self._client.chat_postMessage
 
+        if sender == "system":
+            sender_kwargs = {}
+        else:
+            sender_emoji = await thread.session.agent_registry.get_emoji(sender)
+            sender_kwargs = {
+                "username": sender,
+                "icon_emoji": f":{sender_emoji or 'robot_face'}:",
+            }
+
         return await coro(
             channel=thread.channel,
             thread_ts=thread.id,
             text=text,
-            username=sender,
-            icon_emoji=f":{emoji}:",
+            **sender_kwargs,
             **kwargs,
         )
 
