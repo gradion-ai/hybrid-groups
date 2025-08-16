@@ -25,14 +25,14 @@ from hygroup.session import Session
     ],
 )
 def test_extract_session_references(text, expected_references):
-    references = Session.extract_thread_references(text)
+    references = Session._extract_thread_references(text)
     assert references == expected_references
 
 
 def test_extract_session_references_edge_cases():
     # Test with various edge cases
-    assert Session.extract_thread_references("thread:") == []  # Empty identifier
-    assert Session.extract_thread_references("THREAD:123") == []  # Wrong case
-    assert Session.extract_thread_references("thread:123!") == ["123"]  # Stops at special char
-    assert Session.extract_thread_references("thread:123@test") == ["123"]  # Stops at special char
-    assert Session.extract_thread_references("thread:123 thread:456") == ["123", "456"]  # Multiple with space
+    assert Session._extract_thread_references("thread:") == []  # Empty identifier
+    assert Session._extract_thread_references("THREAD:123") == []  # Wrong case
+    assert Session._extract_thread_references("thread:123!") == ["123"]  # Stops at special char
+    assert Session._extract_thread_references("thread:123@test") == ["123"]  # Stops at special char
+    assert Session._extract_thread_references("thread:123 thread:456") == ["123", "456"]  # Multiple with space

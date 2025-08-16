@@ -18,7 +18,6 @@ class Message:
     receiver: str | None
     text: str
     threads: list[Thread] = field(default_factory=list)
-    handoffs: dict[str, str] | None = None
 
     id: str | None = None
     """Id of the gateway message represented by this message."""
@@ -38,7 +37,7 @@ class AgentRequest:
 
 @dataclass
 class AgentActivation:
-    agent_name: str | None
+    agent_name: str
 
     message_id: str | None = None
     """Id of the gateway message that activated agent."""
@@ -50,8 +49,9 @@ class AgentActivation:
 class AgentResponse:
     text: str
     final: bool = True
-    handoffs: dict[str, str] = field(default_factory=dict)
 
+    message_id: str | None = None
+    """Id of the gateway message that activated agent."""
     request_id: str | None = None
     """Id of the request that triggered this response."""
 

@@ -143,7 +143,6 @@ async def test_registry_handles_missing_tools_gracefully(capsys):
             {
                 "name": "test_agent",
                 "description": "Test agent with missing tool",
-                "handoff": False,
                 "settings": {
                     "model": "gpt-3.5-turbo",
                     "instructions": "Test instructions",

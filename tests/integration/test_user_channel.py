@@ -5,13 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 import pytest_asyncio
 
-from hygroup.agent import (
-    AgentSelection,
-    AgentSelectionConfirmationRequest,
-    AgentSelectionResult,
-    FeedbackRequest,
-    PermissionRequest,
-)
+from hygroup.agent import FeedbackRequest, PermissionRequest
 from hygroup.user.base import RequestHandler
 from hygroup.user.default.channel import RequestClient, RequestServer
 
@@ -22,10 +16,8 @@ class MockRequestHandler(RequestHandler):
     def __init__(self):
         self.permission_calls = []
         self.feedback_calls = []
-        self.confirmation_calls = []
         self.permission_response = 1  # Default: grant once
         self.feedback_response = "test response"  # Default response
-        self.confirmation_response = (True, None)  # Default: confirm with no comment
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
         """Handle permission request and store call details."""
@@ -47,24 +39,6 @@ class MockRequestHandler(RequestHandler):
             {"question": request.question, "sender": sender, "receiver": receiver, "session_id": session_id}
         )
         request.respond(self.feedback_response)
-
-    async def handle_confirmation_request(
-        self, request: AgentSelectionConfirmationRequest, sender: str, receiver: str, session_id: str
-    ):
-        """Handle confirmation request and store call details."""
-        self.confirmation_calls.append(
-            {
-                "query": request.selection_result.selection.query,
-                "agent_name": request.selection_result.selection.agent_name,
-                "response": request.selection_result.selection.response,
-                "thoughts": request.selection_result.thoughts,
-                "sender": sender,
-                "receiver": receiver,
-                "session_id": session_id,
-            }
-        )
-        confirmed, comment = self.confirmation_response
-        request.respond(confirmed, comment)
 
 
 @pytest.fixture
@@ -259,64 +233,6 @@ async def test_multiple_permission_requests(request_server: RequestServer, reque
 
 
 @pytest.mark.asyncio
-async def test_mixed_requests(request_server: RequestServer, request_client):
-    """Test handling mixed permission, feedback, and confirmation requests."""
-    client, handler = request_client
-    handler.permission_response = 2
-    handler.feedback_response = "Mixed response"
-    handler.confirmation_response = (True, "Approved")
-
-    # Handle permission request
-    perm_future: Future = Future()
-    perm_request = PermissionRequest("mixed_tool", ("arg",), {"key": "value"}, perm_future)
-    await request_server.handle_permission_request(perm_request, "agent1", "martin", "session1")
-    perm_result = await perm_request.response()
-
-    # Handle feedback request
-    feedback_future: Future = Future()
-    feedback_request = FeedbackRequest("How was the mixed test?", feedback_future)
-    await request_server.handle_feedback_request(feedback_request, "agent2", "martin", "session2")
-    feedback_result = await feedback_request.response()
-
-    # Handle confirmation request
-    conf_future: Future = Future()
-    selection = AgentSelection(agent_name="mixed_agent", query="Mixed task")
-    selection_result = AgentSelectionResult(selection=selection, thoughts=["Mixed thought"])
-    conf_request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=conf_future)
-    await request_server.handle_confirmation_request(conf_request, "selector", "martin", "session3")
-    conf_result = await conf_request.response()
-
-    # Verify all handler calls
-    assert len(handler.permission_calls) == 1
-    assert len(handler.feedback_calls) == 1
-    assert len(handler.confirmation_calls) == 1
-
-    perm_call = handler.permission_calls[0]
-    assert perm_call["tool_name"] == "mixed_tool"
-    assert perm_call["sender"] == "agent1"
-    assert perm_call["session_id"] == "session1"
-
-    feedback_call = handler.feedback_calls[0]
-    assert feedback_call["question"] == "How was the mixed test?"
-    assert feedback_call["sender"] == "agent2"
-    assert feedback_call["session_id"] == "session2"
-
-    conf_call = handler.confirmation_calls[0]
-    assert conf_call["query"] == "Mixed task"
-    assert conf_call["agent_name"] == "mixed_agent"
-    assert conf_call["response"] is None
-    assert conf_call["thoughts"] == ["Mixed thought"]
-    assert conf_call["sender"] == "selector"
-    assert conf_call["session_id"] == "session3"
-
-    # Verify all responses
-    assert perm_result == 2
-    assert feedback_result == "Mixed response"
-    assert conf_result.confirmed is True
-    assert conf_result.comment == "Approved"
-
-
-@pytest.mark.asyncio
 async def test_request_when_user_not_connected(request_server: RequestServer, mock_user_registry):
     """Test handling requests when user is not connected."""
     # Create permission request for non-connected user
@@ -340,215 +256,3 @@ async def test_request_when_user_not_connected(request_server: RequestServer, mo
 
     # Should get empty response immediately
     assert feedback_result == ""
-
-
-@pytest.mark.asyncio
-async def test_confirmation_request_confirmed(request_server: RequestServer, request_client):
-    """Test confirmation request with confirmed response."""
-    client, handler = request_client
-    handler.confirmation_response = (True, None)
-
-    # Create confirmation request
-    future: Future = Future()
-    selection = AgentSelection(agent_name="test_agent", query="Help me with this task")
-    selection_result = AgentSelectionResult(selection=selection, thoughts=["I think test_agent is best suited"])
-    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
-
-    # Handle request on server (should propagate to client) and await response
-    await request_server.handle_confirmation_request(request, "selector", "martin", "session123")
-    result = await request.response()
-
-    # Verify client handler was called
-    assert len(handler.confirmation_calls) == 1
-    call = handler.confirmation_calls[0]
-    assert call["query"] == "Help me with this task"
-    assert call["agent_name"] == "test_agent"
-    assert call["response"] is None
-    assert call["thoughts"] == ["I think test_agent is best suited"]
-    assert call["sender"] == "selector"
-    assert call["receiver"] == "martin"
-    assert call["session_id"] == "session123"
-
-    # Verify response was received by server
-    assert result.confirmed is True
-    assert result.comment is None
-
-
-@pytest.mark.asyncio
-async def test_confirmation_request_rejected(request_server: RequestServer, request_client):
-    """Test confirmation request with rejected response and comment."""
-    client, handler = request_client
-    handler.confirmation_response = (False, "I prefer a different agent")
-
-    # Create confirmation request
-    future: Future = Future()
-    selection = AgentSelection(agent_name="agent_a", query="Analyze this data")
-    selection_result = AgentSelectionResult(selection=selection, thoughts=["Agent A has data analysis capabilities"])
-    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
-
-    # Handle request on server and await response
-    await request_server.handle_confirmation_request(request, "selector", "martin", "session456")
-    result = await request.response()
-
-    # Verify client handler was called
-    assert len(handler.confirmation_calls) == 1
-    call = handler.confirmation_calls[0]
-    assert call["query"] == "Analyze this data"
-    assert call["agent_name"] == "agent_a"
-    assert call["response"] is None
-    assert call["sender"] == "selector"
-    assert call["session_id"] == "session456"
-
-    # Verify response was received by server
-    assert result.confirmed is False
-    assert result.comment == "I prefer a different agent"
-
-
-@pytest.mark.asyncio
-async def test_confirmation_request_with_thoughts(request_server: RequestServer, request_client):
-    """Test confirmation request with multiple thoughts."""
-    client, handler = request_client
-    handler.confirmation_response = (True, "Good choice")
-
-    # Create confirmation request with multiple thoughts
-    future: Future = Future()
-    selection = AgentSelection(agent_name="expert_agent", query="Complex problem solving")
-    thoughts = [
-        "This is a complex problem",
-        "Expert agent has the right capabilities",
-        "It has handled similar tasks before",
-    ]
-    selection_result = AgentSelectionResult(selection=selection, thoughts=thoughts)
-    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
-
-    # Handle request on server and await response
-    await request_server.handle_confirmation_request(request, "selector", "martin", "session789")
-    result = await request.response()
-
-    # Verify all thoughts were transmitted
-    assert len(handler.confirmation_calls) == 1
-    call = handler.confirmation_calls[0]
-    assert call["response"] is None
-    assert call["thoughts"] == thoughts
-    assert len(call["thoughts"]) == 3
-
-    # Verify response
-    assert result.confirmed is True
-    assert result.comment == "Good choice"
-
-
-@pytest.mark.asyncio
-async def test_multiple_confirmation_requests(request_server: RequestServer, request_client):
-    """Test handling multiple confirmation requests."""
-    client, handler = request_client
-
-    # Create and handle multiple confirmation requests with different responses
-    results = []
-    responses = [(True, None), (False, "Not this one"), (True, "Perfect")]
-
-    for i in range(3):
-        handler.confirmation_response = responses[i]
-        future: Future = Future()
-        selection = AgentSelection(agent_name=f"agent_{i}", query=f"Task {i}")
-        selection_result = AgentSelectionResult(selection=selection, thoughts=[f"Thought {i}.1", f"Thought {i}.2"])
-        request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
-
-        await request_server.handle_confirmation_request(request, "selector", "martin", f"session_{i}")
-        result = await request.response()
-        results.append(result)
-
-    # Verify all client handler calls
-    assert len(handler.confirmation_calls) == 3
-
-    for i in range(3):
-        call = handler.confirmation_calls[i]
-        assert call["query"] == f"Task {i}"
-        assert call["agent_name"] == f"agent_{i}"
-        assert call["response"] is None
-        assert call["thoughts"] == [f"Thought {i}.1", f"Thought {i}.2"]
-        assert call["session_id"] == f"session_{i}"
-
-        # Verify responses
-        assert results[i].confirmed == responses[i][0]
-        assert results[i].comment == responses[i][1]
-
-
-@pytest.mark.asyncio
-async def test_confirmation_request_when_user_not_connected(request_server: RequestServer, mock_user_registry):
-    """Test handling confirmation request when user is not connected."""
-    # Create confirmation request for non-connected user
-    future: Future = Future()
-    selection = AgentSelection(agent_name="any_agent", query="Some task")
-    selection_result = AgentSelectionResult(selection=selection, thoughts=["Some thought"])
-    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
-
-    # Handle request on server (user not connected) and await response
-    await request_server.handle_confirmation_request(request, "selector", "not_connected_user", "session123")
-    result = await request.response()
-
-    # Should get rejection response with specific message
-    assert result.confirmed is False
-    assert result.comment == "User not connected"
-
-
-@pytest.mark.asyncio
-async def test_confirmation_request_with_response_no_agent(request_server: RequestServer, request_client):
-    """Test confirmation request when agent_name is None but response is provided."""
-    client, handler = request_client
-    handler.confirmation_response = (True, None)
-
-    # Create confirmation request with response but no agent
-    future: Future = Future()
-    selection = AgentSelection(agent_name=None, query=None, response="I can help you with that directly")
-    selection_result = AgentSelectionResult(selection=selection, thoughts=["This is a simple question I can answer"])
-    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
-
-    # Handle request on server (should propagate to client) and await response
-    await request_server.handle_confirmation_request(request, "selector", "martin", "session123")
-    result = await request.response()
-
-    # Verify client handler was called
-    assert len(handler.confirmation_calls) == 1
-    call = handler.confirmation_calls[0]
-    assert call["query"] is None
-    assert call["agent_name"] is None
-    assert call["response"] == "I can help you with that directly"
-    assert call["thoughts"] == ["This is a simple question I can answer"]
-    assert call["sender"] == "selector"
-    assert call["receiver"] == "martin"
-    assert call["session_id"] == "session123"
-
-    # Verify response was received by server
-    assert result.confirmed is True
-    assert result.comment is None
-
-
-@pytest.mark.asyncio
-async def test_confirmation_request_with_agent_and_response(request_server: RequestServer, request_client):
-    """Test confirmation request when both agent_name and response are provided."""
-    client, handler = request_client
-    handler.confirmation_response = (True, None)
-
-    # Create confirmation request with both agent and response
-    future: Future = Future()
-    selection = AgentSelection(
-        agent_name="test_agent", query="Help with complex task", response="This response should also be transmitted"
-    )
-    selection_result = AgentSelectionResult(selection=selection, thoughts=["Agent needed for complex task"])
-    request = AgentSelectionConfirmationRequest(selection_result=selection_result, ftr=future)
-
-    # Handle request on server and await response
-    await request_server.handle_confirmation_request(request, "selector", "martin", "session456")
-    result = await request.response()
-
-    # Verify all fields are transmitted
-    assert len(handler.confirmation_calls) == 1
-    call = handler.confirmation_calls[0]
-    assert call["query"] == "Help with complex task"
-    assert call["agent_name"] == "test_agent"
-    assert call["response"] == "This response should also be transmitted"
-    assert call["thoughts"] == ["Agent needed for complex task"]
-
-    # Verify response was received by server
-    assert result.confirmed is True
-    assert result.comment is None

@@ -12,7 +12,6 @@ from slack_sdk.web.async_slack_response import AsyncSlackResponse
 
 from hygroup.agent import (
     AgentActivation,
-    AgentRequest,
     AgentResponse,
     Message,
     PermissionRequest,
@@ -40,32 +39,14 @@ class SlackThread:
         if self.session.contains(msg["id"]):
             return  # idempotency
 
-        if msg["receiver_resolved"] in await self.session.agent_names():
-            await self._invoke_agent(
-                query=msg["text"],
-                sender=msg["sender_resolved"],
-                receiver=msg["receiver_resolved"],
-                message_id=msg["id"],
-            )
-        else:
-            await self.session.update(
-                Message(
-                    sender=msg["sender_resolved"],
-                    receiver=msg["receiver_resolved"],
-                    text=msg["text"],
-                    id=msg["id"],
-                )
-            )
+        message = Message(
+            sender=msg["sender_resolved"],
+            receiver=msg["receiver_resolved"],
+            text=msg["text"],
+            id=msg["id"],
+        )
 
-    async def _invoke_agent(
-        self,
-        query: str,
-        sender: str,
-        receiver: str,
-        message_id: str | None = None,
-    ):
-        request = AgentRequest(query=query, sender=sender, message_id=message_id)
-        await self.session.invoke(request=request, receiver=receiver)
+        await self.session.handle_gateway_message(message)
 
 
 class SlackGateway(Gateway, RequestHandler):
@@ -135,46 +116,41 @@ class SlackGateway(Gateway, RequestHandler):
     async def handle_feedback_request(self, *args, **kwargs):
         await self.delegate_handler.handle_feedback_request(*args, **kwargs)
 
-    async def handle_confirmation_request(self, *args, **kwargs):
-        await self.delegate_handler.handle_confirmation_request(*args, **kwargs)
-
     async def handle_agent_activation(self, activation: AgentActivation, session_id: str):
         thread = self._threads[session_id]
 
         if activation.message_id:
-            match activation.agent_name:
-                case None:
-                    emoji = "ballot_box_with_check"
-                case "selector":
-                    emoji = "eyes"
-                case _:
-                    emoji = "robot_face"
-
             await self._client.reactions_add(
                 channel=thread.channel,
                 timestamp=activation.message_id,
-                name=emoji,
+                name="eyes",
             )
 
-        if activation.request_id and activation.agent_name:
+        if activation.request_id:
             # Send initial work-in-progress message
             response = await self._send_wip_message(thread, activation.agent_name)
             response_id = response.data["ts"]
 
-            # Coroutine for updating the work-in-progress message
-            wip_coro = self._update_wip_message(
-                thread=thread,
-                sender=activation.agent_name,
-                message_id=response_id,
-            )
-
             thread.response_ids[activation.request_id] = response_id
 
             if self.wip_update:
+                # Coroutine for updating the work-in-progress message
+                wip_coro = self._update_wip_message(
+                    thread=thread,
+                    sender=activation.agent_name,
+                    message_id=response_id,
+                )
                 thread.response_upd[activation.request_id] = asyncio.create_task(wip_coro)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         thread = self._threads[session_id]
+
+        if response.message_id:
+            await self._client.reactions_add(
+                channel=thread.channel,
+                timestamp=response.message_id,
+                name="robot_face" if response.text else "ballot_box_with_check",
+            )
 
         if request_id := response.request_id:
             # Cancel beer timer task if it exists
@@ -192,16 +168,13 @@ class SlackGateway(Gateway, RequestHandler):
                     ts=response_id,
                 )
 
+        if not response.text:
+            return
+
         receiver_resolved = self._resolve_slack_user_id(receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
-        response_text = response.text
-        if response.handoffs:
-            response_text += "\n\n**Handoffs:**"
-            for agent, query in response.handoffs.items():
-                response_text += f"\n- `{agent}`: {query}"
-
-        text = f"{receiver_resolved_formatted} {response_text}"
+        text = f"{receiver_resolved_formatted} {response.text}"
         blocks = [
             {
                 "type": "section",
@@ -306,13 +279,6 @@ class SlackGateway(Gateway, RequestHandler):
         return await self._send_slack_message(thread, text, sender, blocks=blocks, **kwargs)
 
     async def _send_slack_message(self, thread: SlackThread, text: str, sender: str, **kwargs) -> AsyncSlackResponse:
-        if thread.session.agent_registry:
-            emoji = await thread.session.agent_registry.get_emoji(sender)
-        else:
-            emoji = None
-
-        emoji = emoji or "robot_face"
-
         if "ts" in kwargs:
             coro = self._client.chat_update
         elif "user" in kwargs:
@@ -320,12 +286,20 @@ class SlackGateway(Gateway, RequestHandler):
         else:
             coro = self._client.chat_postMessage
 
+        if sender == "system":
+            sender_kwargs = {}
+        else:
+            sender_emoji = await thread.session.agent_registry.get_emoji(sender)
+            sender_kwargs = {
+                "username": sender,
+                "icon_emoji": f":{sender_emoji or 'robot_face'}:",
+            }
+
         return await coro(
             channel=thread.channel,
             thread_ts=thread.id,
             text=text,
-            username=sender,
-            icon_emoji=f":{emoji}:",
+            **sender_kwargs,
             **kwargs,
         )
 

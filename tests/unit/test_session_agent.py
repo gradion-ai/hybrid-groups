@@ -1,4 +1,6 @@
 from asyncio import Event
+from contextvars import ContextVar
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -16,6 +18,7 @@ class MockSession(Mock):
         self.handle_permission_request_mock = AsyncMock()
         self.handle_feedback_request_mock = AsyncMock()
         self.handle_agent_response_mock = AsyncMock()
+        self._sender_info = ContextVar[dict[str, Any]]("sender_info")
 
     async def handle_permission_request(self, *args, **kwargs):
         await self.handle_permission_request_mock(*args, **kwargs)
@@ -66,7 +69,7 @@ async def session_agent(mock_agent, mock_session):
 
 
 @pytest.mark.asyncio
-async def test_worker_handles_agent_run_exception(session_agent, mock_agent, mock_session):
+async def test_worker_handles_agent_run_exception(session_agent: SessionAgent, mock_agent, mock_session):
     """Test that worker handles exceptions from agent.run() properly."""
     test_exception = Exception("Test exception")
 

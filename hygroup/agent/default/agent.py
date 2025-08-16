@@ -8,9 +8,8 @@ from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
 from functools import wraps
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Generic, Iterator, Optional, Sequence, Type, TypeVar
+from typing import Any, AsyncIterator, Callable, Generic, Iterator, Sequence, Type, TypeVar
 
-from pydantic import BaseModel, Field
 from pydantic_ai import Agent as AgentImpl
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
 from pydantic_ai.messages import ModelMessagesTypeAdapter
@@ -215,7 +214,7 @@ class AgentBase(Generic[D], Agent):
                     data = await result.validate_structured_output(structured_message, allow_partial=not is_last)
                     if not is_last:
                         text = self._text(data)
-                        response = AgentResponse(text=text[stream_pos:], final=False, handoffs={})
+                        response = AgentResponse(text=text[stream_pos:], final=False)
                         stream_pos = len(text)
                         if response.text:
                             await queue.put(response)
@@ -223,7 +222,7 @@ class AgentBase(Generic[D], Agent):
             result = await self.agent.run(agent_input, message_history=self._history)
             data = result.output
 
-        await queue.put(AgentResponse(text=self._text(data), final=True, handoffs=self._handoffs(data)))
+        await queue.put(AgentResponse(text=self._text(data), final=True))
         self._history.extend(result.new_messages())
 
     @staticmethod
@@ -268,9 +267,6 @@ class AgentBase(Generic[D], Agent):
 
     @abstractmethod
     def _text(self, data: D) -> str: ...
-
-    def _handoffs(self, data: D) -> dict[str, str]:
-        return {}
 
     async def ask_user(self, question: str) -> str:
         """Ask the user for clarifications or further input if you cannot complete the task."""
@@ -335,39 +331,6 @@ class AgentBase(Generic[D], Agent):
             return await coro(*args, **kwargs)
         else:
             return f"Permission denied calling {request.call}"
-
-
-class Handoff(BaseModel):
-    """Response to the user with optional handoff to an agent."""
-
-    response: str = Field(description="Response text to the user. Can be a partial response.")
-
-    handoff_agent: Optional[str] = Field(description="Name of the agent to handoff to.", default=None)
-    handoff_query: Optional[str] = Field(description="Query to handoff to the agent.", default=None)
-
-    def handoffs(self) -> dict[str, str]:
-        return {self.handoff_agent: self.handoff_query} if self.handoff_agent and self.handoff_query else {}
-
-
-class HandoffAgent(AgentBase[Handoff]):
-    def __init__(
-        self,
-        name: str,
-        settings: AgentSettings,
-        input_formatter: InputFormatter = format_input,
-    ):
-        super().__init__(
-            name=name,
-            settings=settings,
-            input_formatter=input_formatter,
-            output_type=Handoff,
-        )
-
-    def _text(self, data: Handoff) -> str:
-        return data.response
-
-    def _handoffs(self, data: Handoff) -> dict[str, str]:
-        return data.handoffs()
 
 
 class DefaultAgent(AgentBase[str]):

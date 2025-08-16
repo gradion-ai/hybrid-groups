@@ -8,7 +8,6 @@ from github import Auth, GithubIntegration
 
 from hygroup.agent import (
     AgentActivation,
-    AgentRequest,
     AgentResponse,
     Message,
 )
@@ -202,37 +201,21 @@ class GithubGateway(Gateway):
         # translate issue references to thread references
         text = self._resolve_issue_references(text, conversation.repository.repository_full_name)
 
-        if receiver_resolved in await conversation.session.agent_names():
-            logger.info(
-                "Invoking agent (sender='%s', receiver='%s', text='%s')",
-                sender_resolved,
-                receiver_resolved,
-                text[:50] + "..." if len(text) > 50 else text,
-            )
-            request = AgentRequest(
-                query=text,
+        logger.info(
+            "Processing message (sender='%s', receiver='%s', text='%s')",
+            sender_resolved,
+            receiver_resolved,
+            text[:50] + "..." if len(text) > 50 else text,
+        )
+
+        await conversation.session.handle_gateway_message(
+            Message(
                 sender=sender_resolved,
-                message_id=message_id,
-            )
-            await conversation.session.invoke(
-                request=request,
                 receiver=receiver_resolved,
+                text=text,
+                id=message_id,
             )
-        else:
-            logger.info(
-                "Updating agents (sender='%s', receiver='%s', text='%s')",
-                sender_resolved,
-                receiver_resolved or "none",
-                text[:50] + "..." if len(text) > 50 else text,
-            )
-            await conversation.session.update(
-                Message(
-                    sender=sender_resolved,
-                    receiver=receiver_resolved,
-                    text=text,
-                    id=message_id,
-                )
-            )
+        )
 
     def _register_conversation(self, conversation_id: str, event: GithubEvent, session: Session) -> GithubConversation:
         session.set_gateway(self)
@@ -275,12 +258,27 @@ class GithubGateway(Gateway):
             logger.warning("Conversation for session not found (session_id='%s')", session_id)
             return
 
+        emoji = "rocket" if response.text else "+1"
+
+        if response.message_id == "issue-description":
+            await self._github_service.add_reaction_to_issue_description(
+                repository_name=conversation.repository.repository_full_name,
+                issue_number=conversation.issue.issue_number,
+                reaction=emoji,
+            )
+        elif response.message_id and response.message_id.startswith("issue-comment"):
+            await self._github_service.add_reaction_to_issue_comment(
+                repository_name=conversation.repository.repository_full_name,
+                issue_number=conversation.issue.issue_number,
+                comment_id=int(response.message_id.split("__")[1]),
+                reaction=emoji,
+            )
+
+        if not response.text:
+            return
+
         receiver_resolved = self._resolve_github_user_id(receiver)
         sender_resolved = self._resolve_github_user_id(sender)
-
-        # --------------------------------------------
-        #  FIXME: display handoffs
-        # --------------------------------------------
 
         text = f"[{sender_resolved}] " if sender_resolved != self._github_app_username else ""
         text += f"@{receiver_resolved} {response.text}"
@@ -300,26 +298,18 @@ class GithubGateway(Gateway):
         if not activation.message_id:
             return
 
-        emoji = None
-        match activation.agent_name:
-            case None:
-                emoji = "+1"
-            case "selector":
-                emoji = "eyes"
-            case _:
-                emoji = "rocket"
+        emoji = "eyes"
 
-        if emoji is not None:
-            if activation.message_id == "issue-description":
-                await self._github_service.add_reaction_to_issue_description(
-                    repository_name=conversation.repository.repository_full_name,
-                    issue_number=conversation.issue.issue_number,
-                    reaction=emoji,
-                )
-            elif activation.message_id.startswith("issue-comment"):
-                await self._github_service.add_reaction_to_issue_comment(
-                    repository_name=conversation.repository.repository_full_name,
-                    issue_number=conversation.issue.issue_number,
-                    comment_id=int(activation.message_id.split("__")[1]),
-                    reaction=emoji,
-                )
+        if activation.message_id == "issue-description":
+            await self._github_service.add_reaction_to_issue_description(
+                repository_name=conversation.repository.repository_full_name,
+                issue_number=conversation.issue.issue_number,
+                reaction=emoji,
+            )
+        elif activation.message_id.startswith("issue-comment"):
+            await self._github_service.add_reaction_to_issue_comment(
+                repository_name=conversation.repository.repository_full_name,
+                issue_number=conversation.issue.issue_number,
+                comment_id=int(activation.message_id.split("__")[1]),
+                reaction=emoji,
+            )

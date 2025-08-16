@@ -65,12 +65,6 @@ You MUST plan extensively before each function call, and reflect extensively on 
 """
 
 
-GENERAL_AGENT_INSTRUCTIONS = """You can answer questions about available agents in the system using the get_registered_agents tool.
-If you receive a query that one of the registered agents can handle delegate to that agent. Otherwise try to answer the query yourself.
-Never delegate to yourself, the "general" agent.
-"""
-
-
 def scrape_agent_config():
     firecrawl_settings = MCPSettings(
         server_config={
@@ -95,7 +89,6 @@ def scrape_agent_config():
         "name": "scrape",
         "description": "An agent that can scrape individual web pages.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "page_facing_up",
     }
 
@@ -123,7 +116,6 @@ def search_agent_config():
         "name": "search",
         "description": "An agent that can search the web.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "mag",
     }
 
@@ -160,7 +152,6 @@ def zotero_agent_config(zotero_mcp_exec: str):
         "name": "zotero",
         "description": "An agent that can read and update a Zotero library.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "books",
     }
 
@@ -186,7 +177,6 @@ def reader_agent_config(reader_mcp_exec: str):
         "name": "reader",
         "description": "An agent that can read and update items in Readwise Reader.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "clock10",
     }
 
@@ -203,7 +193,6 @@ def weather_agent_config():
         "name": "weather",
         "description": "An agent that retrieve weather information for today or specific dates in the future.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "mostly_sunny",
     }
 
@@ -227,25 +216,7 @@ def browser_agent_config():
         "name": "browser",
         "description": "An agent that can use an internet browser.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "earth_americas",
-    }
-
-
-def general_agent_config():
-    agent_settings = AgentSettings(
-        model="gemini-2.5-flash",
-        instructions=GENERAL_AGENT_INSTRUCTIONS,
-        mcp_settings=[],
-        tools=[get_registered_agents],
-    )
-
-    return {
-        "name": "general",
-        "description": "An agent that can answer questions about available agents in the system and delegate to them if appropriate. Can answer general questions if no other agent is appropriate.",
-        "settings": agent_settings,
-        "handoff": True,
-        "emoji": "brain",
     }
 
 
@@ -257,7 +228,6 @@ async def main():
     await agent_registry.remove_configs()
 
     await agent_registry.add_config(**weather_agent_config())
-    await agent_registry.add_config(**general_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference

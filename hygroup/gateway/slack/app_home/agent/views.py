@@ -180,13 +180,6 @@ class AgentViewBuilder:
                         "text": f"*Python Coroutines:*\n```\n{tools_formatted}\n```",
                     },
                 },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Handoff:*\n{'☑️' if agent.handoff else '☐'} Enable Handoff",
-                    },
-                },
             ],
         }
 
@@ -363,42 +356,6 @@ class AgentViewBuilder:
                 tools_block,
             ]
         )
-
-        # Build checkbox options
-        options = [
-            {
-                "text": {"type": "plain_text", "text": "Enable Handoff"},
-                "value": "handoff",
-                "description": {
-                    "type": "mrkdwn",
-                    "text": "Allow agent to hand off to other agents",
-                },
-            }
-        ]
-
-        # Pre-select checkboxes for edit mode
-        initial_options = []
-        if agent and is_edit:
-            if agent.handoff:
-                initial_options.append(options[0])
-
-        checkbox_element: dict[str, Any] = {
-            "type": "checkboxes",
-            "action_id": "agent_options",
-            "options": options,
-        }
-        if initial_options:
-            checkbox_element["initial_options"] = initial_options
-
-        # Use input block instead of actions block for form behavior
-        checkbox_input_block: dict[str, Any] = {
-            "type": "input",
-            "block_id": "agent_handoff_options",
-            "label": {"type": "plain_text", "text": "Handoff"},
-            "optional": True,
-            "element": checkbox_element,
-        }
-        blocks.append(checkbox_input_block)
 
         modal = {
             "type": "modal",
