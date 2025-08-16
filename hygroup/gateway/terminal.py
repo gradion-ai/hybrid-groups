@@ -143,7 +143,7 @@ class TerminalGateway(Gateway):
             receiver=receiver,
         )
 
-        await self._session.process_message(message)
+        await self._session.handle_gateway_message(message)
         await self.send_message(content, sender, agent=False)
 
     async def handle_agent_activation(self, activation: AgentActivation, session_id: str): ...

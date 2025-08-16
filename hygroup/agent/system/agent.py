@@ -23,7 +23,7 @@ class SystemAgentOutput(BaseModel):
 class SystemAgent(AgentBase[SystemAgentOutput]):
     def __init__(
         self,
-        settings: AgentSettings,
+        settings: AgentSettings = system_agent_settings,
         input_formatter: InputFormatter = format_input,
     ):
         super().__init__(

@@ -1,5 +1,6 @@
 from asyncio import Event
 from contextvars import ContextVar
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -17,7 +18,7 @@ class MockSession(Mock):
         self.handle_permission_request_mock = AsyncMock()
         self.handle_feedback_request_mock = AsyncMock()
         self.handle_agent_response_mock = AsyncMock()
-        self._secrets_var = ContextVar[dict[str, str]]("secrets")
+        self._sender_info = ContextVar[dict[str, Any]]("sender_info")
 
     async def handle_permission_request(self, *args, **kwargs):
         await self.handle_permission_request_mock(*args, **kwargs)

@@ -22,8 +22,10 @@ from hygroup.agent import (
     PermissionRequest,
     Thread,
 )
+from hygroup.agent.system import SystemAgent
 from hygroup.gateway import Gateway
 from hygroup.user import PermissionStore, RequestHandler, UserRegistry
+from hygroup.user.default import DefaultPreferenceStore
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +51,13 @@ class SessionAgent:
     async def update(self, message: Message):
         await self._queue.put(message)
 
-    async def invoke(
-        self, request: AgentRequest, secrets: dict[str, str] | None = None, response_channel: Queue | None = None
-    ):
+    async def invoke(self, request: AgentRequest, secrets: dict[str, str] | None = None):
+        await self._queue.put((request, secrets, None))
+
+    async def run(self, request: AgentRequest, secrets: dict[str, str] | None = None) -> AgentResponse:
+        response_channel: Queue = Queue()
         await self._queue.put((request, secrets, response_channel))
+        return await response_channel.get()
 
     async def worker(self):
         async with self.agent.session_scope():
@@ -64,11 +69,8 @@ class SessionAgent:
                     case AgentRequest(
                         sender=sender, id=request_id, message_id=message_id
                     ) as request, secrets, response_channel:
-                        # needed by agent invocation tools
-                        # -------------------------------------
-                        #  TODO: revise
-                        # -------------------------------------
-                        self.session._secrets_var.set(secrets)
+                        # sender name and secrets needed by run_agent tool
+                        self.session._sender_info.set({"name": sender, "secrets": secrets})
 
                         # -------------------------------------
                         #  TODO: trace query
@@ -134,6 +136,7 @@ class Session:
         self.agent_registry: AgentRegistry = self.manager.agent_registry
         self.user_registry: UserRegistry = self.manager.user_registry
         self.permission_store: PermissionStore = self.manager.permission_store
+        self.preference_store: DefaultPreferenceStore = self.manager.preference_store
 
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
@@ -147,19 +150,16 @@ class Session:
         self._request_handler_task: Task = create_task(self._request_handler_worker())
         self._request_handler = self.manager.request_handler
 
-        from hygroup.user.default.preferences import DefaultPreferenceStore
+        self._sender_info = ContextVar[dict[str, Any]]("sender_info")
 
-        self.preferences_store = DefaultPreferenceStore()
-
-        from hygroup.agent.system.agent import SystemAgent, system_agent_settings
-
-        system_agent = SystemAgent(settings=system_agent_settings)
-        system_agent.tool(requires_permission=True)(self.invoke_agent)
+        # -------------------------------------
+        #  TODO: make settings configurable
+        # -------------------------------------
+        system_agent = SystemAgent()
+        system_agent.tool(requires_permission=True)(self.run_agent)
         system_agent.tool(requires_permission=True)(self.get_user_preferences)
         system_agent.tool(requires_permission=True)(self.agent_registry.get_registered_agents)
         self.add_agent(system_agent)
-
-        self._secrets_var = ContextVar[dict[str, str]]("secrets")
 
     async def _gateway_worker(self):
         # for sequential (but not atomic) execution of gateway methods
@@ -207,11 +207,11 @@ class Session:
         return len(agent_responses)
 
     async def _load_referenced_threads(self, text: str) -> list[Thread]:
-        refs = self.extract_thread_references(text)
+        refs = self._extract_thread_references(text)
         return await self.manager.load_threads(refs)
 
     @staticmethod
-    def extract_thread_references(text: str) -> list[str]:
+    def _extract_thread_references(text: str) -> list[str]:
         pattern = r"thread:([a-zA-Z0-9.-]+)"
         return re.findall(pattern, text)
 
@@ -252,7 +252,7 @@ class Session:
             receiver=receiver,
         )
 
-    async def process_message(self, message: Message):
+    async def handle_gateway_message(self, message: Message):
         if not message.threads:
             # Load any threads referenced with `thread:...` in the message text.
             message.threads = await self._load_referenced_threads(message.text)
@@ -266,14 +266,22 @@ class Session:
 
         if message.receiver in await self.agent_names():
             await self.update_agents(message, exclude=message.receiver)
-            await self.invoke_receiver(request, message.receiver)
+            await self.invoke_agent(request, message.receiver)
         else:
             await self.update_agents(message, exclude="system")
-            await self.invoke_receiver(request, "system")
-            # TODO: process message as an inbound message
-            ...
+            await self.invoke_agent(request, "system")
 
-    async def invoke_receiver(self, request: AgentRequest, receiver: str):
+    async def update_agents(self, message: Message, exclude: str):
+        # Add message to this session's message history. These are
+        # the messages that users see on the platforms integrated
+        # by gateways.
+        self._messages.append(message)
+
+        for agent_name, agent in self._agents.items():
+            if agent_name != exclude:
+                await agent.update(message)
+
+    async def invoke_agent(self, request: AgentRequest, receiver: str):
         # -------------------------------------
         #  FIXME: run this if block atomically
         # -------------------------------------
@@ -307,31 +315,11 @@ class Session:
         # invoke receiver agent with request
         await self._agents[receiver].invoke(request, secrets)
 
-    async def update_agents(self, message: Message, exclude: str):
-        # Add message to this session's message history. These are
-        # are the messages that users see on the platforms integrated
-        # by gateways.
-        self._messages.append(message)
-
-        for agent_name, agent in self._agents.items():
-            if agent_name != exclude:
-                await agent.update(message)
-
     # -------------------------------------
-    #  Special tool for system agent
+    #  Used as system agent tool
     # -------------------------------------
-    async def get_user_preferences(self, username: str):
-        preferences = await self.preferences_store.get_preferences(username)
-        preferences = preferences or "n/a"
-        return f"User preferences for {username}:\n{preferences}"
-
-    # -------------------------------------
-    #  Special tool for system agent
-    # -------------------------------------
-    async def invoke_agent(self, agent_name: str, query: str) -> str:
-        """
-        Invoke an agent identified by agent_name with the given query and return its response.
-        """
+    async def run_agent(self, agent_name: str, query: str) -> str:
+        """Run an agent identified by agent_name with the given query and return its response."""
         # -------------------------------------
         #  FIXME: run this if block atomically
         # -------------------------------------
@@ -341,14 +329,20 @@ class Session:
             except ValueError:
                 return f'Agent "{agent_name}" not registered'
 
-        request = AgentRequest(query=query, sender="system")
-        secrets = self._secrets_var.get()
-
-        response_channel: Queue = Queue()
-        await self._agents[agent_name].invoke(request, secrets, response_channel)
-        response = await response_channel.get()
-
+        sender_info = self._sender_info.get()
+        response = await self._agents[agent_name].run(
+            request=AgentRequest(query=query, sender=sender_info["name"]),
+            secrets=sender_info["secrets"],
+        )
         return response.text
+
+    # -------------------------------------
+    #  Used as system agent tool
+    # -------------------------------------
+    async def get_user_preferences(self, username: str):
+        preferences = await self.preference_store.get_preferences(username)
+        preferences = preferences or "n/a"
+        return f"User preferences for {username}:\n{preferences}"
 
     def contains(self, id: str) -> bool:
         return any(message.id == id for message in self._messages)
@@ -389,12 +383,14 @@ class SessionManager:
         agent_registry: AgentRegistry,
         user_registry: UserRegistry,
         permission_store: PermissionStore,
+        preferences_store: DefaultPreferenceStore,
         request_handler: RequestHandler,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registry = agent_registry
         self.user_registry = user_registry
         self.permission_store = permission_store
+        self.preference_store = preferences_store
         self.request_handler = request_handler
 
         self.root_dir = root_dir

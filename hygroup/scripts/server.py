@@ -67,6 +67,7 @@ async def main(args):
         agent_registry=agent_registry,
         user_registry=user_registry,
         permission_store=permission_store,
+        preferences_store=preference_store,
         request_handler=request_handler,
     )
 
@@ -82,6 +83,8 @@ async def main(args):
                 # If True, prompt users in Slack to approve
                 # tool execution via ephemeral messages.
                 handle_permission_requests=args.user_channel == "slack",
+                # Turn off animation of work-in-progress messages
+                wip_update=False,
             )
             handlers = SlackHomeHandlers(
                 client=gateway.client,

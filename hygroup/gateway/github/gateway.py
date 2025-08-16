@@ -208,7 +208,7 @@ class GithubGateway(Gateway):
             text[:50] + "..." if len(text) > 50 else text,
         )
 
-        await conversation.session.process_message(
+        await conversation.session.handle_gateway_message(
             Message(
                 sender=sender_resolved,
                 receiver=receiver_resolved,

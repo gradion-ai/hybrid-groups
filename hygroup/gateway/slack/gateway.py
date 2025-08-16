@@ -46,7 +46,7 @@ class SlackThread:
             id=msg["id"],
         )
 
-        await self.session.process_message(message)
+        await self.session.handle_gateway_message(message)
 
 
 class SlackGateway(Gateway, RequestHandler):
@@ -131,16 +131,15 @@ class SlackGateway(Gateway, RequestHandler):
             response = await self._send_wip_message(thread, activation.agent_name)
             response_id = response.data["ts"]
 
-            # Coroutine for updating the work-in-progress message
-            wip_coro = self._update_wip_message(
-                thread=thread,
-                sender=activation.agent_name,
-                message_id=response_id,
-            )
-
             thread.response_ids[activation.request_id] = response_id
 
             if self.wip_update:
+                # Coroutine for updating the work-in-progress message
+                wip_coro = self._update_wip_message(
+                    thread=thread,
+                    sender=activation.agent_name,
+                    message_id=response_id,
+                )
                 thread.response_upd[activation.request_id] = asyncio.create_task(wip_coro)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
