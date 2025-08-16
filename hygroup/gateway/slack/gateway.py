@@ -123,21 +123,13 @@ class SlackGateway(Gateway, RequestHandler):
         thread = self._threads[session_id]
 
         if activation.message_id:
-            match activation.agent_name:
-                case None:
-                    emoji = "ballot_box_with_check"
-                case "selector":
-                    emoji = "eyes"
-                case _:
-                    emoji = "robot_face"
-
             await self._client.reactions_add(
                 channel=thread.channel,
                 timestamp=activation.message_id,
-                name=emoji,
+                name="eyes",
             )
 
-        if activation.request_id and activation.agent_name:
+        if activation.request_id:
             # Send initial work-in-progress message
             response = await self._send_wip_message(thread, activation.agent_name)
             response_id = response.data["ts"]
@@ -156,6 +148,13 @@ class SlackGateway(Gateway, RequestHandler):
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         thread = self._threads[session_id]
+
+        if response.message_id:
+            await self._client.reactions_add(
+                channel=thread.channel,
+                timestamp=response.message_id,
+                name="robot_face" if response.text else "ballot_box_with_check",
+            )
 
         if request_id := response.request_id:
             # Cancel beer timer task if it exists

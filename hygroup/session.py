@@ -251,18 +251,6 @@ class Session:
             message = Message(sender=sender, receiver=receiver, text=response.text, handoffs=None)
             await self.update_agents(message, exclude=sender)
 
-        if sender == "system" and not response.text:
-            activation = AgentActivation(
-                agent_name=None,
-                message_id=response.message_id,
-                request_id=response.request_id,
-            )
-            coro = self.gateway.handle_agent_activation(
-                activation=activation,
-                session_id=self.id,
-            )
-            await self._gateway_queue.put(coro)
-
         coro = self.gateway.handle_agent_response(response, sender, receiver, session_id=self.id)
         await self._gateway_queue.put(coro)
 

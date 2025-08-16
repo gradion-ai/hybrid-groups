@@ -10,5 +10,5 @@ class Gateway(ABC):
     @abstractmethod
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str): ...
 
-    async def handle_agent_activation(self, activation: AgentActivation, session_id: str):
-        pass
+    @abstractmethod
+    async def handle_agent_activation(self, activation: AgentActivation, session_id: str): ...

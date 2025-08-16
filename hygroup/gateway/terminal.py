@@ -15,7 +15,7 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.text import Text
 
-from hygroup.agent import AgentResponse, Message
+from hygroup.agent import AgentActivation, AgentResponse, Message
 from hygroup.gateway import Gateway
 from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
@@ -145,6 +145,8 @@ class TerminalGateway(Gateway):
 
         await self._session.process_message(message)
         await self.send_message(content, sender, agent=False)
+
+    async def handle_agent_activation(self, activation: AgentActivation, session_id: str): ...
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         content = response.text

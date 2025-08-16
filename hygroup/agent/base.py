@@ -38,7 +38,7 @@ class AgentRequest:
 
 @dataclass
 class AgentActivation:
-    agent_name: str | None
+    agent_name: str
 
     message_id: str | None = None
     """Id of the gateway message that activated agent."""
