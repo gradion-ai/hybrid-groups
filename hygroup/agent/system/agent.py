@@ -16,11 +16,11 @@ system_agent_settings = AgentSettings(
 )
 
 
-class SystemAgentResponse(BaseModel):
+class SystemAgentOutput(BaseModel):
     response: str | None = None
 
 
-class SystemAgent(AgentBase[SystemAgentResponse]):
+class SystemAgent(AgentBase[SystemAgentOutput]):
     def __init__(
         self,
         settings: AgentSettings,
@@ -30,10 +30,10 @@ class SystemAgent(AgentBase[SystemAgentResponse]):
             name="system",
             settings=settings,
             input_formatter=input_formatter,
-            output_type=SystemAgentResponse,
+            output_type=SystemAgentOutput,
         )
 
-    def _text(self, data: SystemAgentResponse) -> str:
+    def _text(self, data: SystemAgentOutput) -> str:
         if data.response is None:
             return ""
         else:

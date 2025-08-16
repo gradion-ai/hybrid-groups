@@ -65,6 +65,9 @@ class SessionAgent:
                         sender=sender, id=request_id, message_id=message_id
                     ) as request, secrets, response_channel:
                         # needed by agent invocation tools
+                        # -------------------------------------
+                        #  TODO: revise
+                        # -------------------------------------
                         self.session._secrets_var.set(secrets)
 
                         # -------------------------------------
@@ -131,7 +134,6 @@ class Session:
         self.agent_registry: AgentRegistry = self.manager.agent_registry
         self.user_registry: UserRegistry = self.manager.user_registry
         self.permission_store: PermissionStore = self.manager.permission_store
-        # self.selector_settings: AgentSelectorSettings | None = self.manager.selector_settings
 
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
@@ -144,13 +146,6 @@ class Session:
         self._request_handler_queue: Queue = Queue()
         self._request_handler_task: Task = create_task(self._request_handler_worker())
         self._request_handler = self.manager.request_handler
-
-        # self._selector_queue: Queue = Queue()
-        # self._selector_task: Task = create_task(self._selector_worker())
-        # self._selector: AgentSelector = AgentSelector(
-        #    registry=self.agent_registry,
-        #    settings=self.selector_settings,
-        # )
 
         from hygroup.user.default.preferences import DefaultPreferenceStore
 
@@ -173,10 +168,6 @@ class Session:
     async def _request_handler_worker(self):
         # for sequential (but not atomic) execution of request handler methods
         await self._worker(self._request_handler_queue)
-
-    # async def _selector_worker(self):
-    #    # for sequential (but not atomic) execution of select()
-    #    await self._worker(self._selector_queue)
 
     async def _worker(self, queue: Queue):
         while True:
@@ -261,80 +252,6 @@ class Session:
             receiver=receiver,
         )
 
-    """
-    async def select(self, message: Message):
-        if message.sender == "selector":
-            return
-
-        # agent names currently available in registry
-        agent_names = await self.agent_names()
-
-        if message.sender == "system" or message.sender in agent_names or message.receiver in agent_names:
-            # we don't select an agent, just add the message to the selector's history
-            await self._selector.add(message)
-            return
-
-        activation = AgentActivation(
-            agent_name="selector",
-            message_id=message.id,
-        )
-        coro = self.gateway.handle_agent_activation(
-            activation=activation,
-            session_id=self.id,
-        )
-        await self._gateway_queue.put(coro)
-
-        selection_result = await self._selector.run(message)
-        selection = selection_result.selection
-
-        if selection.agent_name in agent_names or selection.agent_name is None:
-            confirmation_request = AgentSelectionConfirmationRequest(
-                selection_result=selection_result,
-                ftr=Future(),
-            )
-            coro = self._request_handler.handle_confirmation_request(
-                confirmation_request,
-                sender="selector",
-                receiver=message.sender,
-                session_id=self.id,
-            )
-            await self._request_handler_queue.put(coro)
-
-            # blocks until confirmation_request.respond() is called
-            confirmation_response = await confirmation_request.response()
-
-            if not confirmation_response.confirmed or selection.agent_name is None or selection.query is None:
-                activation = AgentActivation(
-                    agent_name=None,
-                    message_id=message.id,
-                )
-                coro = self.gateway.handle_agent_activation(
-                    activation=activation,
-                    session_id=self.id,
-                )
-                await self._gateway_queue.put(coro)
-
-                if selection.response is not None:
-                    await self.handle_agent_response(
-                        response=AgentResponse(text=selection.response),
-                        sender="selector",
-                        receiver=message.sender,
-                    )
-
-                return
-
-            agent_request = AgentRequest(
-                query=selection.query,
-                sender=message.sender,
-                message_id=message.id,
-            )
-            await self.invoke(
-                request=agent_request,
-                receiver=selection.agent_name,
-                selected=True,
-            )
-    """
-
     async def process_message(self, message: Message):
         if not message.threads:
             # Load any threads referenced with `thread:...` in the message text.
@@ -400,41 +317,6 @@ class Session:
             if agent_name != exclude:
                 await agent.update(message)
 
-    """
-    async def update(self, message: Message, reference: bool = True):
-        if not message.threads and reference:
-            # Load any threads referenced with `thread:...` in the message text.
-            message.threads = await self._load_referenced_threads(message.text)
-
-        # Add message to this session's message history. These are
-        # are the messages that users see on the platforms integrated
-        # by gateways.
-        self._messages.append(message)
-
-        if self.group:
-            for agent_name, agent in self._agents.items():
-                if agent_name not in [message.sender, message.receiver]:
-                    await agent.update(message)
-
-        # Experimental deactivation of selector ...
-        # coro = self.select(message)
-        # await self._selector_queue.put(coro)
-
-        agent_names = await self.agent_names()
-
-        if message.receiver == "system" or (message.sender not in agent_names and message.receiver not in agent_names):
-            agent_request = AgentRequest(
-                query=message.text,
-                sender=message.sender,
-                message_id=message.id,
-            )
-            await self.invoke(
-                request=agent_request,
-                receiver="system",
-                selected=True,  # TODO: investigate this ...
-            )
-    """
-
     # -------------------------------------
     #  Special tool for system agent
     # -------------------------------------
@@ -468,71 +350,6 @@ class Session:
 
         return response.text
 
-    """
-    async def invoke(self, request: AgentRequest, receiver: str, selected: bool = False):
-        # -------------------------------------
-        #  FIXME: run this if block atomically
-        # -------------------------------------
-        if receiver not in self._agents:
-            try:
-                await self.load_agent(receiver)
-            except ValueError:
-                response = AgentResponse(
-                    text=f'Agent "{receiver}" not registered',
-                    request_id=request.id,
-                )
-                return await self.handle_system_response(
-                    response=response,
-                    receiver=request.sender,
-                )
-
-        if receiver in self._agents:
-            activation = AgentActivation(
-                agent_name=receiver,
-                message_id=request.message_id,
-                request_id=request.id,
-            )
-            coro = self.gateway.handle_agent_activation(
-                activation=activation,
-                session_id=self.id,
-            )
-            await self._gateway_queue.put(coro)
-
-            # get secrets of authenticated sender
-            secrets = self.user_registry.get_secrets(request.sender)
-
-            if not selected:
-                # Load referenced threads only if this invocation wasn't an agent selection.
-                # If it was a selection, others have already been updated with the message that
-                # contains the loaded threads.
-                request.threads = await self._load_referenced_threads(request.query)
-
-            # invoke receiver agent with request
-            await self._agents[receiver].invoke(request, secrets)
-
-            if not selected:
-                # Only update others in the group if this invocation wasn't an agent selection.
-                # If it was a selection, others have already been updated with the message that
-                # triggered the selection.
-                message = Message(
-                    sender=request.sender,
-                    receiver=receiver,
-                    text=request.query,
-                    threads=request.threads,
-                    id=request.message_id,
-                )
-                await self.update(message)
-        else:
-            response = AgentResponse(
-                text=f'Agent "{receiver}" does not exist',
-                request_id=request.id,
-            )
-            await self.handle_system_response(
-                response=response,
-                receiver=request.sender,
-            )
-    """
-
     def contains(self, id: str) -> bool:
         return any(message.id == id for message in self._messages)
 
@@ -552,7 +369,6 @@ class Session:
             "messages": [asdict(message) for message in self._messages],
             "agents": {name: adapter.get_state() for name, adapter in self._agents.items()},
         }
-        # state_dict["selector"] = self._selector.get_state()
         await self.manager.save_session_state(self.id, state_dict)
 
     async def load(self):
@@ -562,9 +378,6 @@ class Session:
         for name, state in state_dict["agents"].items():
             if name in self._agents:
                 self._agents[name].set_state(state)
-
-        # restore selector agent state
-        # self._selector.set_state(state_dict["selector"])
 
         # restore thread messages
         self._messages = [Message(**message) for message in state_dict["messages"]]
@@ -577,14 +390,12 @@ class SessionManager:
         user_registry: UserRegistry,
         permission_store: PermissionStore,
         request_handler: RequestHandler,
-        # selector_settings: AgentSelectorSettings | None = None,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registry = agent_registry
         self.user_registry = user_registry
         self.permission_store = permission_store
         self.request_handler = request_handler
-        # self.selector_settings = selector_settings
 
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)

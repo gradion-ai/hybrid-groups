@@ -93,7 +93,6 @@ def scrape_agent_config():
         "name": "scrape",
         "description": "An agent that can scrape individual web pages.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "page_facing_up",
     }
 
@@ -121,7 +120,6 @@ def search_agent_config():
         "name": "search",
         "description": "An agent that can search the web.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "mag",
     }
 
@@ -158,7 +156,6 @@ def zotero_agent_config(zotero_mcp_exec: str):
         "name": "zotero",
         "description": "An agent that can read and update a Zotero library.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "books",
     }
 
@@ -184,7 +181,6 @@ def reader_agent_config(reader_mcp_exec: str):
         "name": "reader",
         "description": "An agent that can read and update items in Readwise Reader.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "clock10",
     }
 
@@ -201,7 +197,6 @@ def weather_agent_config():
         "name": "weather",
         "description": "An agent that retrieve weather information for today or specific dates in the future.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "mostly_sunny",
     }
 
@@ -225,7 +220,6 @@ def browser_agent_config():
         "name": "browser",
         "description": "An agent that can use an internet browser.",
         "settings": agent_settings,
-        "handoff": False,
         "emoji": "earth_americas",
     }
 

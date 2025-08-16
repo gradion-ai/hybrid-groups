@@ -9,18 +9,11 @@ from aioconsole import aprint
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic_core import to_jsonable_python
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.syntax import Syntax
 
-from hygroup.agent import (
-    AgentSelection,
-    AgentSelectionConfirmationRequest,
-    AgentSelectionResult,
-    FeedbackRequest,
-    PermissionRequest,
-)
+from hygroup.agent import FeedbackRequest, PermissionRequest
 from hygroup.user import RequestHandler, UserNotAuthenticatedError, UserRegistry
 from hygroup.utils import arun
 
@@ -144,69 +137,6 @@ class RichConsoleHandler(RequestHandler):
         request.respond(resp)
         await arun(self.console.print, "Answer submitted")
 
-    async def handle_confirmation_request(
-        self, request: AgentSelectionConfirmationRequest, sender: str, receiver: str, session_id: str
-    ):
-        await arun(
-            self.console.print,
-            f"\n✅ [bold {self.confirmation_color}]Confirmation Request[/bold {self.confirmation_color}]",
-        )
-        await arun(
-            self.console.print,
-            f"[{self.session_color}]Session:[/{self.session_color}] {session_id}",
-            highlight=False,
-        )
-        await arun(
-            self.console.print,
-            f"[{self.agent_color}]Sender:[/{self.agent_color}] {sender}",
-            highlight=False,
-        )
-        for thought in request.selection_result.thoughts:
-            markdown = Markdown(thought)
-            panel = Panel.fit(
-                markdown,
-                title="Thinking",
-                title_align="left",
-                border_style=self.thoughts_color,
-                style=self.thoughts_color,
-            )
-            await arun(self.console.print, panel, highlight=False)
-        await arun(
-            self.console.print,
-            f"[{self.agent_color}]Agent:[/{self.agent_color}] {request.selection_result.selection.agent_name or '(none)'}",
-            highlight=False,
-        )
-        await arun(
-            self.console.print,
-            f"[{self.query_color}]Query:[/{self.query_color}] {request.selection_result.selection.query or '(none)'}",
-            highlight=False,
-        )
-        await arun(
-            self.console.print,
-            f"[{self.query_color}]Response:[/{self.query_color}] {request.selection_result.selection.response or '(none)'}",
-            highlight=False,
-        )
-
-        if self.default_confirmation_response is not None:
-            return request.respond(self.default_confirmation_response, None)
-
-        if request.selection_result.selection.agent_name is None:
-            request.respond(confirmed=True, comment=None)
-            return
-
-        while True:
-            resp = await arun(Prompt.ask, "\n[bold]Run agent?[/bold]", choices=["y", "n"], default="y")
-            resp = resp.lower()
-
-            if resp in ["y", "n"]:
-                confirmed = resp == "y"
-                comment = None
-                if not confirmed:
-                    comment = await arun(Prompt.ask, "Comment [dim](optional)[/dim]", default="")
-                request.respond(confirmed, comment if comment else None)
-                await arun(self.console.print, "Confirmed" if confirmed else "Rejected")
-                break
-
 
 class RequestServer(RequestHandler):
     def __init__(self, user_registry: UserRegistry, host: str = "0.0.0.0", port: int = 8623):
@@ -215,7 +145,7 @@ class RequestServer(RequestHandler):
         self.port = port
 
         self._connections: Dict[str, WebSocket] = {}
-        self._requests: Dict[str, PermissionRequest | FeedbackRequest | AgentSelectionConfirmationRequest] = {}
+        self._requests: Dict[str, PermissionRequest | FeedbackRequest] = {}
 
         self._server: uvicorn.Server | None = None
         self._task: asyncio.Task | None = None
@@ -310,11 +240,6 @@ class RequestServer(RequestHandler):
             if isinstance(request, FeedbackRequest):
                 request.respond(data.get("text", ""))
 
-        elif msg_type == "confirmation_response" and request_id in self._requests:
-            request = self._requests.pop(request_id)
-            if isinstance(request, AgentSelectionConfirmationRequest):
-                request.respond(data.get("confirmed", False), data.get("comment"))
-
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
         """Called by backend to request a permission response from the user."""
         if receiver not in self._connections:
@@ -370,34 +295,6 @@ class RequestServer(RequestHandler):
                 "type": "feedback_request",
                 "request_id": request_id,
                 "question": request.question,
-                "sender": sender,
-                "session_id": session_id,
-            }
-        )
-
-    async def handle_confirmation_request(
-        self, request: AgentSelectionConfirmationRequest, sender: str, receiver: str, session_id: str
-    ):
-        """Called by backend to request a confirmation response from the user."""
-        if receiver not in self._connections:
-            # User not connected, respond with denial
-            request.respond(False, "User not connected")
-            return
-
-        # Generate request ID
-        request_id = str(uuid.uuid4())
-        self._requests[request_id] = request
-
-        # Send request to client
-        websocket = self._connections[receiver]
-        await websocket.send_json(
-            {
-                "type": "confirmation_request",
-                "request_id": request_id,
-                "query": request.selection_result.selection.query,
-                "thoughts": request.selection_result.thoughts,
-                "agent_name": request.selection_result.selection.agent_name,
-                "response": request.selection_result.selection.response,
                 "sender": sender,
                 "session_id": session_id,
             }
@@ -532,39 +429,6 @@ class RequestClient:
 
                     # Send response back to server
                     await self._send_message({"type": "feedback_response", "request_id": request_id, "text": text})
-
-                elif data.get("type") == "confirmation_request":
-                    # Create Future and AgentSelectionConfirmationRequest
-                    future_confirmation: Future = Future()
-                    query = data.get("query", "")
-                    thoughts = data.get("thoughts", [])
-                    agent_name = data.get("agent_name")
-                    response = data.get("response")
-
-                    # Create AgentSelection and AgentSelectionResult
-                    selection = AgentSelection(agent_name=agent_name, query=query, response=response)
-                    selection_result = AgentSelectionResult(selection=selection, thoughts=thoughts)
-
-                    # Create request object
-                    confirmation_request = AgentSelectionConfirmationRequest(
-                        selection_result=selection_result, ftr=future_confirmation
-                    )
-
-                    # Call handler method
-                    await self._handler.handle_confirmation_request(confirmation_request, sender, receiver, session_id)
-
-                    # Get response from Future (will be ConfirmationResponse)
-                    response = await future_confirmation
-
-                    # Send response back to server
-                    await self._send_message(
-                        {
-                            "type": "confirmation_response",
-                            "request_id": request_id,
-                            "confirmed": response.confirmed,
-                            "comment": response.comment,
-                        }
-                    )
 
             except asyncio.CancelledError:
                 break

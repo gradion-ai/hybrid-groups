@@ -5,9 +5,7 @@ from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
 from hygroup.agent.default.registry import DefaultAgentRegistry
-from hygroup.agent.select.agent import AgentSelectorSettings
 from hygroup.gateway.slack.app_home.agent.handlers import AgentConfigHandlers
-from hygroup.gateway.slack.app_home.policy.handlers import ActivationPolicyConfigHandlers
 from hygroup.gateway.slack.app_home.preferences.handlers import UserPreferenceConfigHandlers
 from hygroup.gateway.slack.app_home.secrets.handlers import SecretConfigHandlers
 from hygroup.gateway.slack.app_home.views import HomeViewBuilder
@@ -33,7 +31,6 @@ class SlackHomeHandlers:
         agent_registry: DefaultAgentRegistry,
         user_registry: DefaultUserRegistry,
         preference_store: DefaultPreferenceStore,
-        selector_settings: AgentSelectorSettings,
         system_editor_ids: list[str] | None = None,
     ):
         self._client = client
@@ -46,10 +43,8 @@ class SlackHomeHandlers:
         self._user_preference_config_handlers = UserPreferenceConfigHandlers(
             client, preference_store, self._resolve_system_user_id
         )
-        self._activation_policy_config_handlers = ActivationPolicyConfigHandlers(client, selector_settings)
 
         self._app_name: str | None = None
-
         self._logger = logging.getLogger(__name__)
 
     def _resolve_system_user_id(self, slack_user_id: str) -> str:
@@ -110,23 +105,6 @@ class SlackHomeHandlers:
         self._app.view("home_user_preferences_delete_confirm_view")(
             self.refresh_home_after_completion(
                 self._user_preference_config_handlers.handle_user_preferences_delete_confirmed
-            )
-        )
-
-        # Activation policy handlers
-        self._app.action("home_activation_policy_overflow")(
-            self.require_system_edit_permission(
-                self._activation_policy_config_handlers.handle_activation_policy_overflow
-            )
-        )
-        self._app.action("home_edit_activation_policy")(
-            self.require_system_edit_permission(self._activation_policy_config_handlers.handle_edit_activation_policy)
-        )
-        self._app.view("home_activation_policy_edited_view")(
-            self.refresh_home_after_completion(
-                self.require_system_edit_permission(
-                    self._activation_policy_config_handlers.handle_activation_policy_edited
-                )
             )
         )
 

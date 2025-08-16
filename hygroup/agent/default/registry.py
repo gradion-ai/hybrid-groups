@@ -5,7 +5,7 @@ from typing import Any
 from tinydb import Query, TinyDB
 
 from hygroup.agent.base import Agent, AgentFactory, AgentRegistry
-from hygroup.agent.default.agent import AgentSettings, DefaultAgent, HandoffAgent
+from hygroup.agent.default.agent import AgentSettings, DefaultAgent
 from hygroup.utils import arun
 
 
@@ -36,11 +36,7 @@ class DefaultAgentRegistry(AgentRegistry):
             raise ValueError(f"No agent registered with name '{name}'")
 
         settings = AgentSettings.from_dict(doc["settings"])
-
-        if doc["handoff"]:
-            return HandoffAgent(name=name, settings=settings)
-        else:
-            return DefaultAgent(name=name, settings=settings)
+        return DefaultAgent(name=name, settings=settings)
 
     async def get_registered_names(self) -> set[str]:
         """Get the names of all registered agent configs and factories."""
@@ -84,7 +80,6 @@ class DefaultAgentRegistry(AgentRegistry):
         name: str,
         description: str,
         settings: AgentSettings,
-        handoff: bool = False,
         emoji: str | None = None,
     ):
         """Register an agent configuration."""
@@ -103,7 +98,6 @@ class DefaultAgentRegistry(AgentRegistry):
             doc = {
                 "name": name,
                 "description": description,
-                "handoff": handoff,
                 "settings": settings_dict,
                 "emoji": emoji,
             }
@@ -116,7 +110,6 @@ class DefaultAgentRegistry(AgentRegistry):
         name: str,
         description: str | None = None,
         settings: AgentSettings | None = None,
-        handoff: bool | None = None,
         emoji: str | None = None,
     ):
         """Update and existing agent configuration."""
@@ -132,8 +125,6 @@ class DefaultAgentRegistry(AgentRegistry):
                 update_doc["description"] = description
             if settings is not None:
                 update_doc["settings"] = settings.to_dict()
-            if handoff is not None:
-                update_doc["handoff"] = handoff
             if emoji is not None:
                 update_doc["emoji"] = emoji
 

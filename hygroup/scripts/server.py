@@ -3,11 +3,9 @@ import asyncio
 import os
 from pathlib import Path
 
-import aiofiles
 from dotenv import load_dotenv
 
 from hygroup.agent.default import DefaultAgentRegistry
-from hygroup.agent.select import AgentSelectorSettings
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
@@ -64,25 +62,12 @@ async def main(args):
                 default_confirmation_response=True,
             )
 
-    # Settings for the background reasoning agent.
-    # Reasoning thoughts are logged to the console.
-    selector_settings = AgentSelectorSettings()
-    selector_settings.instructions_file = Path(".data", "agents", "policy.md")
-
-    # Copy activation policy to a file, allowing edits from the
-    # Slack app home view.
-    if not selector_settings.instructions_file.exists():
-        selector_settings.instructions_file.parent.mkdir(parents=True, exist_ok=True)
-        async with aiofiles.open(selector_settings.instructions_file, "w") as f:
-            await f.write(selector_settings.instructions)
-
     # Manages group sessions and their persistence.
     manager = SessionManager(
         agent_registry=agent_registry,
         user_registry=user_registry,
         permission_store=permission_store,
         request_handler=request_handler,
-        # selector_settings=selector_settings,
     )
 
     # A gateway provides connectivity to platforms like Slack, GitHub, or a terminal.
@@ -104,7 +89,6 @@ async def main(args):
                 agent_registry=agent_registry,
                 user_registry=user_registry,
                 preference_store=preference_store,
-                selector_settings=selector_settings,
             )
             handlers.register()
         case "github":

@@ -49,7 +49,6 @@ class AgentConfigHandlers:
                     "tools": agent.tools,
                 }
             ),
-            handoff=agent.handoff,
             emoji=agent.emoji,
         )
 
@@ -71,7 +70,6 @@ class AgentConfigHandlers:
                     "tools": agent.tools,
                 }
             ),
-            handoff=agent.handoff,
             emoji=agent.emoji,
         )
 

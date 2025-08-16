@@ -2,7 +2,6 @@ from typing import Any
 
 from hygroup.gateway.slack.app_home.agent.views import AgentViewBuilder
 from hygroup.gateway.slack.app_home.models import AgentListViewModel
-from hygroup.gateway.slack.app_home.policy.views import ActivationPolicyViewBuilder
 from hygroup.gateway.slack.app_home.preferences.views import UserPreferenceViewBuilder
 from hygroup.gateway.slack.app_home.secrets.views import SecretViewBuilder
 
@@ -75,10 +74,6 @@ class HomeViewBuilder:
 
         # Agents section
         blocks.extend(AgentViewBuilder.build_agents_section(agents, is_system_editor))
-
-        # Activation policy section
-        if is_system_editor:
-            blocks.extend(ActivationPolicyViewBuilder.build_activation_policy_section(is_system_editor))
 
         return {
             "type": "home",

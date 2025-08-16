@@ -116,9 +116,6 @@ class SlackGateway(Gateway, RequestHandler):
     async def handle_feedback_request(self, *args, **kwargs):
         await self.delegate_handler.handle_feedback_request(*args, **kwargs)
 
-    async def handle_confirmation_request(self, *args, **kwargs):
-        await self.delegate_handler.handle_confirmation_request(*args, **kwargs)
-
     async def handle_agent_activation(self, activation: AgentActivation, session_id: str):
         thread = self._threads[session_id]
 
