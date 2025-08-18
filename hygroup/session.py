@@ -77,7 +77,7 @@ class SessionAgent:
                         # -------------------------------------
                         async with self.agent.request_scope(secrets=secrets):
                             try:
-                                async for elem in self.agent.run(request=request, updates=self._updates, stream=False):
+                                async for elem in self.agent.run(request=request, updates=self._updates):
                                     match elem:
                                         case PermissionRequest():
                                             # -------------------------------------
@@ -156,9 +156,9 @@ class Session:
         #  TODO: make settings configurable
         # -------------------------------------
         system_agent = SystemAgent()
-        system_agent.tool(requires_permission=True)(self.run_agent)
-        system_agent.tool(requires_permission=True)(self.get_user_preferences)
-        system_agent.tool(requires_permission=True)(self.agent_registry.get_registered_agents)
+        system_agent.tool(self.run_agent)
+        system_agent.tool(self.get_user_preferences)
+        system_agent.tool(self.agent_registry.get_registered_agents)
         self.add_agent(system_agent)
 
     async def _gateway_worker(self):

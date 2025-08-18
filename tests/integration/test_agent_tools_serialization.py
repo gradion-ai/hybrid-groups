@@ -11,7 +11,6 @@ from hygroup.agent.default.agent import AgentSettings, DefaultAgent
 from hygroup.agent.default.registry import DefaultAgentRegistry
 from tests.integration.example_tools import current_time, get_weather_forecast
 
-# Load environment variables
 load_dotenv()
 
 

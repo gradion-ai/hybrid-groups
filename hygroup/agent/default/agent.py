@@ -4,15 +4,14 @@ import inspect
 import os
 from abc import abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
-from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field
-from functools import wraps
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Generic, Iterator, Sequence, Type, TypeVar
 
 from pydantic_ai import Agent as AgentImpl
+from pydantic_ai import CallToolsNode, ModelRequestNode
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
-from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
 from pydantic_ai.settings import ModelSettings
 from pydantic_core import to_jsonable_python
 
@@ -131,7 +130,6 @@ class AgentBase(Generic[D], Agent):
         else:
             model = settings.model
 
-        # delegate agent
         self.agent: AgentImpl[None, D] = AgentImpl(
             model=model,
             system_prompt=settings.instructions,
@@ -140,30 +138,42 @@ class AgentBase(Generic[D], Agent):
         )
 
         self._history = []  # type: ignore
-        self._ctx_queue = ContextVar[asyncio.Queue]("queue")
-        self._ctx_secrets = ContextVar[bool]("secrets")
-
-        # references servers with patched call_tool methods
         self._session_mcp_servers: list[MCPServer] = []
         self._request_mcp_servers: list[MCPServer] = []
-        self.agent._mcp_servers = []
 
         for mcp_settings in settings.mcp_settings:
-            # register server with and patch call_tool method
-            self.server(requires_permission=True)(mcp_settings)
+            self.server(mcp_settings)
 
         for tool in settings.tools:
-            self.tool(requires_permission=True)(tool)
+            self.tool(tool)
 
         if settings.human_feedback:
-            # no permission required for asking for user feedback
-            self.tool(requires_permission=False)(self.ask_user)
+            self.tool(self.ask_user)
 
     def get_state(self) -> Any:
         return to_jsonable_python(self._history)
 
     def set_state(self, state: Any):
         self._history = ModelMessagesTypeAdapter.validate_python(state)
+
+    def ask_user(self, question: str) -> str:
+        """A tool to ask a user for clarifications or further input if needed.
+
+        Args:
+            question: The question to ask the user.
+        """
+        return ""  # answer is overridden in self.run()
+
+    def tool(self, coro):
+        self.agent.tool_plain(coro)
+        return coro
+
+    def server(self, settings: MCPSettings):
+        server = settings.server()
+        if settings.session_scope:
+            self._session_mcp_servers.append(server)
+        else:
+            self._request_mcp_servers.append(server)
 
     @asynccontextmanager
     async def session_scope(self):
@@ -173,7 +183,6 @@ class AgentBase(Generic[D], Agent):
 
     @asynccontextmanager
     async def request_scope(self, secrets: dict[str, str] | None = None):
-        self._ctx_secrets.set(secrets is not None)
         with self._configure_mcp_servers(self._request_mcp_servers, dict(os.environ) | (secrets or {})) as servers:
             async with self._run_mcp_servers(servers):
                 yield
@@ -184,57 +193,51 @@ class AgentBase(Generic[D], Agent):
         updates: Sequence[Message] = (),
         stream: bool = False,
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]:
-        queue = asyncio.Queue()  # type: ignore
-        self._ctx_queue.set(queue)
+        stopped = False
 
-        task = asyncio.create_task(self._run(request=request, updates=updates, stream=stream))
-
-        while True:
-            if task.done() and task.exception():
-                raise task.exception()  # type: ignore
-            try:
-                obj = queue.get_nowait()
-            except asyncio.QueueEmpty:
-                await asyncio.sleep(0.1)
-                continue
-            else:
-                yield obj
-                match obj:
-                    case AgentResponse(final=True):
-                        break
-
-    async def _run(self, request: AgentRequest, updates: Sequence[Message], stream: bool):
-        queue = self._ctx_queue.get()
         agent_input = self.input_formatter(request, self.name, updates)
+        mcp_servers = self._session_mcp_servers + self._request_mcp_servers
 
-        if stream:
-            async with self.agent.run_stream(agent_input, message_history=self._history) as result:
-                stream_pos = 0
-                async for structured_message, is_last in result.stream_structured():
-                    data = await result.validate_structured_output(structured_message, allow_partial=not is_last)
-                    if not is_last:
-                        text = self._text(data)
-                        response = AgentResponse(text=text[stream_pos:], final=False)
-                        stream_pos = len(text)
-                        if response.text:
-                            await queue.put(response)
-        else:
-            result = await self.agent.run(agent_input, message_history=self._history)
-            data = result.output
+        async with self.agent.iter(agent_input, toolsets=mcp_servers, message_history=self._history) as agent_run:
+            feedback_requests: dict[str, FeedbackRequest] = {}
+            feedback_request: FeedbackRequest
+            permission_request: PermissionRequest
 
-        await queue.put(AgentResponse(text=self._text(data), final=True))
-        self._history.extend(result.new_messages())
+            async for node in agent_run:
+                if stopped:
+                    break
+                match node:
+                    case ModelRequestNode(request=ModelRequest(parts=parts)):
+                        for part in parts:
+                            match part:
+                                case ToolReturnPart(tool_name="ask_user", tool_call_id=tool_call_id):
+                                    feedback_request = feedback_requests.pop(tool_call_id)
+                                    part.content = await feedback_request.response()
+                    case CallToolsNode(model_response=ModelResponse(parts=parts)):
+                        for part in parts:
+                            match part:
+                                case ToolCallPart(tool_name="ask_user", tool_call_id=tool_call_id):
+                                    feedback_request = FeedbackRequest(
+                                        question=part.args_as_dict().get("question"),
+                                        ftr=asyncio.Future(),
+                                    )
+                                    yield feedback_request
+                                    feedback_requests[tool_call_id] = feedback_request
+                                case ToolCallPart(tool_name=tool_name):
+                                    permission_request = PermissionRequest(
+                                        tool_name=tool_name,
+                                        tool_args=(),
+                                        tool_kwargs=part.args_as_dict(),
+                                        ftr=asyncio.Future(),
+                                    )
+                                    yield permission_request
+                                    if not await permission_request.response():
+                                        yield AgentResponse(text=f"Permission denied calling {tool_name}", final=True)
+                                        stopped = True
+                                        break
 
-    @staticmethod
-    @asynccontextmanager
-    async def _run_mcp_servers(mcp_servers: list[MCPServer]):
-        exit_stack = AsyncExitStack()
-        try:
-            for mcp_server in mcp_servers:
-                await exit_stack.enter_async_context(mcp_server)
-            yield
-        finally:
-            await exit_stack.aclose()
+            if not stopped:
+                yield AgentResponse(text=self._text(agent_run.result.output), final=True)
 
     @staticmethod
     @contextmanager
@@ -260,77 +263,23 @@ class AgentBase(Generic[D], Agent):
                         pass
 
             yield mcp_servers
-
         finally:
             for server, field_name, original_value in reversed(backups):
                 setattr(server, field_name, original_value)
 
+    @staticmethod
+    @asynccontextmanager
+    async def _run_mcp_servers(mcp_servers: list[MCPServer]):
+        exit_stack = AsyncExitStack()
+        try:
+            for mcp_server in mcp_servers:
+                await exit_stack.enter_async_context(mcp_server)
+            yield
+        finally:
+            await exit_stack.aclose()
+
     @abstractmethod
     def _text(self, data: D) -> str: ...
-
-    async def ask_user(self, question: str) -> str:
-        """Ask the user for clarifications or further input if you cannot complete the task."""
-        queue = self._ctx_queue.get()
-        request = FeedbackRequest(question=question, ftr=asyncio.Future())
-        await queue.put(request)
-        return await request.response()
-
-    def tool(self, requires_permission: bool = True):
-        """Register a tool with the agent."""
-
-        def decorator(coro):
-            @wraps(coro)
-            async def request_permission(*args, **kwargs):
-                request = PermissionRequest(coro.__name__, args, kwargs, ftr=asyncio.Future())
-                return await self._request_permission(coro, args, kwargs, request)
-
-            if requires_permission:
-                # register wrapped func as agent tool
-                return self.agent.tool_plain(request_permission)
-            else:
-                # register func as agent tool
-                return self.agent.tool_plain(coro)
-
-        return decorator
-
-    def server(self, requires_permission: bool = True):
-        """Register an MCP server with the agent."""
-
-        def decorator(settings: MCPSettings):
-            server = settings.server()
-
-            # keep a reference to the non-patched call_tool method
-            call_tool = server.call_tool
-
-            @wraps(call_tool)
-            async def request_permission(tool_name: str, arguments: dict[str, Any]):
-                as_user = self._ctx_secrets.get(False) and not settings.session_scope
-                request = PermissionRequest(tool_name, (), arguments, asyncio.Future(), as_user)
-                return await self._request_permission(call_tool, (tool_name, arguments), {}, request)
-
-            if requires_permission:
-                # patch call_tool method to request permission
-                server.call_tool = request_permission
-
-            # register server with delegeate agent
-            self.agent._mcp_servers.append(server)
-
-            # register server with agent wrapper
-            if settings.session_scope:
-                self._session_mcp_servers.append(server)
-            else:
-                self._request_mcp_servers.append(server)
-
-        return decorator
-
-    async def _request_permission(self, coro, args, kwargs, request: PermissionRequest):
-        queue = self._ctx_queue.get()
-        await queue.put(request)
-
-        if await request.response():
-            return await coro(*args, **kwargs)
-        else:
-            return f"Permission denied calling {request.call}"
 
 
 class DefaultAgent(AgentBase[str]):
