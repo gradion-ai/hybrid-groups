@@ -20,26 +20,19 @@ from hygroup.user.default import (
     RichConsoleHandler,
 )
 
-# Registry for agent configurations and factories
-agent_registry = DefaultAgentRegistry()
-
-# Database for user preferences
-preference_store = DefaultPreferenceStore()
-
-
-# Tool for agents to load user preferences
-async def get_user_preferences(username: str):
-    preferences = await preference_store.get_preferences(username)
-    preferences = preferences or "n/a"
-    return f"User preferences for {username}:\n{preferences}"
-
 
 async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
         raise ValueError("The 'slack' user channel is only available with the 'slack' gateway.")
 
+    # Registry for agent configurations and factories
+    agent_registry = DefaultAgentRegistry()
+
+    # Database for user preferences
+    preference_store = DefaultPreferenceStore()
+
     # Database for tool execution permissions (session, permanent)
-    permission_store = DefaultPermissionStore()
+    permission_store = DefaultPermissionStore(allowed_tools=[])
 
     # A user registry that encrypts user secrets at rest with an
     # admin password.

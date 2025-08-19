@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from tinydb import Query, TinyDB
 
@@ -25,7 +25,7 @@ class DefaultAgentRegistry(AgentRegistry):
         self._tinydb = TinyDB(str(self.registry_path), indent=2)
         self._lock = asyncio.Lock()
 
-    async def create_agent(self, name: str) -> Agent:
+    async def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent:
         """Create an agent from config or factory registered under `name`."""
         if doc := self._factories.get(name):
             return doc["factory"]()
@@ -36,7 +36,13 @@ class DefaultAgentRegistry(AgentRegistry):
             raise ValueError(f"No agent registered with name '{name}'")
 
         settings = AgentSettings.from_dict(doc["settings"])
-        return DefaultAgent(name=name, settings=settings)
+        agent = DefaultAgent(name=name, settings=settings)
+
+        if tools is not None:
+            for tool in tools:
+                agent.tool(tool)
+
+        return agent
 
     async def get_registered_names(self) -> set[str]:
         """Get the names of all registered agent configs and factories."""

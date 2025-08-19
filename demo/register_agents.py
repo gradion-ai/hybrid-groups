@@ -3,8 +3,7 @@ import os
 import textwrap
 
 from demo.weather import get_weather_forecast
-from hygroup.agent.default import AgentSettings, MCPSettings
-from hygroup.scripts.server import agent_registry, get_user_preferences
+from hygroup.agent.default import AgentSettings, DefaultAgentRegistry, MCPSettings
 
 INSTRUCTION_TEMPLATE = """{role_description}
 
@@ -82,7 +81,6 @@ def scrape_agent_config():
         model="gemini-2.5-flash",
         instructions=SCRAPE_AGENT_INSTRUCTIONS,
         mcp_settings=[firecrawl_settings],
-        tools=[get_user_preferences],
     )
 
     return {
@@ -109,7 +107,6 @@ def search_agent_config():
         model="gemini-2.5-flash",
         instructions=SEARCH_AGENT_INSTRUCTIONS,
         mcp_settings=[brave_search_settings],
-        tools=[get_user_preferences],
     )
 
     return {
@@ -145,7 +142,6 @@ def zotero_agent_config(zotero_mcp_exec: str):
         model="gemini-2.5-flash",
         instructions=ZOTERO_AGENT_INSTRUCTIONS,
         mcp_settings=[zotero_settings, fetch_settings],
-        tools=[get_user_preferences],
     )
 
     return {
@@ -170,7 +166,6 @@ def reader_agent_config(reader_mcp_exec: str):
         model="gemini-2.5-pro",
         instructions=READER_AGENT_INSTRUCTIONS,
         mcp_settings=[reader_settings],
-        tools=[get_user_preferences],
     )
 
     return {
@@ -186,7 +181,7 @@ def weather_agent_config():
         model="gemini-2.5-flash",
         instructions=WEATHER_AGENT_INSTRUCTIONS,
         mcp_settings=[],
-        tools=[get_weather_forecast, get_user_preferences],
+        tools=[get_weather_forecast],
     )
 
     return {
@@ -220,13 +215,10 @@ def browser_agent_config():
     }
 
 
-async def get_registered_agents():
-    return await agent_registry.get_registered_agents()
-
-
 async def main():
-    await agent_registry.remove_configs()
+    agent_registry = DefaultAgentRegistry()
 
+    await agent_registry.remove_configs()
     await agent_registry.add_config(**weather_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):

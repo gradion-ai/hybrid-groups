@@ -15,14 +15,26 @@ class DefaultPermissionStore(PermissionStore):
     **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
     """
 
-    def __init__(self, store_path: Path | str = Path(".data", "users", "permissions.json")):
+    def __init__(
+        self,
+        store_path: Path | str = Path(".data", "users", "permissions.json"),
+        allowed_tools: list[str] | None = None,
+    ):
         self.store_path = Path(store_path)
         self.store_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if allowed_tools is None:
+            self.allowed_tools = ["get_user_preferences", "get_registered_agents", "run_agent", "final_result"]
+        else:
+            self.allowed_tools = allowed_tools
 
         self._tinydb = TinyDB(str(self.store_path), indent=2)
         self._lock = asyncio.Lock()
 
     async def get_permission(self, tool_name: str, username: str, session_id: str) -> int | None:
+        if tool_name in self.allowed_tools:
+            return 3
+
         Query_ = Query()
 
         async with self._lock:
