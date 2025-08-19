@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import inspect
+import logging
 import os
 from abc import abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
@@ -23,11 +24,13 @@ from hygroup.agent.base import (
     Message,
     PermissionRequest,
 )
-from hygroup.agent.default.utils import resolve_config_variables
+from hygroup.agent.default.utils import replace_variables
 from hygroup.agent.prompt import InputFormatter, format_input
 from hygroup.agent.utils import model_from_dict
 
 D = TypeVar("D")
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -50,6 +53,12 @@ class AgentSettings:
     model_settings: ModelSettings | None = None
     mcp_settings: Sequence[MCPSettings] = field(default_factory=list)
     tools: Sequence[Callable] = field(default_factory=list)
+
+    def session_mcp_settings(self) -> list[MCPSettings]:
+        return [s for s in self.mcp_settings if s.session_scope]
+
+    def request_mcp_settings(self) -> list[MCPSettings]:
+        return [s for s in self.mcp_settings if not s.session_scope]
 
     @staticmethod
     def serialize_tool(tool: Callable) -> dict[str, str] | None:
@@ -141,9 +150,6 @@ class AgentBase(Generic[D], Agent):
         self._session_mcp_servers: list[MCPServer] = []
         self._request_mcp_servers: list[MCPServer] = []
 
-        for mcp_settings in settings.mcp_settings:
-            self.server(mcp_settings)
-
         for tool in settings.tools:
             self.tool(tool)
 
@@ -168,30 +174,28 @@ class AgentBase(Generic[D], Agent):
         self.agent.tool_plain(coro)
         return coro
 
-    def server(self, settings: MCPSettings):
-        server = settings.server()
-        if settings.session_scope:
-            self._session_mcp_servers.append(server)
-        else:
-            self._request_mcp_servers.append(server)
-
     @asynccontextmanager
     async def session_scope(self):
-        with self._configure_mcp_servers(self._session_mcp_servers, dict(os.environ)) as servers:
+        with self._configure_mcp_servers(self.settings.session_mcp_settings(), dict(os.environ)) as servers:
             async with self._run_mcp_servers(servers):
+                self._session_mcp_servers = servers
                 yield
+                self._session_mcp_servers.clear()
 
     @asynccontextmanager
     async def request_scope(self, secrets: dict[str, str] | None = None):
-        with self._configure_mcp_servers(self._request_mcp_servers, dict(os.environ) | (secrets or {})) as servers:
+        with self._configure_mcp_servers(
+            self.settings.request_mcp_settings(), dict(os.environ) | (secrets or {})
+        ) as servers:
             async with self._run_mcp_servers(servers):
+                self._request_mcp_servers = servers
                 yield
+                self._request_mcp_servers.clear()
 
     async def run(
         self,
         request: AgentRequest,
         updates: Sequence[Message] = (),
-        stream: bool = False,
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]:
         stopped = False
 
@@ -239,33 +243,23 @@ class AgentBase(Generic[D], Agent):
             if not stopped:
                 yield AgentResponse(text=self._text(agent_run.result.output), final=True)
 
-    @staticmethod
     @contextmanager
     def _configure_mcp_servers(
-        mcp_servers: list[MCPServer], config_values: dict[str, str]
+        self, mcp_settings: list[MCPSettings], variables: dict[str, str]
     ) -> Iterator[list[MCPServer]]:
-        backups = []
-
-        try:
-            for server in mcp_servers:
-                match server:
-                    case MCPServerStdio() if server.env is not None:
-                        new_env, updated = resolve_config_variables(server.env, config_values)
-                        if updated:
-                            backups.append((server, "env", dict(server.env)))
-                            server.env = new_env
-                    case MCPServerStreamableHTTP() if server.headers is not None:
-                        new_headers, updated = resolve_config_variables(server.headers, config_values)
-                        if updated:
-                            backups.append((server, "headers", dict(server.headers)))
-                            server.headers = new_headers
-                    case _:
-                        pass
-
-            yield mcp_servers
-        finally:
-            for server, field_name, original_value in reversed(backups):
-                setattr(server, field_name, original_value)
+        mcp_servers: list[MCPServer] = []
+        for settings in mcp_settings:
+            result = replace_variables(settings.server_config, variables)
+            settings = MCPSettings(result.replaced, settings.session_scope)
+            if result.missing_variables:
+                logger.warning(
+                    f"Variables {result.missing_variables} missing for "
+                    f"configuring MCP server {settings.server_config}. "
+                    f"Agent '{self.name}' will not use this MCP server."
+                )
+            else:
+                mcp_servers.append(settings.server())
+        yield mcp_servers
 
     @staticmethod
     @asynccontextmanager
