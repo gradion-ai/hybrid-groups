@@ -125,7 +125,6 @@ class Agent(ABC):
         self,
         request: AgentRequest,
         updates: Sequence[Message] = (),
-        stream: bool = False,
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]: ...
 
     @abstractmethod

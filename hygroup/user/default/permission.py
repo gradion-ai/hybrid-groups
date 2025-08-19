@@ -24,7 +24,13 @@ class DefaultPermissionStore(PermissionStore):
         self.store_path.parent.mkdir(parents=True, exist_ok=True)
 
         if allowed_tools is None:
-            self.allowed_tools = ["get_user_preferences", "get_registered_agents", "run_agent", "final_result"]
+            self.allowed_tools = [
+                "get_user_preferences",
+                "get_registered_agents",
+                "run_agent",
+                "ask_user",
+                "final_result",
+            ]
         else:
             self.allowed_tools = allowed_tools
 

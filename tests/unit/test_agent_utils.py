@@ -1,171 +1,230 @@
 import pytest
 
-from hygroup.agent.default.utils import resolve_config_variables
+from hygroup.agent.default.utils import ReplaceResult, _replace_variables, replace_variables
 
 
 @pytest.mark.parametrize(
-    "original,config,expected,expected_updated",
+    "template,variables,expected_rendered,expected_replaced,expected_missing,expected_total",
     [
-        ({"key": "${VAR}"}, {"VAR": "value"}, {"key": "value"}, True),  # basic single variable replacement
+        # Basic replacement
         (
-            {"key": "${VAR1} and ${VAR2}"},
-            {"VAR1": "first", "VAR2": "second"},
-            {"key": "first and second"},
-            True,
-        ),  # two variables in single string value
+            "Hello ${NAME}, welcome to ${PLACE}!",
+            {"NAME": "Alice", "PLACE": "Wonderland"},
+            "Hello Alice, welcome to Wonderland!",
+            {"NAME", "PLACE"},
+            set(),
+            2,
+        ),
+        # Missing variables
         (
-            {"key1": "${VAR1}", "key2": "${VAR2}", "key3": "static"},
-            {"VAR1": "value1", "VAR2": "value2"},
-            {"key1": "value1", "key2": "value2", "key3": "static"},
-            True,
-        ),  # multiple dict keys with variables
+            "Hello ${NAME}, welcome to ${PLACE}!",
+            {"NAME": "Alice"},
+            "Hello Alice, welcome to ${PLACE}!",
+            {"NAME"},
+            {"PLACE"},
+            2,
+        ),
+        # No variables in template
+        ("Hello World!", {"NAME": "Alice"}, "Hello World!", set(), set(), 0),
+        # Empty template
+        ("", {"NAME": "Alice"}, "", set(), set(), 0),
+        # Empty variables dict
+        ("Hello ${NAME}!", {}, "Hello ${NAME}!", set(), {"NAME"}, 1),
+        # Duplicate variables in template
         (
-            {"key": "${VAR} and ${VAR} again"},
-            {"VAR": "value"},
-            {"key": "value and value again"},
-            True,
-        ),  # duplicate variable replacements
+            "Hello ${NAME}, how are you ${NAME}?",
+            {"NAME": "Alice"},
+            "Hello Alice, how are you Alice?",
+            {"NAME"},
+            set(),
+            1,
+        ),
+        # Underscore in variable name
+        ("Value: ${VAR_NAME}", {"VAR_NAME": "test_value"}, "Value: test_value", {"VAR_NAME"}, set(), 1),
+        # Invalid variable patterns ignored (VAR-NAME with hyphen and empty braces)
         (
-            {"key1": "value1", "key2": "value2"},
-            {"VAR": "value"},
-            {"key1": "value1", "key2": "value2"},
-            False,
-        ),  # static values without variables
-        ({}, {"VAR": "value"}, {}, False),  # empty dict remains empty
-        ({"key": "${VAR}"}, {}, {}, True),  # unresolved variables remove keys
-        ({"key": "static"}, {"VAR": "value"}, {"key": "static"}, False),  # static string unchanged
-        ({}, {}, {}, False),  # empty dict and config
-        # Variable positions
-        ({"key": "${VAR} suffix"}, {"VAR": "X"}, {"key": "X suffix"}, True),  # variable at string start
-        ({"key": "prefix ${VAR} suffix"}, {"VAR": "X"}, {"key": "prefix X suffix"}, True),  # variable in string middle
-        ({"key": "prefix ${VAR}"}, {"VAR": "X"}, {"key": "prefix X"}, True),  # variable at string end
+            "Invalid ${123} and ${VAR-NAME} and ${} but valid ${VALID}",
+            {"VALID": "good", "123": "bad", "VAR-NAME": "bad"},
+            "Invalid bad and ${VAR-NAME} and ${} but valid good",
+            {"VALID", "123"},
+            set(),
+            2,
+        ),
+        # Case sensitive variables
         (
-            {"key": "${VAR1} ${VAR2} ${VAR3}"},
-            {"VAR1": "A", "VAR2": "B", "VAR3": "C"},
-            {"key": "A B C"},
-            True,
-        ),  # three spaced variables
-        ({"key": "${VAR1}${VAR2}"}, {"VAR1": "A", "VAR2": "B"}, {"key": "AB"}, True),  # adjacent variables no space
+            "Hello ${name} and ${NAME}",
+            {"name": "alice", "NAME": "ALICE"},
+            "Hello alice and ALICE",
+            {"name", "NAME"},
+            set(),
+            2,
+        ),
+        # Special characters in values
         (
-            {"key": "text ${VAR1} more ${VAR2} end"},
-            {"VAR1": "A", "VAR2": "B"},
-            {"key": "text A more B end"},
-            True,
-        ),  # text interleaved with variables
-        (
-            {"key": "${VAR1}${VAR2}"},
-            {"VAR1": "Hello", "VAR2": "World"},
-            {"key": "HelloWorld"},
-            True,
-        ),  # concatenated adjacent variables
-        ({"key": "prefix${VAR}suffix"}, {"VAR": ""}, {"key": "prefixsuffix"}, True),  # empty string replacement
-        ({"key": "${VAR}${VAR}${VAR}"}, {"VAR": "X"}, {"key": "XXX"}, True),  # same variable used thrice
-        ({"key": "${123}"}, {"123": "num"}, {"key": "num"}, True),  # numeric-only variable name
-        # Special variable names
-        (
-            {"key": "${VAR_WITH_UNDERSCORE}"},
-            {"VAR_WITH_UNDERSCORE": "underscore_value"},
-            {"key": "underscore_value"},
-            True,
-        ),  # variable name with underscores
-        (
-            {"key": "${VAR123}"},
-            {"VAR123": "numeric_value"},
-            {"key": "numeric_value"},
-            True,
-        ),  # alphanumeric variable name
-        (
-            {"key": "${VAR_123_TEST}"},
-            {"VAR_123_TEST": "mixed_value"},
-            {"key": "mixed_value"},
-            True,
-        ),  # mixed underscore and numbers
-        (
-            {"key": "${_PRIVATE_VAR}"},
-            {"_PRIVATE_VAR": "private_value"},
-            {"key": "private_value"},
-            True,
-        ),  # leading underscore variable
-        (
-            {"key": "${VAR1_VAR2_VAR3}"},
-            {"VAR1_VAR2_VAR3": "multi_underscore"},
-            {"key": "multi_underscore"},
-            True,
-        ),  # multiple underscores in name
-        ({"key": "${A1B2C3}"}, {"A1B2C3": "alphanumeric"}, {"key": "alphanumeric"}, True),  # mixed letters and numbers
-        # Invalid patterns - should not match
-        ({"key": "${PARTIAL"}, {"PARTIAL": "value"}, {"key": "${PARTIAL"}, False),  # missing closing brace
-        ({"key": "PARTIAL}"}, {"PARTIAL": "value"}, {"key": "PARTIAL}"}, False),  # missing opening ${
-        ({"key": "${}"}, {"": "value"}, {"key": "${}"}, False),  # empty variable name
-        ({"key": "${ VAR }"}, {"VAR": "value"}, {"key": "${ VAR }"}, False),  # spaces inside braces invalid
-        ({"key": "${VAR!}"}, {"VAR": "value"}, {"key": "${VAR!}"}, False),  # exclamation mark invalid
-        ({"key": "${VAR\n}"}, {"VAR": "value"}, {"key": "${VAR\n}"}, False),  # newline character invalid
-        ({"key": "${VAR\t}"}, {"VAR": "value"}, {"key": "${VAR\t}"}, False),  # tab character invalid
-        ({"key": "$VAR and $123"}, {"VAR": "value"}, {"key": "$VAR and $123"}, False),  # $ without braces ignored
+            "Message: ${MSG}",
+            {"MSG": "Hello $world {test} [brackets]"},
+            "Message: Hello $world {test} [brackets]",
+            {"MSG"},
+            set(),
+            1,
+        ),
     ],
 )
-def test_resolve_config_variables_variable_replacement(original, config, expected, expected_updated):
-    """Test various variable replacement scenarios."""
-    result, updated = resolve_config_variables(original, config)
-    assert result == expected
-    assert updated == expected_updated
+def test_replace_variables(template, variables, expected_rendered, expected_replaced, expected_missing, expected_total):
+    result = _replace_variables(template, variables)
+
+    assert result.replaced == expected_rendered
+    assert result.replaced_variables == expected_replaced
+    assert result.missing_variables == expected_missing
+    assert result.total_variables == expected_total
 
 
 @pytest.mark.parametrize(
-    "original_var,config_var",
+    "rendered,replaced_variables,missing_variables,expected_total",
     [
-        ("${var}", "VAR"),  # lowercase in template, uppercase in config
-        ("${VAR}", "var"),  # uppercase in template, lowercase in config
-        ("${VaR}", "vAr"),  # mixed case combinations
-        ("${VAR_NAME}", "var_name"),  # with underscores
+        # Mixed variables
+        ("test", {"A", "B"}, {"C"}, 3),
+        # Empty variables lists
+        ("test", set(), set(), 0),
+        # Only replaced variables
+        ("test", {"A", "B", "C"}, set(), 3),
+        # Only missing variables
+        ("test", set(), {"X", "Y"}, 2),
     ],
 )
-def test_resolve_config_variables_case_insensitive_matching(original_var, config_var):
-    """Test that variable matching is case-insensitive."""
-    original = {"key": original_var}
-    config = {config_var: "value"}
-    result, updated = resolve_config_variables(original, config)
-    assert result == {"key": "value"}
-    assert updated is True
+def test_replace_result_total_variables(rendered, replaced_variables, missing_variables, expected_total):
+    result = ReplaceResult(
+        replaced=rendered, replaced_variables=replaced_variables, missing_variables=missing_variables
+    )
+
+    assert result.total_variables == expected_total
 
 
 @pytest.mark.parametrize(
-    "original,config,expected",
+    "template,variables,expected_rendered,expected_replaced,expected_missing",
     [
+        # Simple dict with string values
         (
-            {"key1": "${VAR1}", "key2": "${UNRESOLVED}"},
-            {"VAR1": "value1"},
-            {"key1": "value1"},
+            {"message": "Hello ${NAME}", "greeting": "Welcome to ${PLACE}!"},
+            {"NAME": "Alice", "PLACE": "Wonderland"},
+            {"message": "Hello Alice", "greeting": "Welcome to Wonderland!"},
+            {"NAME", "PLACE"},
+            set(),
         ),
+        # Nested dict
         (
-            {"key1": "${VAR1}", "key2": "${UNRESOLVED}", "key3": None},
-            {"VAR1": "value1"},
-            {"key1": "value1", "key3": None},
+            {
+                "user": {"name": "${USER_NAME}", "role": "${USER_ROLE}"},
+                "config": {"timeout": 30, "message": "User ${USER_NAME} logged in"},
+            },
+            {"USER_NAME": "Bob", "USER_ROLE": "admin"},
+            {
+                "user": {"name": "Bob", "role": "admin"},
+                "config": {"timeout": 30, "message": "User Bob logged in"},
+            },
+            {"USER_NAME", "USER_ROLE"},
+            set(),
         ),
+        # Dict with list values
         (
-            {"key1": "${VAR1}", "key2": "${VAR2} and ${UNRESOLVED}"},
-            {"VAR1": "value1", "VAR2": "value2"},
-            {"key1": "value1"},
+            {
+                "items": ["Item ${ITEM1}", "Item ${ITEM2}", "Item ${ITEM3}"],
+                "title": "List of ${COUNT} items",
+            },
+            {"ITEM1": "Apple", "ITEM2": "Banana", "COUNT": "3"},
+            {
+                "items": ["Item Apple", "Item Banana", "Item ${ITEM3}"],
+                "title": "List of 3 items",
+            },
+            {"ITEM1", "ITEM2", "COUNT"},
+            {"ITEM3"},
+        ),
+        # Mixed nested structures
+        (
+            {
+                "metadata": {
+                    "author": "${AUTHOR}",
+                    "tags": ["${TAG1}", "${TAG2}", "static-tag"],
+                    "nested": {"deep": {"value": "Deep ${VALUE}"}},
+                },
+                "count": 42,
+                "enabled": True,
+            },
+            {"AUTHOR": "Jane", "TAG1": "python", "VALUE": "secret"},
+            {
+                "metadata": {
+                    "author": "Jane",
+                    "tags": ["python", "${TAG2}", "static-tag"],
+                    "nested": {"deep": {"value": "Deep secret"}},
+                },
+                "count": 42,
+                "enabled": True,
+            },
+            {"AUTHOR", "TAG1", "VALUE"},
+            {"TAG2"},
+        ),
+        # Empty dict
+        ({}, {"NAME": "Alice"}, {}, set(), set()),
+        # Dict with no variables
+        (
+            {"message": "Hello World", "count": 5},
+            {"NAME": "Alice"},
+            {"message": "Hello World", "count": 5},
+            set(),
+            set(),
+        ),
+        # Dict with missing variables only
+        (
+            {"error": "User ${USER} not found in ${LOCATION}"},
+            {},
+            {"error": "User ${USER} not found in ${LOCATION}"},
+            set(),
+            {"USER", "LOCATION"},
+        ),
+        # Dict with duplicate variables across different values
+        (
+            {
+                "greeting": "Hello ${NAME}",
+                "farewell": "Goodbye ${NAME}",
+                "nested": {"msg": "See you later ${NAME}"},
+            },
+            {"NAME": "Charlie"},
+            {
+                "greeting": "Hello Charlie",
+                "farewell": "Goodbye Charlie",
+                "nested": {"msg": "See you later Charlie"},
+            },
+            {"NAME"},
+            set(),
+        ),
+        # Dict with non-string values preserved
+        (
+            {
+                "text": "Value is ${VALUE}",
+                "number": 123,
+                "float": 45.67,
+                "boolean": False,
+                "null": None,
+                "list": [1, 2, "${NUM}", 3],
+            },
+            {"VALUE": "test", "NUM": "2.5"},
+            {
+                "text": "Value is test",
+                "number": 123,
+                "float": 45.67,
+                "boolean": False,
+                "null": None,
+                "list": [1, 2, "2.5", 3],
+            },
+            {"VALUE", "NUM"},
+            set(),
         ),
     ],
 )
-def test_resolve_config_variables_with_unresolved_variables(original, config, expected):
-    """Test handling of unresolved variables in various scenarios."""
-    result, updated = resolve_config_variables(original, config)
-    assert result == expected
-    assert updated is True
+def test_replace_variables_dict(template, variables, expected_rendered, expected_replaced, expected_missing):
+    result = replace_variables(template, variables)
 
-
-def test_resolve_config_variables_with_non_string_values():
-    """Test that non-string values pass through unchanged."""
-    config = {"VAR": "value"}
-
-    original = {"str": "${VAR}", "int": 42, "bool": True, "none": None, "list": [1, 2, 3]}
-    result, updated = resolve_config_variables(original, config)
-    assert result == {"str": "value", "int": 42, "bool": True, "none": None, "list": [1, 2, 3]}
-    assert updated is True
-
-    original = {"int": 42, "bool": True, "none": None}
-    result, updated = resolve_config_variables(original, config)
-    assert result == {"int": 42, "bool": True, "none": None}
-    assert updated is False
+    assert result.replaced == expected_rendered
+    assert result.replaced_variables == expected_replaced
+    assert result.missing_variables == expected_missing
+    assert result.total_variables == len(expected_replaced) + len(expected_missing)

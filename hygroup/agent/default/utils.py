@@ -1,43 +1,73 @@
 import re
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Generic, TypeVar
 
-CONFIG_VARIABLE_PATTERN = re.compile(r"\$\{([A-Z0-9_]+)\}", re.IGNORECASE)
+T = TypeVar("T", str, dict[str, Any])
 
 
-def resolve_config_variables(
-    original_data: dict[str, Any],
-    config_values: dict[str, str],
-) -> tuple[dict[str, Any | None], bool]:
-    """Replaces ${VARIABLE_NAME} patterns in a dictionary using case-insensitive lookup.
-    Unresolved variables are removed from the output dictionary.
-    Returns a tuple of (modified_dict, was_updated) where was_updated indicates if any changes were made.
-    """
-    if not original_data:
-        return {}, False
+@dataclass
+class ReplaceResult(Generic[T]):
+    replaced: T
+    replaced_variables: set[str]
+    missing_variables: set[str]
 
-    normalized_config_values = {k.upper(): v for k, v in config_values.items()}
-    has_changes = False
-    new_data = {}
+    @property
+    def total_variables(self) -> int:
+        return len(self.replaced_variables) + len(self.missing_variables)
 
-    for key, value in original_data.items():
-        if value is None or not isinstance(value, str):
-            new_data[key] = value
+
+def replace_variables(template: dict[str, Any], variables: dict[str, str]) -> ReplaceResult[dict[str, Any]]:
+    """Recursively replace variables in all string values within a dict."""
+    all_replaced_vars = set()
+    all_missing_vars = set()
+
+    def process_value(value: Any) -> Any:
+        """Process a value, replacing variables if it's a string or recursing if it's a container."""
+        if isinstance(value, str):
+            result = _replace_variables(value, variables)
+            all_replaced_vars.update(result.replaced_variables)
+            all_missing_vars.update(result.missing_variables)
+            return result.replaced
+        elif isinstance(value, dict):
+            processed_dict = {}
+            for k, v in value.items():
+                processed_dict[k] = process_value(v)
+            return processed_dict
+        elif isinstance(value, list):
+            return [process_value(item) for item in value]
         else:
-            matches = CONFIG_VARIABLE_PATTERN.findall(value)
-            if matches:
-                result = value
-                all_resolved = True
-                for var_name in matches:
-                    lookup_key = var_name.upper()
-                    if lookup_key not in normalized_config_values:
-                        all_resolved = False
-                        break
-                    else:
-                        result = result.replace(f"${{{var_name}}}", normalized_config_values[lookup_key])  # type: ignore
-                if all_resolved:
-                    new_data[key] = result
-                has_changes = True
-            else:
-                new_data[key] = value
+            # Return non-string, non-container values unchanged
+            return value
 
-    return new_data, has_changes
+    return ReplaceResult(
+        replaced=process_value(template),
+        replaced_variables=all_replaced_vars,
+        missing_variables=all_missing_vars,
+    )
+
+
+def _replace_variables(template: str, variables: dict[str, str]) -> ReplaceResult[str]:
+    """Replace variables of pattern ${VAR_NAME} with values from dict."""
+    # Find all variable patterns (a-zA-Z0-9_)
+    pattern = r"\$\{([a-zA-Z0-9_]+)\}"
+    matches = re.findall(pattern, template)
+
+    # Track what we've seen
+    found_vars = set(matches)
+    replaced_vars = set()
+    missing_vars = set()
+
+    # Replace variables
+    rendered = template
+    for var_name in found_vars:
+        if var_name in variables:
+            rendered = rendered.replace(f"${{{var_name}}}", variables[var_name])
+            replaced_vars.add(var_name)
+        else:
+            missing_vars.add(var_name)
+
+    return ReplaceResult(
+        replaced=rendered,
+        replaced_variables=replaced_vars,
+        missing_variables=missing_vars,
+    )
