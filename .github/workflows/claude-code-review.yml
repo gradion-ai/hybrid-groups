@@ -2,7 +2,7 @@ name: Claude Auto Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened]
 
 jobs:
   auto-review:
@@ -46,10 +46,19 @@ jobs:
           direct_prompt: |
             Please review this pull request and provide comprehensive feedback.
 
-            Focus on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Documentation updates if needed
+            IMPORTANT: This is a research prototype. While code quality is important, production-readiness is not the current focus.
 
-            Provide constructive feedback with specific suggestions for improvement.
-            Use inline comments to highlight specific areas of concern.
+            Focus on:
+            - Code maintainability and readability
+            - Separation of concerns and architectural clarity
+            - Logical correctness and potential bugs
+            - Clear abstractions and interfaces
+
+            De-emphasize:
+            - Production deployment concerns (scaling, monitoring, etc.)
+            - Performance optimizations unless critical
+            - Security hardening beyond basic practices
+            - Comprehensive error handling for edge cases
+
+            Provide constructive feedback focused on making the code clear, maintainable, and architecturally sound for a research prototype.
+            Use inline comments to highlight specific areas that could improve code clarity or structure.
