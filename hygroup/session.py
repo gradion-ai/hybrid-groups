@@ -194,7 +194,7 @@ class Session:
         self._agents[agent.name] = SessionAgent(agent, self)
 
     async def load_agent(self, name: str):
-        self.add_agent(await self.agent_registry.create_agent(name))
+        self.add_agent(await self.agent_registry.create_agent(name, tools=[self.get_user_preferences]))
 
     async def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
