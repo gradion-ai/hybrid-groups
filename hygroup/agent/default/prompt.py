@@ -35,16 +35,11 @@ TEMPLATE = """{formatted_query}{updates}"""
 InputFormatter = Callable[[AgentRequest, Sequence[Message]], str]
 
 
-def format_input(request: AgentRequest, updates: Sequence[Message]) -> str:
-    return _format_input(request, updates, query_template=QUERY_TEMPLATE)
-
-
-def _format_input(
+def format_input(
     request: AgentRequest,
     updates: Sequence[Message],
-    query_template: str,
 ) -> str:
-    formatted_query = format_query(request, query_template)
+    formatted_query = format_query(request)
     formatted_updates = ""
 
     if updates:
@@ -54,8 +49,8 @@ def _format_input(
     return TEMPLATE.format(formatted_query=formatted_query, updates=formatted_updates)
 
 
-def format_query(request: AgentRequest, query_template: str) -> str:
-    return query_template.format(
+def format_query(request: AgentRequest) -> str:
+    return QUERY_TEMPLATE.format(
         query=request.query,
         sender=request.sender,
         receiver=request.receiver or "",

@@ -1,12 +1,20 @@
+from pathlib import Path
+
 from pydantic import BaseModel
 from pydantic_ai.models.google import GoogleModelSettings
 
 from hygroup.agent.default.agent import AgentBase, AgentSettings
-from hygroup.agent.prompt import InputFormatter
-from hygroup.agent.system.prompt import INSTRUCTIONS, format_input
+from hygroup.agent.default.prompt import InputFormatter
+from hygroup.agent.system.prompt import format_input
+
+
+def system_agent_instructions() -> str:
+    prompt_path = Path(__file__).parent / "prompt.md"
+    return prompt_path.read_text()
+
 
 system_agent_settings = AgentSettings(
-    instructions=INSTRUCTIONS,
+    instructions=system_agent_instructions(),
     model="gemini-2.5-flash",
     model_settings=GoogleModelSettings(
         google_thinking_config={
