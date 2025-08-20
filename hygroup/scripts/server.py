@@ -111,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--gateway",
         type=str,
-        default="slack",
+        default="github",
         choices=["github", "slack", "terminal"],
         help="The communication platform to use.",
     )

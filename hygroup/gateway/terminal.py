@@ -15,9 +15,8 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.text import Text
 
-from hygroup.agent import AgentActivation, AgentResponse, Message
+from hygroup.agent import AgentActivation, AgentResponse
 from hygroup.gateway import Gateway
-from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
 from hygroup.user import UserNotAuthenticatedError
 
@@ -132,18 +131,11 @@ class TerminalGateway(Gateway):
             await self.handle_client_message(content, username)
 
     async def handle_client_message(self, content: str, sender: str):
-        receiver, text = extract_initial_mention(content)
-
-        # replace all @mentions with mentions (i.e. remove @)
-        text = resolve_mentions(text, lambda x: x)
-
-        message = Message(
-            text=text,
-            sender=sender,
-            receiver=receiver,
+        await self._session.handle_gateway_message(
+            message_text=content,
+            message_sender=sender,
+            message_id=None,
         )
-
-        await self._session.handle_gateway_message(message)
         await self.send_message(content, sender, agent=False)
 
     async def handle_agent_activation(self, activation: AgentActivation, session_id: str): ...
