@@ -34,6 +34,7 @@ def github_gateway(session_manager):
         patch("hygroup.gateway.github.gateway.create_app"),
         patch("hygroup.gateway.github.gateway.uvicorn.Config"),
         patch("hygroup.gateway.github.gateway.uvicorn.Server"),
+        patch("hygroup.gateway.github.gateway.AppSettings"),
     ):
         gateway = GithubGateway(
             session_manager=session_manager,
