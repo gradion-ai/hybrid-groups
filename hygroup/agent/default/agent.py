@@ -199,7 +199,7 @@ class AgentBase(Generic[D], Agent):
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]:
         stopped = False
 
-        agent_input = self.input_formatter(request, self.name, updates)
+        agent_input = self.input_formatter(request, updates)
         mcp_servers = self._session_mcp_servers + self._request_mcp_servers
 
         async with self.agent.iter(agent_input, toolsets=mcp_servers, message_history=self._history) as agent_run:
@@ -242,6 +242,7 @@ class AgentBase(Generic[D], Agent):
 
             if not stopped:
                 yield AgentResponse(text=self._text(agent_run.result.output), final=True)
+                self._history.extend(agent_run.result.new_messages())
 
     @contextmanager
     def _configure_mcp_servers(

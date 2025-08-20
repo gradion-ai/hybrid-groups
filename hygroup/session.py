@@ -273,25 +273,26 @@ class Session:
         threads = await self._load_referenced_threads(message_text)
 
         message = Message(
+            text=remaining_text,
             sender=message_sender,
             receiver=receiver,
-            text=remaining_text,
             threads=threads,
             id=message_id,
         )
         request = AgentRequest(
             query=message.text,
             sender=message.sender,
+            receiver=message.receiver,
             threads=message.threads,
             message_id=message.id,
         )
 
         if receiver in await self.agent_names():
             await self.update_agents(message, exclude=receiver)
-            await self.invoke_agent(request, receiver)
+            await self.invoke_agent(receiver, request)
         else:
             await self.update_agents(message, exclude="system")
-            await self.invoke_agent(request, "system")
+            await self.invoke_agent("system", request)
 
     async def update_agents(self, message: Message, exclude: str):
         # Add message to this session's message history. These are
@@ -303,16 +304,16 @@ class Session:
             if agent_name != exclude:
                 await agent.update(message)
 
-    async def invoke_agent(self, request: AgentRequest, receiver: str):
+    async def invoke_agent(self, agent_name: str, request: AgentRequest):
         # -------------------------------------
         #  FIXME: run this if block atomically
         # -------------------------------------
-        if receiver not in self._agents:
+        if agent_name not in self._agents:
             try:
-                await self.load_agent(receiver)
+                await self.load_agent(agent_name)
             except ValueError:
                 response = AgentResponse(
-                    text=f'Agent "{receiver}" not registered',
+                    text=f'Agent "{agent_name}" not registered',
                     request_id=request.id,
                 )
                 return await self.handle_system_response(
@@ -321,7 +322,7 @@ class Session:
                 )
 
         activation = AgentActivation(
-            agent_name=receiver,
+            agent_name=agent_name,
             message_id=request.message_id,
             request_id=request.id,
         )
@@ -335,13 +336,14 @@ class Session:
         secrets = self.user_registry.get_secrets(request.sender)
 
         # invoke receiver agent with request
-        await self._agents[receiver].invoke(request, secrets)
+        await self._agents[agent_name].invoke(request, secrets)
 
     # -------------------------------------
     #  Used as system agent tool
     # -------------------------------------
     async def run_agent(self, agent_name: str, query: str) -> str:
         """Run an agent identified by agent_name with the given query and return its response."""
+
         # -------------------------------------
         #  FIXME: run this if block atomically
         # -------------------------------------
@@ -352,8 +354,14 @@ class Session:
                 return f'Agent "{agent_name}" not registered'
 
         sender_info = self._sender_info.get()
+
+        request = AgentRequest(
+            query=query,
+            sender=sender_info["name"],
+            receiver=agent_name,
+        )
         response = await self._agents[agent_name].run(
-            request=AgentRequest(query=query, sender=sender_info["name"]),
+            request=request,
             secrets=sender_info["secrets"],
         )
         return response.text
@@ -381,11 +389,14 @@ class Session:
             await self.save()
 
     async def save(self):
-        state_dict = {
-            "messages": [asdict(message) for message in self._messages],
-            "agents": {name: adapter.get_state() for name, adapter in self._agents.items()},
-        }
-        await self.manager.save_session_state(self.id, state_dict)
+        try:
+            state_dict = {
+                "messages": [asdict(message) for message in self._messages],
+                "agents": {name: adapter.get_state() for name, adapter in self._agents.items()},
+            }
+            await self.manager.save_session_state(self.id, state_dict)
+        except Exception as e:
+            logger.exception(e)
 
     async def load(self):
         state_dict = await self.manager.load_session_state(self.id)
