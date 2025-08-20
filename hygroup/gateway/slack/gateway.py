@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -13,11 +14,9 @@ from slack_sdk.web.async_slack_response import AsyncSlackResponse
 from hygroup.agent import (
     AgentActivation,
     AgentResponse,
-    Message,
     PermissionRequest,
 )
 from hygroup.gateway.base import Gateway
-from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
 from hygroup.user import RequestHandler
 
@@ -39,14 +38,11 @@ class SlackThread:
         if self.session.contains(msg["id"]):
             return  # idempotency
 
-        message = Message(
-            sender=msg["sender_resolved"],
-            receiver=msg["receiver_resolved"],
-            text=msg["text"],
-            id=msg["id"],
+        await self.session.handle_gateway_message(
+            message_text=msg["text"],
+            message_sender=msg["sender"],
+            message_id=msg["id"],
         )
-
-        await self.session.handle_gateway_message(message)
 
 
 class SlackGateway(Gateway, RequestHandler):
@@ -382,22 +378,29 @@ class SlackGateway(Gateway, RequestHandler):
         sender = message["user"]
         sender_resolved = self._resolve_system_user_id(sender)
 
-        # check if there is an initial @mention in the message
-        receiver, text = extract_initial_mention(message["text"])
-        receiver_resolved = None if receiver is None else self._resolve_system_user_id(receiver)
-
-        # replace all @mentions in text with resolved usernames (without @)
-        text = resolve_mentions(text, self._resolve_system_user_id)
+        # replace all @mentions in text with resolved usernames (preserving @)
+        text_resolved = self._resolve_mentions(message["text"])
 
         return {
             "id": message["ts"],
             "channel": message.get("channel"),
-            "sender": sender,
-            "sender_resolved": sender_resolved,
-            "receiver": receiver,
-            "receiver_resolved": receiver_resolved,
-            "text": text,
+            "sender": sender_resolved,
+            "text": text_resolved,
         }
+
+    def _resolve_mentions(self, text: str | None) -> str:
+        """Finds all mentions in <@userid> formats and replaces them with the resolved
+        username (with @ preserved).
+        """
+        if text is None:
+            return ""
+
+        def resolve(match):
+            user_id = match.group(1)
+            resolved = self._resolve_system_user_id(user_id)
+            return "@" + resolved
+
+        return re.sub(r"<@([/\w-]+)>", resolve, text)
 
     async def _load_thread_history(self, channel: str, thread_ts: str) -> list[dict]:
         """Load all messages from a Slack thread.

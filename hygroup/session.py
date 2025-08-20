@@ -212,8 +212,21 @@ class Session:
 
     @staticmethod
     def _extract_thread_references(text: str) -> list[str]:
-        pattern = r"thread:([a-zA-Z0-9.-]+)"
-        return re.findall(pattern, text)
+        return re.findall(r"thread:([a-zA-Z0-9.-]+)", text)
+
+    @staticmethod
+    def _extract_initial_mention(text: str):
+        if not text:
+            return None, text
+
+        # Match '@name' at the beginning, with optional surrounding whitespace.
+        match = re.match(r"^\s*@([/\w-]+)\s*([\s\S]*)", text)
+
+        if match:
+            # return mention and remaining text
+            return match.group(1), match.group(2)
+
+        return None, text
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str):
         if permission := await self.permission_store.get_permission(request.tool_name, receiver, self.id):
@@ -252,11 +265,20 @@ class Session:
             receiver=receiver,
         )
 
-    async def handle_gateway_message(self, message: Message):
-        if not message.threads:
-            # Load any threads referenced with `thread:...` in the message text.
-            message.threads = await self._load_referenced_threads(message.text)
+    async def handle_gateway_message(self, message_text: str, message_sender: str, message_id: str | None):
+        # first @mention, if any, in the message text is the receiver
+        receiver, remaining_text = self._extract_initial_mention(message_text)
 
+        # Load any threads referenced with `thread:...` in the message text.
+        threads = await self._load_referenced_threads(message_text)
+
+        message = Message(
+            sender=message_sender,
+            receiver=receiver,
+            text=remaining_text,
+            threads=threads,
+            id=message_id,
+        )
         request = AgentRequest(
             query=message.text,
             sender=message.sender,
@@ -264,9 +286,9 @@ class Session:
             message_id=message.id,
         )
 
-        if message.receiver in await self.agent_names():
-            await self.update_agents(message, exclude=message.receiver)
-            await self.invoke_agent(request, message.receiver)
+        if receiver in await self.agent_names():
+            await self.update_agents(message, exclude=receiver)
+            await self.invoke_agent(request, receiver)
         else:
             await self.update_agents(message, exclude="system")
             await self.invoke_agent(request, "system")

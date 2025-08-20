@@ -9,7 +9,6 @@ from github import Auth, GithubIntegration
 from hygroup.agent import (
     AgentActivation,
     AgentResponse,
-    Message,
 )
 from hygroup.gateway import Gateway
 from hygroup.gateway.github.events import (
@@ -24,7 +23,6 @@ from hygroup.gateway.github.events import (
 from hygroup.gateway.github.service import GithubService
 from hygroup.gateway.github.webhook.app import create_app
 from hygroup.gateway.github.webhook.config import AppSettings
-from hygroup.gateway.utils import extract_initial_mention, resolve_mentions
 from hygroup.session import Session, SessionManager
 
 logger = logging.getLogger(__name__)
@@ -109,6 +107,21 @@ class GithubGateway(Gateway):
     def _resolve_github_user_id(self, system_user_id: str) -> str:
         return self._system_user_mapping.get(system_user_id, system_user_id)
 
+    def _resolve_mentions(self, text: str | None) -> str:
+        """Finds all mentions in @username format and replace them with the resolved
+        username (with @ preserved).
+        """
+        if text is None:
+            return ""
+
+        def resolve(match):
+            username = match.group(1)
+            username = self._remove_receiver_prefix(username)
+            resolved = self._resolve_system_user_id(username)
+            return "@" + resolved
+
+        return re.sub(r"(?<!\w)@([/\w-]+)", resolve, text)
+
     def _resolve_issue_references(self, text: str, repository_full_name: str) -> str:
         owner, name = repository_full_name.split("/")
 
@@ -187,34 +200,22 @@ class GithubGateway(Gateway):
     ):
         sender_resolved = self._resolve_system_user_id(username)
 
-        # check if there is an initial @mention in the message
-        receiver_prefixed, text = extract_initial_mention(message)
-        if receiver_prefixed is None:
-            receiver_resolved = None
-        else:
-            receiver = self._remove_receiver_prefix(receiver_prefixed)
-            receiver_resolved = self._resolve_system_user_id(receiver)
-
-        # replace all @mentions in text with resolved usernames (without @)
-        text = resolve_mentions(text, self._resolve_system_user_id)
+        # replace all @mentions in text with resolved usernames (preserving @)
+        text = self._resolve_mentions(message)
 
         # translate issue references to thread references
         text = self._resolve_issue_references(text, conversation.repository.repository_full_name)
 
         logger.info(
-            "Processing message (sender='%s', receiver='%s', text='%s')",
+            "Processing message (sender='%s', text='%s')",
             sender_resolved,
-            receiver_resolved,
             text[:50] + "..." if len(text) > 50 else text,
         )
 
         await conversation.session.handle_gateway_message(
-            Message(
-                sender=sender_resolved,
-                receiver=receiver_resolved,
-                text=text,
-                id=message_id,
-            )
+            message_text=text,
+            message_sender=sender_resolved,
+            message_id=message_id,
         )
 
     def _register_conversation(self, conversation_id: str, event: GithubEvent, session: Session) -> GithubConversation:
