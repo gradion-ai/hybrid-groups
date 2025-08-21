@@ -34,9 +34,19 @@ class SessionAgent:
     def __init__(self, agent: Agent, session: "Session"):
         self.agent = agent
         self.session = session
+
+        # ------------------------------------------------------------
+        #  TODO: Consider making this configurable. Subagents don't
+        #        necessarily need session messages eagerly, but may
+        #        use a tool to retrieve them on demand.
+        # ------------------------------------------------------------
         self._updates: list[Message] = session.messages.copy()
-        self._queue: Queue = Queue()
-        self._task = create_task(self.worker())
+
+        self._worker_queue: Queue = Queue()
+        self._worker_task: Task | None = None
+
+    def _start_worker(self):
+        self._worker_task = create_task(self.worker())
 
     def get_state(self) -> dict[str, Any]:
         return {
@@ -49,77 +59,75 @@ class SessionAgent:
         self.agent.set_state(state["history"])
 
     async def update(self, message: Message):
-        await self._queue.put(message)
+        if self._worker_task is None:
+            self._start_worker()
+        await self._worker_queue.put(message)
 
     async def invoke(self, request: AgentRequest, secrets: dict[str, str] | None = None):
-        await self._queue.put((request, secrets, None))
+        if self._worker_task is None:
+            self._start_worker()
+        await self._worker_queue.put((request, secrets))
 
     async def run(self, request: AgentRequest, secrets: dict[str, str] | None = None) -> AgentResponse:
-        response_channel: Queue = Queue()
-        await self._queue.put((request, secrets, response_channel))
-        return await response_channel.get()
+        response: AgentResponse | None = None
+
+        # -------------------------------------
+        #  TODO: trace query
+        # -------------------------------------
+        async with self.agent.request_scope(secrets=secrets):
+            async for elem in self.agent.run(request=request, updates=self._updates):
+                match elem:
+                    case PermissionRequest():
+                        # -------------------------------------
+                        #  TODO: trace permission request
+                        # -------------------------------------
+                        await self.session.handle_permission_request(
+                            request=elem, sender=self.agent.name, receiver=request.sender
+                        )
+                    case FeedbackRequest():
+                        # -------------------------------------
+                        #  TODO: trace feedback request
+                        # -------------------------------------
+                        await self.session.handle_feedback_request(
+                            request=elem, sender=self.agent.name, receiver=request.sender
+                        )
+                    case AgentResponse():
+                        # -------------------------------------
+                        #  TODO: trace result
+                        # -------------------------------------
+                        response = replace(elem, request_id=request.id, message_id=request.message_id)
+
+        assert response, "No response from agent run"
+        return response
 
     async def worker(self):
         async with self.agent.session_scope():
             while True:
-                item = await self._queue.get()
+                item = await self._worker_queue.get()
                 match item:
                     case Message():
                         self._updates.append(item)
-                    case AgentRequest(
-                        sender=sender, id=request_id, message_id=message_id
-                    ) as request, secrets, response_channel:
+                    case AgentRequest(sender=sender, id=request_id) as request, secrets:
                         # sender name and secrets needed by run_agent tool
                         self.session._sender_info.set({"name": sender, "secrets": secrets})
 
-                        # -------------------------------------
-                        #  TODO: trace query
-                        # -------------------------------------
-                        async with self.agent.request_scope(secrets=secrets):
-                            try:
-                                async for elem in self.agent.run(request=request, updates=self._updates):
-                                    match elem:
-                                        case PermissionRequest():
-                                            # -------------------------------------
-                                            #  TODO: trace permission request
-                                            # -------------------------------------
-                                            await self.session.handle_permission_request(
-                                                request=elem, sender=self.agent.name, receiver=sender
-                                            )
-                                        case FeedbackRequest():
-                                            # -------------------------------------
-                                            #  TODO: trace feedback request
-                                            # -------------------------------------
-                                            await self.session.handle_feedback_request(
-                                                request=elem, sender=self.agent.name, receiver=sender
-                                            )
-                                        case AgentResponse():
-                                            # -------------------------------------
-                                            #  TODO: trace result
-                                            # -------------------------------------
-                                            response = replace(elem, request_id=request_id, message_id=message_id)
-                                            if response_channel is not None:
-                                                await response_channel.put(response)
-                                            else:
-                                                await self.session.handle_agent_response(
-                                                    response=response, sender=self.agent.name, receiver=sender
-                                                )
-                                # agent now has notifications part of
-                                # its history, so we can clear it
-                                self._updates = []
-                            except Exception as e:
-                                logger.exception(e)
-                                response = AgentResponse(
-                                    text=f"Execution of agent '{self.agent.name}' failed.",
-                                    request_id=request_id,
-                                )
-                                if response_channel is not None:
-                                    await response_channel.put(response)
-                                else:
-                                    await self.session.handle_system_response(
-                                        response=response,
-                                        receiver=sender,
-                                    )
+                        try:
+                            response = await self.run(request, secrets)
+                        except Exception as e:
+                            logger.exception(e)
+                            response = AgentResponse(
+                                text=f"Execution of agent '{self.agent.name}' failed.",
+                                request_id=request_id,
+                            )
+                            await self.session.handle_system_response(
+                                response=response,
+                                receiver=sender,
+                            )
+                        else:
+                            await self.session.handle_agent_response(
+                                response=response, sender=self.agent.name, receiver=sender
+                            )
+                            self._updates = []
 
 
 class Session:
@@ -339,19 +347,15 @@ class Session:
         await self._agents[agent_name].invoke(request, secrets)
 
     # -------------------------------------
-    #  Used as system agent tool
+    #  Used as agent tool
     # -------------------------------------
     async def run_agent(self, agent_name: str, query: str) -> str:
         """Run an agent identified by agent_name with the given query and return its response."""
 
-        # -------------------------------------
-        #  FIXME: run this if block atomically
-        # -------------------------------------
-        if agent_name not in self._agents:
-            try:
-                await self.load_agent(agent_name)
-            except ValueError:
-                return f'Agent "{agent_name}" not registered'
+        try:
+            agent = SessionAgent(await self.agent_registry.create_agent(agent_name), session=self)
+        except ValueError:
+            return f'Agent "{agent_name}" not registered'
 
         sender_info = self._sender_info.get()
 
@@ -360,14 +364,14 @@ class Session:
             sender=sender_info["name"],
             receiver=agent_name,
         )
-        response = await self._agents[agent_name].run(
+        response = await agent.run(
             request=request,
             secrets=sender_info["secrets"],
         )
         return response.text
 
     # -------------------------------------
-    #  Used as system agent tool
+    #  Used as agent tool
     # -------------------------------------
     async def get_user_preferences(self, username: str):
         preferences = await self.preference_store.get_preferences(username)
