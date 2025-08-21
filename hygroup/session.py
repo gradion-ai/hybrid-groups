@@ -74,7 +74,7 @@ class SessionAgent:
         # -------------------------------------
         #  TODO: trace query
         # -------------------------------------
-        async with self.agent.request_scope(secrets=secrets):
+        async with self.agent.mcp_servers(secrets=secrets):
             async for elem in self.agent.run(request=request, updates=self._updates):
                 match elem:
                     case PermissionRequest():
@@ -101,33 +101,32 @@ class SessionAgent:
         return response
 
     async def worker(self):
-        async with self.agent.session_scope():
-            while True:
-                item = await self._worker_queue.get()
-                match item:
-                    case Message():
-                        self._updates.append(item)
-                    case AgentRequest(sender=sender, id=request_id) as request, secrets:
-                        # sender name and secrets needed by run_agent tool
-                        self.session._sender_info.set({"name": sender, "secrets": secrets})
+        while True:
+            item = await self._worker_queue.get()
+            match item:
+                case Message():
+                    self._updates.append(item)
+                case AgentRequest(sender=sender, id=request_id) as request, secrets:
+                    # sender name and secrets needed by run_agent tool
+                    self.session._sender_info.set({"name": sender, "secrets": secrets})
 
-                        try:
-                            response = await self.run(request, secrets)
-                        except Exception as e:
-                            logger.exception(e)
-                            response = AgentResponse(
-                                text=f"Execution of agent '{self.agent.name}' failed.",
-                                request_id=request_id,
-                            )
-                            await self.session.handle_system_response(
-                                response=response,
-                                receiver=sender,
-                            )
-                        else:
-                            await self.session.handle_agent_response(
-                                response=response, sender=self.agent.name, receiver=sender
-                            )
-                            self._updates = []
+                    try:
+                        response = await self.run(request, secrets)
+                    except Exception as e:
+                        logger.exception(e)
+                        response = AgentResponse(
+                            text=f"Execution of agent '{self.agent.name}' failed.",
+                            request_id=request_id,
+                        )
+                        await self.session.handle_system_response(
+                            response=response,
+                            receiver=sender,
+                        )
+                    else:
+                        await self.session.handle_agent_response(
+                            response=response, sender=self.agent.name, receiver=sender
+                        )
+                        self._updates = []
 
 
 class Session:
@@ -201,8 +200,11 @@ class Session:
     def add_agent(self, agent: Agent):
         self._agents[agent.name] = SessionAgent(agent, self)
 
+    async def create_agent(self, name: str) -> Agent:
+        return await self.agent_registry.create_agent(name, tools=[self.get_user_preferences])
+
     async def load_agent(self, name: str):
-        self.add_agent(await self.agent_registry.create_agent(name, tools=[self.get_user_preferences]))
+        self.add_agent(await self.create_agent(name))
 
     async def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
@@ -353,7 +355,7 @@ class Session:
         """Run an agent identified by agent_name with the given query and return its response."""
 
         try:
-            agent = SessionAgent(await self.agent_registry.create_agent(agent_name), session=self)
+            agent = SessionAgent(await self.create_agent(agent_name), session=self)
         except ValueError:
             return f'Agent "{agent_name}" not registered'
 

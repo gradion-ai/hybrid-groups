@@ -52,13 +52,13 @@ def default_settings(model_settings, mcp_stdio_settings) -> AgentSettings:
 @pytest.fixture
 def mcp_stdio_settings() -> MCPSettings:
     """Provide MCP server settings for stdio testing."""
-    return MCPSettings(server_config={"command": "foo", "args": ["bar"]}, session_scope=True)
+    return MCPSettings(server_config={"command": "foo", "args": ["bar"]})
 
 
 @pytest.fixture
 def mcp_http_settings() -> MCPSettings:
     """Provide MCP server settings for HTTP testing."""
-    return MCPSettings(server_config={"url": "http://localhost:8000/mcp"}, session_scope=False)
+    return MCPSettings(server_config={"url": "http://localhost:8000/mcp"})
 
 
 @pytest.mark.asyncio
@@ -151,7 +151,7 @@ async def test_agent_settings_roundtrip(registry: DefaultAgentRegistry, api_key:
     if api_key:
         model_settings["api_key"] = api_key
 
-    mcp_settings = MCPSettings(server_config={"command": "test", "args": ["--debug"]}, session_scope=True)
+    mcp_settings = MCPSettings(server_config={"command": "test", "args": ["--debug"]})
 
     original_settings = AgentSettings(
         model="gpt-4",
@@ -339,8 +339,8 @@ async def test_complex_model_dict_with_all_settings(registry: DefaultAgentRegist
     }
 
     mcp_settings = [
-        MCPSettings(server_config={"command": "test-mcp", "args": ["--verbose"]}, session_scope=True),
-        MCPSettings(server_config={"url": "http://mcp.example.com"}, session_scope=False),
+        MCPSettings(server_config={"command": "test-mcp", "args": ["--verbose"]}),
+        MCPSettings(server_config={"url": "http://mcp.example.com"}),
     ]
 
     settings = AgentSettings(

@@ -114,11 +114,7 @@ class Agent(ABC):
         self.name = name
 
     @asynccontextmanager
-    async def session_scope(self):
-        yield
-
-    @asynccontextmanager
-    async def request_scope(self, secrets: dict[str, str] | None = None):
+    async def mcp_servers(self, secrets: dict[str, str] | None = None):
         yield
 
     @abstractmethod

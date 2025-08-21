@@ -36,7 +36,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MCPSettings:
     server_config: dict[str, Any]
-    session_scope: bool = True
 
     def server(self) -> MCPServer:
         if "command" in self.server_config:
@@ -51,14 +50,8 @@ class AgentSettings:
     instructions: str
     human_feedback: bool = False
     model_settings: ModelSettings | None = None
-    mcp_settings: Sequence[MCPSettings] = field(default_factory=list)
-    tools: Sequence[Callable] = field(default_factory=list)
-
-    def session_mcp_settings(self) -> list[MCPSettings]:
-        return [s for s in self.mcp_settings if s.session_scope]
-
-    def request_mcp_settings(self) -> list[MCPSettings]:
-        return [s for s in self.mcp_settings if not s.session_scope]
+    mcp_settings: list[MCPSettings] = field(default_factory=list)
+    tools: list[Callable] = field(default_factory=list)
 
     @staticmethod
     def serialize_tool(tool: Callable) -> dict[str, str] | None:
@@ -147,8 +140,7 @@ class AgentBase(Generic[D], Agent):
         )
 
         self._history = []  # type: ignore
-        self._session_mcp_servers: list[MCPServer] = []
-        self._request_mcp_servers: list[MCPServer] = []
+        self._mcp_servers: list[MCPServer] = []
 
         for tool in settings.tools:
             self.tool(tool)
@@ -175,22 +167,12 @@ class AgentBase(Generic[D], Agent):
         return coro
 
     @asynccontextmanager
-    async def session_scope(self):
-        with self._configure_mcp_servers(self.settings.session_mcp_settings(), dict(os.environ)) as servers:
+    async def mcp_servers(self, secrets: dict[str, str] | None = None):
+        with self._configure_mcp_servers(self.settings.mcp_settings, dict(os.environ) | (secrets or {})) as servers:
             async with self._run_mcp_servers(servers):
-                self._session_mcp_servers = servers
+                self._mcp_servers = servers
                 yield
-                self._session_mcp_servers.clear()
-
-    @asynccontextmanager
-    async def request_scope(self, secrets: dict[str, str] | None = None):
-        with self._configure_mcp_servers(
-            self.settings.request_mcp_settings(), dict(os.environ) | (secrets or {})
-        ) as servers:
-            async with self._run_mcp_servers(servers):
-                self._request_mcp_servers = servers
-                yield
-                self._request_mcp_servers.clear()
+                self._mcp_servers.clear()
 
     async def run(
         self,
@@ -200,7 +182,7 @@ class AgentBase(Generic[D], Agent):
         stopped = False
 
         agent_input = self.input_formatter(request, updates)
-        mcp_servers = self._session_mcp_servers + self._request_mcp_servers
+        mcp_servers = self._mcp_servers
 
         async with self.agent.iter(agent_input, toolsets=mcp_servers, message_history=self._history) as agent_run:
             feedback_requests: dict[str, FeedbackRequest] = {}
@@ -251,7 +233,7 @@ class AgentBase(Generic[D], Agent):
         mcp_servers: list[MCPServer] = []
         for settings in mcp_settings:
             result = replace_variables(settings.server_config, variables)
-            settings = MCPSettings(result.replaced, settings.session_scope)
+            settings = MCPSettings(result.replaced)
             if result.missing_variables:
                 logger.warning(
                     f"Variables {result.missing_variables} missing for "

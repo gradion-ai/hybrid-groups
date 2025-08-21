@@ -54,10 +54,8 @@ def mock_agent():
     """Create a mock Agent instance."""
     agent = Mock(spec=Agent)
     agent.name = "test_agent"
-    agent.session_scope.return_value.__aenter__ = AsyncMock()
-    agent.session_scope.return_value.__aexit__ = AsyncMock(return_value=None)
-    agent.request_scope.return_value.__aenter__ = AsyncMock()
-    agent.request_scope.return_value.__aexit__ = AsyncMock(return_value=None)
+    agent.mcp_servers.return_value.__aenter__ = AsyncMock(return_value=None)
+    agent.mcp_servers.return_value.__aexit__ = AsyncMock(return_value=None)
     return agent
 
 

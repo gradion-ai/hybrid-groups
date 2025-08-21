@@ -74,7 +74,6 @@ def scrape_agent_config():
                 "FIRECRAWL_RETRY_MAX_ATTEMPTS": "2",
             },
         },
-        session_scope=False,
     )
 
     agent_settings = AgentSettings(
@@ -100,7 +99,6 @@ def search_agent_config():
                 "BRAVE_API_KEY": "${BRAVE_API_KEY}",
             },
         },
-        session_scope=False,
     )
 
     agent_settings = AgentSettings(
@@ -128,7 +126,6 @@ def zotero_agent_config(zotero_mcp_exec: str):
                 "ZOTERO_LIBRARY_TYPE": "${ZOTERO_LIBRARY_TYPE}",
             },
         },
-        session_scope=False,
     )
 
     fetch_settings = MCPSettings(
@@ -136,7 +133,6 @@ def zotero_agent_config(zotero_mcp_exec: str):
             "command": "uvx",
             "args": ["mcp-server-fetch"],
         },
-        session_scope=True,
     )
     agent_settings = AgentSettings(
         model="gemini-2.5-flash",
@@ -159,7 +155,6 @@ def reader_agent_config(reader_mcp_exec: str):
             "args": [reader_mcp_exec],
             "env": {"READWISE_TOKEN": "${READWISE_TOKEN}"},
         },
-        session_scope=False,
     )
 
     agent_settings = AgentSettings(
@@ -198,7 +193,6 @@ def browser_agent_config():
             "command": "npx",
             "args": ["@playwright/mcp@latest"],
         },
-        session_scope=True,
     )
 
     agent_settings = AgentSettings(
