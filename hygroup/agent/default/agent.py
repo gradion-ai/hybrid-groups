@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Generic, Iterator, Sequence, Type, TypeVar
 
 from pydantic_ai import Agent as AgentImpl
-from pydantic_ai import CallToolsNode, ModelRequestNode
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
-from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
+from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_ai.run import AgentRunResult
 from pydantic_ai.settings import ModelSettings
+from pydantic_ai.toolsets import CombinedToolset, FunctionToolset, WrapperToolset
 from pydantic_core import to_jsonable_python
 
 from hygroup.agent.base import (
@@ -141,9 +142,7 @@ class AgentBase(Generic[D], Agent):
 
         self._history = []  # type: ignore
         self._mcp_servers: list[MCPServer] = []
-
-        for tool in settings.tools:
-            self.tool(tool)
+        self._fn_toolset: FunctionToolset = FunctionToolset(tools=settings.tools)
 
         if settings.human_feedback:
             self.tool(self.ask_user)
@@ -160,10 +159,10 @@ class AgentBase(Generic[D], Agent):
         Args:
             question: The question to ask the user.
         """
-        return ""  # answer is overridden in self.run()
+        return ""  # answer is created by tool interceptor
 
     def tool(self, coro):
-        self.agent.tool_plain(coro)
+        self._fn_toolset.add_function(coro)
         return coro
 
     @asynccontextmanager
@@ -179,52 +178,43 @@ class AgentBase(Generic[D], Agent):
         request: AgentRequest,
         updates: Sequence[Message] = (),
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]:
-        stopped = False
+        queue = asyncio.Queue()  # type: ignore
 
-        agent_input = self.input_formatter(request, updates)
-        mcp_servers = self._mcp_servers
+        agent_tools = CombinedToolset(toolsets=[self._fn_toolset, *self._mcp_servers])
+        agent_tools = ToolInterceptor(wrapped=agent_tools, queue=queue)
 
-        async with self.agent.iter(agent_input, toolsets=mcp_servers, message_history=self._history) as agent_run:
-            feedback_requests: dict[str, FeedbackRequest] = {}
-            feedback_request: FeedbackRequest
-            permission_request: PermissionRequest
+        task = asyncio.create_task(self._run(request, updates, agent_tools))
 
-            async for node in agent_run:
-                if stopped:
-                    break
-                match node:
-                    case ModelRequestNode(request=ModelRequest(parts=parts)):
-                        for part in parts:
-                            match part:
-                                case ToolReturnPart(tool_name="ask_user", tool_call_id=tool_call_id):
-                                    feedback_request = feedback_requests.pop(tool_call_id)
-                                    part.content = await feedback_request.response()
-                    case CallToolsNode(model_response=ModelResponse(parts=parts)):
-                        for part in parts:
-                            match part:
-                                case ToolCallPart(tool_name="ask_user", tool_call_id=tool_call_id):
-                                    feedback_request = FeedbackRequest(
-                                        question=part.args_as_dict().get("question"),
-                                        ftr=asyncio.Future(),
-                                    )
-                                    yield feedback_request
-                                    feedback_requests[tool_call_id] = feedback_request
-                                case ToolCallPart(tool_name=tool_name):
-                                    permission_request = PermissionRequest(
-                                        tool_name=tool_name,
-                                        tool_args=(),
-                                        tool_kwargs=part.args_as_dict(),
-                                        ftr=asyncio.Future(),
-                                    )
-                                    yield permission_request
-                                    if not await permission_request.response():
-                                        yield AgentResponse(text=f"Permission denied calling {tool_name}", final=True)
-                                        stopped = True
-                                        break
+        while True:
+            if task.done() and task.exception():
+                break
+            try:
+                obj = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                await asyncio.sleep(0.1)
+                continue
+            else:
+                yield obj
+                match obj:
+                    case AgentResponse(final=True):
+                        break
 
-            if not stopped:
-                yield AgentResponse(text=self._text(agent_run.result.output), final=True)
-                self._history.extend(agent_run.result.new_messages())
+        await task
+
+    async def _run(
+        self,
+        request: AgentRequest,
+        updates: Sequence[Message],
+        tool_interceptor: "ToolInterceptor",
+    ):
+        result: AgentRunResult = await self.agent.run(
+            user_prompt=self.input_formatter(request, updates),
+            toolsets=[tool_interceptor],
+            message_history=self._history,
+        )
+        response = AgentResponse(text=self._text(result.output))
+        await tool_interceptor.queue.put(response)
+        self._history.extend(result.new_messages())
 
     @contextmanager
     def _configure_mcp_servers(
@@ -275,3 +265,29 @@ class DefaultAgent(AgentBase[str]):
 
     def _text(self, data: str) -> str:
         return data
+
+
+@dataclass
+class ToolInterceptor(WrapperToolset):
+    queue: asyncio.Queue
+
+    async def call_tool(self, name: str, tool_args: dict[str, Any], ctx, tool) -> Any:
+        if name == "ask_user":
+            feedback_request = FeedbackRequest(
+                question=tool_args.get("question", ""),
+                ftr=asyncio.Future(),
+            )
+            await self.queue.put(feedback_request)
+            return await feedback_request.response()
+        else:
+            permission_request = PermissionRequest(
+                tool_name=name,
+                tool_args=(),
+                tool_kwargs=tool_args,
+                ftr=asyncio.Future(),
+            )
+            await self.queue.put(permission_request)
+            if await permission_request.response():
+                return await self.wrapped.call_tool(name, tool_args, ctx, tool)
+            else:
+                return f"Permission denied calling tool '{name}'"
