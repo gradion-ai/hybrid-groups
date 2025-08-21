@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import Event
 from contextvars import ContextVar
 from typing import Any
@@ -53,10 +54,8 @@ def mock_agent():
     """Create a mock Agent instance."""
     agent = Mock(spec=Agent)
     agent.name = "test_agent"
-    agent.session_scope.return_value.__aenter__ = AsyncMock()
-    agent.session_scope.return_value.__aexit__ = AsyncMock()
-    agent.request_scope.return_value.__aenter__ = AsyncMock()
-    agent.request_scope.return_value.__aexit__ = AsyncMock()
+    agent.mcp_servers.return_value.__aenter__ = AsyncMock(return_value=None)
+    agent.mcp_servers.return_value.__aexit__ = AsyncMock(return_value=None)
     return agent
 
 
@@ -64,8 +63,12 @@ def mock_agent():
 async def session_agent(mock_agent, mock_session):
     session_agent = SessionAgent(mock_agent, mock_session)
     yield session_agent
-    session_agent._task.cancel()
-    await session_agent._task
+    if session_agent._worker_task:
+        session_agent._worker_task.cancel()
+        try:
+            await session_agent._worker_task
+        except asyncio.CancelledError:
+            pass
 
 
 @pytest.mark.asyncio

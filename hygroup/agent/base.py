@@ -14,9 +14,9 @@ class Thread:
 
 @dataclass
 class Message:
+    text: str
     sender: str
     receiver: str | None
-    text: str
     threads: list[Thread] = field(default_factory=list)
 
     id: str | None = None
@@ -27,6 +27,7 @@ class Message:
 class AgentRequest:
     query: str
     sender: str
+    receiver: str | None = None
     threads: list[Thread] = field(default_factory=list)
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -113,11 +114,7 @@ class Agent(ABC):
         self.name = name
 
     @asynccontextmanager
-    async def session_scope(self):
-        yield
-
-    @asynccontextmanager
-    async def request_scope(self, secrets: dict[str, str] | None = None):
+    async def mcp_servers(self, secrets: dict[str, str] | None = None):
         yield
 
     @abstractmethod

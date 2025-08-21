@@ -32,15 +32,14 @@ THREAD_TEMPLATE = """<thread id="{thread_id}">
 TEMPLATE = """{formatted_query}{updates}"""
 
 
-InputFormatter = Callable[[AgentRequest, str, Sequence[Message]], str]
+InputFormatter = Callable[[AgentRequest, Sequence[Message]], str]
 
 
 def format_input(
     request: AgentRequest,
-    receiver: str,
     updates: Sequence[Message],
 ) -> str:
-    formatted_query = format_query(request, receiver)
+    formatted_query = format_query(request)
     formatted_updates = ""
 
     if updates:
@@ -50,9 +49,12 @@ def format_input(
     return TEMPLATE.format(formatted_query=formatted_query, updates=formatted_updates)
 
 
-def format_query(request: AgentRequest, receiver: str) -> str:
+def format_query(request: AgentRequest) -> str:
     return QUERY_TEMPLATE.format(
-        query=request.query, sender=request.sender, receiver=receiver, threads=format_threads(request.threads)
+        query=request.query,
+        sender=request.sender,
+        receiver=request.receiver or "",
+        threads=format_threads(request.threads),
     )
 
 
@@ -86,13 +88,13 @@ def example():
             ],
         )
     ]
-    request = AgentRequest(query="What's the weather?", sender="user1", threads=threads)
+    request = AgentRequest(query="What's the weather?", sender="user1", receiver="agent1", threads=threads)
     updates = [
         Message(sender="user1", receiver="agent1", text="Hello", threads=threads),
         Message(sender="agent1", receiver="user1", text="Hi there!"),
     ]
 
-    result = format_input(request, "agent1", updates=updates)
+    result = format_input(request, updates=updates)
     print(result)
 
 

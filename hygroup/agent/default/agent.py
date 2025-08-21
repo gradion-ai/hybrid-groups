@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Generic, Iterator, Sequence, Type, TypeVar
 
 from pydantic_ai import Agent as AgentImpl
-from pydantic_ai import CallToolsNode, ModelRequestNode
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
-from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, ModelResponse, ToolCallPart, ToolReturnPart
+from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_ai.run import AgentRunResult
 from pydantic_ai.settings import ModelSettings
+from pydantic_ai.toolsets import CombinedToolset, FunctionToolset, WrapperToolset
 from pydantic_core import to_jsonable_python
 
 from hygroup.agent.base import (
@@ -24,8 +25,8 @@ from hygroup.agent.base import (
     Message,
     PermissionRequest,
 )
+from hygroup.agent.default.prompt import InputFormatter, format_input
 from hygroup.agent.default.utils import replace_variables
-from hygroup.agent.prompt import InputFormatter, format_input
 from hygroup.agent.utils import model_from_dict
 
 D = TypeVar("D")
@@ -36,7 +37,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MCPSettings:
     server_config: dict[str, Any]
-    session_scope: bool = True
 
     def server(self) -> MCPServer:
         if "command" in self.server_config:
@@ -51,14 +51,8 @@ class AgentSettings:
     instructions: str
     human_feedback: bool = False
     model_settings: ModelSettings | None = None
-    mcp_settings: Sequence[MCPSettings] = field(default_factory=list)
-    tools: Sequence[Callable] = field(default_factory=list)
-
-    def session_mcp_settings(self) -> list[MCPSettings]:
-        return [s for s in self.mcp_settings if s.session_scope]
-
-    def request_mcp_settings(self) -> list[MCPSettings]:
-        return [s for s in self.mcp_settings if not s.session_scope]
+    mcp_settings: list[MCPSettings] = field(default_factory=list)
+    tools: list[Callable] = field(default_factory=list)
 
     @staticmethod
     def serialize_tool(tool: Callable) -> dict[str, str] | None:
@@ -147,11 +141,8 @@ class AgentBase(Generic[D], Agent):
         )
 
         self._history = []  # type: ignore
-        self._session_mcp_servers: list[MCPServer] = []
-        self._request_mcp_servers: list[MCPServer] = []
-
-        for tool in settings.tools:
-            self.tool(tool)
+        self._mcp_servers: list[MCPServer] = []
+        self._fn_toolset: FunctionToolset = FunctionToolset(tools=settings.tools)
 
         if settings.human_feedback:
             self.tool(self.ask_user)
@@ -168,80 +159,62 @@ class AgentBase(Generic[D], Agent):
         Args:
             question: The question to ask the user.
         """
-        return ""  # answer is overridden in self.run()
+        return ""  # answer is created by tool interceptor
 
     def tool(self, coro):
-        self.agent.tool_plain(coro)
+        self._fn_toolset.add_function(coro)
         return coro
 
     @asynccontextmanager
-    async def session_scope(self):
-        with self._configure_mcp_servers(self.settings.session_mcp_settings(), dict(os.environ)) as servers:
+    async def mcp_servers(self, secrets: dict[str, str] | None = None):
+        with self._configure_mcp_servers(self.settings.mcp_settings, dict(os.environ) | (secrets or {})) as servers:
             async with self._run_mcp_servers(servers):
-                self._session_mcp_servers = servers
+                self._mcp_servers = servers
                 yield
-                self._session_mcp_servers.clear()
-
-    @asynccontextmanager
-    async def request_scope(self, secrets: dict[str, str] | None = None):
-        with self._configure_mcp_servers(
-            self.settings.request_mcp_settings(), dict(os.environ) | (secrets or {})
-        ) as servers:
-            async with self._run_mcp_servers(servers):
-                self._request_mcp_servers = servers
-                yield
-                self._request_mcp_servers.clear()
+                self._mcp_servers.clear()
 
     async def run(
         self,
         request: AgentRequest,
         updates: Sequence[Message] = (),
     ) -> AsyncIterator[AgentResponse | PermissionRequest | FeedbackRequest]:
-        stopped = False
+        queue = asyncio.Queue()  # type: ignore
 
-        agent_input = self.input_formatter(request, self.name, updates)
-        mcp_servers = self._session_mcp_servers + self._request_mcp_servers
+        agent_tools = CombinedToolset(toolsets=[self._fn_toolset, *self._mcp_servers])
+        agent_tools = ToolInterceptor(wrapped=agent_tools, queue=queue)
 
-        async with self.agent.iter(agent_input, toolsets=mcp_servers, message_history=self._history) as agent_run:
-            feedback_requests: dict[str, FeedbackRequest] = {}
-            feedback_request: FeedbackRequest
-            permission_request: PermissionRequest
+        task = asyncio.create_task(self._run(request, updates, agent_tools))
 
-            async for node in agent_run:
-                if stopped:
-                    break
-                match node:
-                    case ModelRequestNode(request=ModelRequest(parts=parts)):
-                        for part in parts:
-                            match part:
-                                case ToolReturnPart(tool_name="ask_user", tool_call_id=tool_call_id):
-                                    feedback_request = feedback_requests.pop(tool_call_id)
-                                    part.content = await feedback_request.response()
-                    case CallToolsNode(model_response=ModelResponse(parts=parts)):
-                        for part in parts:
-                            match part:
-                                case ToolCallPart(tool_name="ask_user", tool_call_id=tool_call_id):
-                                    feedback_request = FeedbackRequest(
-                                        question=part.args_as_dict().get("question"),
-                                        ftr=asyncio.Future(),
-                                    )
-                                    yield feedback_request
-                                    feedback_requests[tool_call_id] = feedback_request
-                                case ToolCallPart(tool_name=tool_name):
-                                    permission_request = PermissionRequest(
-                                        tool_name=tool_name,
-                                        tool_args=(),
-                                        tool_kwargs=part.args_as_dict(),
-                                        ftr=asyncio.Future(),
-                                    )
-                                    yield permission_request
-                                    if not await permission_request.response():
-                                        yield AgentResponse(text=f"Permission denied calling {tool_name}", final=True)
-                                        stopped = True
-                                        break
+        while True:
+            if task.done() and task.exception():
+                break
+            try:
+                obj = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                await asyncio.sleep(0.1)
+                continue
+            else:
+                yield obj
+                match obj:
+                    case AgentResponse(final=True):
+                        break
 
-            if not stopped:
-                yield AgentResponse(text=self._text(agent_run.result.output), final=True)
+        await task
+
+    async def _run(
+        self,
+        request: AgentRequest,
+        updates: Sequence[Message],
+        tool_interceptor: "ToolInterceptor",
+    ):
+        result: AgentRunResult = await self.agent.run(
+            user_prompt=self.input_formatter(request, updates),
+            toolsets=[tool_interceptor],
+            message_history=self._history,
+        )
+        response = AgentResponse(text=self._text(result.output))
+        await tool_interceptor.queue.put(response)
+        self._history.extend(result.new_messages())
 
     @contextmanager
     def _configure_mcp_servers(
@@ -250,7 +223,7 @@ class AgentBase(Generic[D], Agent):
         mcp_servers: list[MCPServer] = []
         for settings in mcp_settings:
             result = replace_variables(settings.server_config, variables)
-            settings = MCPSettings(result.replaced, settings.session_scope)
+            settings = MCPSettings(result.replaced)
             if result.missing_variables:
                 logger.warning(
                     f"Variables {result.missing_variables} missing for "
@@ -292,3 +265,29 @@ class DefaultAgent(AgentBase[str]):
 
     def _text(self, data: str) -> str:
         return data
+
+
+@dataclass
+class ToolInterceptor(WrapperToolset):
+    queue: asyncio.Queue
+
+    async def call_tool(self, name: str, tool_args: dict[str, Any], ctx, tool) -> Any:
+        if name == "ask_user":
+            feedback_request = FeedbackRequest(
+                question=tool_args.get("question", ""),
+                ftr=asyncio.Future(),
+            )
+            await self.queue.put(feedback_request)
+            return await feedback_request.response()
+        else:
+            permission_request = PermissionRequest(
+                tool_name=name,
+                tool_args=(),
+                tool_kwargs=tool_args,
+                ftr=asyncio.Future(),
+            )
+            await self.queue.put(permission_request)
+            if await permission_request.response():
+                return await self.wrapped.call_tool(name, tool_args, ctx, tool)
+            else:
+                return f"Permission denied calling tool '{name}'"
