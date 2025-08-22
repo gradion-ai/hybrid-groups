@@ -302,7 +302,7 @@ class AgentViewBuilder:
                 "initial_value": json.dumps(agent.mcp_settings) if agent and is_edit and agent.mcp_settings else "",
                 "placeholder": {
                     "type": "plain_text",
-                    "text": '[{\n  "server_config": {\n    "command": "...",  \n    "args": [...], \n    "env": { "API_KEY": "${API_KEY}" } \n  },\n  "session_scope": false\n}]',
+                    "text": '[{\n  "server_config": {\n    "command": "...",  \n    "args": [...], \n    "env": { "API_KEY": "${API_KEY}" } \n  }\n}]',
                 },
             },
             "hint": {
