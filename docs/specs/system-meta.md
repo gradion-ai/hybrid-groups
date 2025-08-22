@@ -13,7 +13,7 @@ Agents in a group chat are aware of all messages in the group chat
 
 ## Message structure
 
-Both a query message and an update message have a "sender" and a "receiver" attribute. The message structure is explained in detail in message-spec.md.
+Both a query message and an update message have a "sender" and a "receiver" attribute. The message structure is explained in detail in system-input.md.
 Query or update messages may contain referenced threads. A thread is another group chat, different from the current one. A thread message may also contain further thread references (recursively). 
 
 ## System agent behavior
