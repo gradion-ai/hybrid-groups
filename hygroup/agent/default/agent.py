@@ -4,10 +4,10 @@ import inspect
 import logging
 import os
 from abc import abstractmethod
-from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Generic, Iterator, Sequence, Type, TypeVar
+from typing import Any, AsyncIterator, Callable, Generic, Sequence, Type, TypeVar
 
 from pydantic_ai import Agent as AgentImpl
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
@@ -167,11 +167,25 @@ class AgentBase(Generic[D], Agent):
 
     @asynccontextmanager
     async def mcp_servers(self, secrets: dict[str, str] | None = None):
-        with self._configure_mcp_servers(self.settings.mcp_settings, dict(os.environ) | (secrets or {})) as servers:
-            async with self._run_mcp_servers(servers):
-                self._mcp_servers = servers
+        with self._configure_mcp_servers(dict(os.environ) | (secrets or {})):
+            async with self.agent:
                 yield
-                self._mcp_servers.clear()
+
+    @contextmanager
+    def _configure_mcp_servers(self, variables: dict[str, str]):
+        for settings in self.settings.mcp_settings:
+            result = replace_variables(settings.server_config, variables)
+            settings = MCPSettings(result.replaced)
+            if result.missing_variables:
+                logger.warning(
+                    f"Variables {result.missing_variables} missing for "
+                    f"configuring MCP server {settings.server_config}. "
+                    f"Agent '{self.name}' will not use this MCP server."
+                )
+            else:
+                self._mcp_servers.append(settings.server())
+        yield
+        self._mcp_servers.clear()
 
     async def run(
         self,
@@ -215,35 +229,6 @@ class AgentBase(Generic[D], Agent):
         response = AgentResponse(text=self._text(result.output))
         await tool_interceptor.queue.put(response)
         self._history.extend(result.new_messages())
-
-    @contextmanager
-    def _configure_mcp_servers(
-        self, mcp_settings: list[MCPSettings], variables: dict[str, str]
-    ) -> Iterator[list[MCPServer]]:
-        mcp_servers: list[MCPServer] = []
-        for settings in mcp_settings:
-            result = replace_variables(settings.server_config, variables)
-            settings = MCPSettings(result.replaced)
-            if result.missing_variables:
-                logger.warning(
-                    f"Variables {result.missing_variables} missing for "
-                    f"configuring MCP server {settings.server_config}. "
-                    f"Agent '{self.name}' will not use this MCP server."
-                )
-            else:
-                mcp_servers.append(settings.server())
-        yield mcp_servers
-
-    @staticmethod
-    @asynccontextmanager
-    async def _run_mcp_servers(mcp_servers: list[MCPServer]):
-        exit_stack = AsyncExitStack()
-        try:
-            for mcp_server in mcp_servers:
-                await exit_stack.enter_async_context(mcp_server)
-            yield
-        finally:
-            await exit_stack.aclose()
 
     @abstractmethod
     def _text(self, data: D) -> str: ...
