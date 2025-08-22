@@ -2,25 +2,20 @@ from typing import Sequence
 
 from hygroup.agent.base import AgentRequest, Message, Thread
 
-QUERY_TEMPLATE = """You are the receiver of the following message:
-
-<message sender="{sender}" receiver="{receiver}">
-{query}{threads}
-</message>
-
-Please analyze this message."""
+QUERY_TEMPLATE = """<query sender="{sender}" receiver="{receiver}">
+{query}{threads}{updates}
+</query>"""
 
 MESSAGE_TEMPLATE = """<message sender="{sender}" receiver="{receiver}">
 {text}{threads}
 </message>"""
 
 THREADS_TEMPLATE = """
-<referenced-threads>
+<threads>
 {threads}
-</referenced-threads>"""
+</threads>"""
 
-UPDATES_TEMPLATE = """ You may use the following messages, enclosed in <updates> tags, as context:
-
+UPDATES_TEMPLATE = """
 <updates>
 {messages}
 </updates>"""
@@ -29,29 +24,25 @@ THREAD_TEMPLATE = """<thread id="{thread_id}">
 {messages}
 </thread>"""
 
-TEMPLATE = """{formatted_query}{updates}"""
-
 
 def format_input(
     request: AgentRequest,
     updates: Sequence[Message],
 ) -> str:
-    formatted_query = format_query(request)
     formatted_updates = ""
 
     if updates:
         formatted_messages = "\n".join(format_message(msg) for msg in updates)
         formatted_updates = UPDATES_TEMPLATE.format(messages=formatted_messages)
+    else:
+        formatted_updates = ""
 
-    return TEMPLATE.format(formatted_query=formatted_query, updates=formatted_updates)
-
-
-def format_query(request: AgentRequest) -> str:
     return QUERY_TEMPLATE.format(
         query=request.query,
         sender=request.sender,
         receiver=request.receiver or "",
         threads=format_threads(request.threads),
+        updates=formatted_updates,
     )
 
 

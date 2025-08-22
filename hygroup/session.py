@@ -463,7 +463,7 @@ class SessionManager:
 
     async def load_thread(self, id: str) -> Thread:
         state = await self.load_session_state(id)
-        messages = [Message(**message) for message in state["messages"]]
+        messages = Thread.from_dicts(state["messages"])
         return Thread(session_id=id, messages=messages)
 
     async def load_threads(self, session_ids: list[str]) -> list[Thread]:

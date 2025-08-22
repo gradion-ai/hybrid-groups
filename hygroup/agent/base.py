@@ -11,6 +11,15 @@ class Thread:
     session_id: str
     messages: list["Message"]
 
+    @staticmethod
+    def from_dicts(message_dicts: list[dict[str, Any]]) -> list["Message"]:
+        """Convert a list of message dictionaries to Message objects."""
+        messages = []
+        for message_dict in message_dicts:
+            message = Message.from_dict(message_dict)
+            messages.append(message)
+        return messages
+
 
 @dataclass
 class Message:
@@ -21,6 +30,20 @@ class Message:
 
     id: str | None = None
     """Id of the gateway message represented by this message."""
+
+    @staticmethod
+    def from_dict(message_dict: dict[str, Any]) -> "Message":
+        """Convert a message dictionary to a Message object, recursively handling nested threads."""
+        # message_data = message_dict.copy()
+        message_data = message_dict
+        if "threads" in message_data and message_data["threads"]:
+            nested_threads = []
+            for thread_data in message_data["threads"]:
+                thread_messages = Thread.from_dicts(thread_data.get("messages", []))
+                nested_thread = Thread(session_id=thread_data.get("session_id", ""), messages=thread_messages)
+                nested_threads.append(nested_thread)
+            message_data["threads"] = nested_threads
+        return Message(**message_data)
 
 
 @dataclass
