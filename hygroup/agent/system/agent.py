@@ -4,8 +4,7 @@ from pydantic import BaseModel
 from pydantic_ai.models.google import GoogleModelSettings
 
 from hygroup.agent.default.agent import AgentBase, AgentSettings
-from hygroup.agent.default.prompt import InputFormatter
-from hygroup.agent.system.prompt import format_input
+from hygroup.agent.default.prompt import InputFormatter, format_input
 
 
 def system_agent_instructions() -> str:
