@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from hygroup.connect import ComposioConnector
 from hygroup.gateway.slack import SlackGateway
 from hygroup.session import SessionManager
 
@@ -15,7 +16,14 @@ def session_manager():
 
 
 @pytest.fixture
-def slack_gateway(session_manager, monkeypatch):
+def composio_connector():
+    """Create a mock composio connector for testing."""
+    connector = MagicMock(spec=ComposioConnector)
+    return connector
+
+
+@pytest.fixture
+def slack_gateway(session_manager, composio_connector, monkeypatch):
     """Create a SlackGateway instance with test user mappings."""
     # Set required environment variables
     monkeypatch.setenv("SLACK_BOT_TOKEN", "test-bot-token")
@@ -37,6 +45,7 @@ def slack_gateway(session_manager, monkeypatch):
     ):
         gateway = SlackGateway(
             session_manager=session_manager,
+            composio_connector=composio_connector,
             user_mapping=user_mapping,
             handle_permission_requests=False,
         )

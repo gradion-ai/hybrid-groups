@@ -1,0 +1,38 @@
+{
+    "gmail": {
+        "display_name": "Gmail",
+        "tools": [
+            "GMAIL_FETCH_EMAILS",
+            "GMAIL_GET_ATTACHMENT",
+            "GMAIL_CREATE_EMAIL_DRAFT",
+            "GMAIL_DELETE_DRAFT",
+            "GMAIL_LIST_DRAFTS",
+            "GMAIL_LIST_LABELS"
+        ]
+    },
+    "googlecalendar": {
+        "display_name": "Google Calendar",
+        "tools": [
+            "GOOGLECALENDAR_FIND_EVENT",
+            "GOOGLECALENDAR_CREATE_EVENT"
+        ]
+    },
+    "googledrive": {
+        "display_name": "Google Drive",
+        "tools": [
+            "GOOGLEDRIVE_CREATE_FILE",
+            "GOOGLEDRIVE_CREATE_FOLDER",
+            "GOOGLEDRIVE_DOWNLOAD_FILE",
+            "GOOGLEDRIVE_GET_REVISION",
+            "GOOGLEDRIVE_LIST_FILES",
+            "GOOGLEDRIVE_LIST_REVISIONS",
+            "GOOGLEDRIVE_MOVE_FILE",
+            "GOOGLEDRIVE_UPLOAD_FILE",
+            "GOOGLEDRIVE_COPY_FILE",
+            "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT",
+            "GOOGLEDRIVE_EDIT_FILE",
+            "GOOGLEDRIVE_FIND_FILE",
+            "GOOGLEDRIVE_FIND_FOLDER"
+        ]
+    }
+}

@@ -23,6 +23,7 @@ from hygroup.agent import (
     Thread,
 )
 from hygroup.agent.system import SystemAgent
+from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
 from hygroup.user import PermissionStore, RequestHandler, UserRegistry
 from hygroup.user.default import DefaultPreferenceStore
@@ -144,6 +145,7 @@ class Session:
         self.user_registry: UserRegistry = self.manager.user_registry
         self.permission_store: PermissionStore = self.manager.permission_store
         self.preference_store: DefaultPreferenceStore = self.manager.preference_store
+        self.composio_config: ComposioConfig = self.manager.composio_config
 
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
@@ -344,10 +346,11 @@ class Session:
         await self._gateway_queue.put(coro)
 
         # get secrets of authenticated sender
-        secrets = self.user_registry.get_secrets(request.sender)
+        user_secrets = self.user_registry.get_secrets(request.sender) or {}
+        mcp_vars = self.composio_config.mcp_config_vars()
 
         # invoke receiver agent with request
-        await self._agents[agent_name].invoke(request, secrets)
+        await self._agents[agent_name].invoke(request, mcp_vars | user_secrets)
 
     # -------------------------------------
     #  Used as agent tool
@@ -425,6 +428,7 @@ class SessionManager:
         permission_store: PermissionStore,
         preferences_store: DefaultPreferenceStore,
         request_handler: RequestHandler,
+        composio_config: ComposioConfig,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registry = agent_registry
@@ -432,6 +436,7 @@ class SessionManager:
         self.permission_store = permission_store
         self.preference_store = preferences_store
         self.request_handler = request_handler
+        self.composio_config = composio_config
 
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)

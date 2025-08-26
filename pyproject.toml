@@ -27,6 +27,7 @@ dependencies = [
     "cryptography>=45.0.3,<46",
     "rich>=14.0.0,<15",
     "markdown-to-mrkdwn>=0.2.0,<0.3",
+    "composio-client>=1.7.0",
 ]
 
 [tool.uv]

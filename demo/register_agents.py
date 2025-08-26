@@ -89,6 +89,18 @@ WEATHER_AGENT_STEPS = """- Use the `get_weather_forecast` tool to get the weathe
 WEATHER_AGENT_INSTRUCTIONS = apply_template(WEATHER_AGENT_ROLE, WEATHER_AGENT_STEPS)
 
 
+OFFICE_AGENT_ROLE = "You are an office assistant that manages Gmail, Google Calendar, and Google Drive to help users with email drafting, scheduling tasks, and document management."
+OFFICE_AGENT_STEPS = """- Use the Gmail tools to read, search, and manage emails as requested by the user.
+- You can create email drafts but CANNOT send emails directly - inform users that drafts will be created for their review.
+- Use the Google Calendar tools to view, create, update, and manage calendar events.
+- Use the Google Drive tools to list, search, create, read, update, and manage documents, spreadsheets, presentations, and other files.
+- When scheduling meetings, check calendar availability first before creating events.
+- For email tasks, search for existing conversations before creating draft replies when appropriate.
+- For document tasks, search for existing files before creating new ones when appropriate.
+- Always confirm important actions (like creating drafts, scheduling meetings, or modifying documents) by summarizing what you're about to do."""
+OFFICE_AGENT_INSTRUCTIONS = apply_template(OFFICE_AGENT_ROLE, OFFICE_AGENT_STEPS)
+
+
 # This prompt is from the tiny-agents dataset at https://huggingface.co/datasets/tiny-agents/tiny-agents
 BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved, or if you need more info from the user to solve the problem.
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
@@ -219,6 +231,51 @@ def weather_agent_config():
     }
 
 
+def office_agent_config():
+    gmail_settings = MCPSettings(
+        server_config={
+            "url": "https://mcp.composio.dev/composio/server/${COMPOSIO_GMAIL_ID}?user_id=${COMPOSIO_USER_ID}",
+        },
+    )
+
+    googlecalendar_settings = MCPSettings(
+        server_config={
+            "url": "https://mcp.composio.dev/composio/server/${COMPOSIO_GOOGLECALENDAR_ID}?user_id=${COMPOSIO_USER_ID}",
+        },
+    )
+
+    googledrive_settings = MCPSettings(
+        server_config={
+            "url": "https://mcp.composio.dev/composio/server/${COMPOSIO_GOOGLEDRIVE_ID}?user_id=${COMPOSIO_USER_ID}",
+        },
+    )
+
+    claude_mcp_settings = MCPSettings(
+        server_config={
+            "command": "claude",
+            "args": ["mcp", "serve"],
+        },
+    )
+
+    agent_settings = AgentSettings(
+        model="openai:gpt-5-mini",
+        instructions=OFFICE_AGENT_INSTRUCTIONS,
+        mcp_settings=[
+            gmail_settings,
+            googlecalendar_settings,
+            googledrive_settings,
+            claude_mcp_settings,
+        ],
+    )
+
+    return {
+        "name": "office",
+        "description": "An agent that can manage the user's Gmail, Google Calendar, and Google Drive.",
+        "settings": agent_settings,
+        "emoji": "paperclip",
+    }
+
+
 def browser_agent_config():
     playwright_server_settings = MCPSettings(
         server_config={
@@ -246,6 +303,7 @@ async def main():
 
     await agent_registry.remove_configs()
     await agent_registry.add_config(**weather_agent_config())
+    await agent_registry.add_config(**office_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference
