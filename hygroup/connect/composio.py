@@ -1,4 +1,3 @@
-import asyncio
 import json
 import os
 import uuid
@@ -79,19 +78,19 @@ class ComposioConnector:
         async with aiofiles.open(self.config_path, "r") as f:
             return ComposioConfig(json.loads(await f.read()))
 
-    async def setup(self, force: bool = False):
-        if self.config_path.exists() and not force:
-            raise FileExistsError(
-                f"Config file already exists at {self.config_path}. Please run `cleanup` first or use `force=True`."
-            )
+    async def setup(self):
+        if self.config_path.exists():
+            config = await self.load_config()
+            data = config.data.copy()
+        else:
+            data = {}
 
         async with aiofiles.open(self.toolkits_path, "r") as f:
             toolkits = json.loads(await f.read())
 
-        data = {}
-
         for name, value in toolkits.items():
-            data[name] = self._setup_toolkit(name, value)
+            if name not in data:
+                data[name] = self._setup_toolkit(name, value)
 
         await self.save_config(ComposioConfig(data))
 
@@ -213,18 +212,3 @@ class ComposioConnector:
         else:
             user = User(name=system_user_id, secrets={"COMPOSIO_USER_ID": composio_user_id})
             await self.user_registry.register(user)
-
-
-async def main():
-    from hygroup.user.default.registry import DefaultUserRegistry
-
-    user_registry = DefaultUserRegistry()
-    await user_registry.unlock("admin")
-
-    # connector = ComposioConnector(user_registry=user_registry)
-    # await connector.cleanup()
-    # await connector.setup(force=True)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
