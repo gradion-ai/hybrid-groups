@@ -1,0 +1,20 @@
+{
+    "gmail": {
+        "display_name": "Gmail",
+        "tools": [
+            "GMAIL_FETCH_EMAILS",
+            "GMAIL_GET_ATTACHMENT",
+            "GMAIL_CREATE_EMAIL_DRAFT",
+            "GMAIL_DELETE_DRAFT",
+            "GMAIL_LIST_DRAFTS",
+            "GMAIL_LIST_LABELS"
+        ]
+    },
+    "googlecalendar": {
+        "display_name": "Google Calendar",
+        "tools": [
+            "GOOGLECALENDAR_FIND_EVENT",
+            "GOOGLECALENDAR_CREATE_EVENT"
+        ]
+    }
+}

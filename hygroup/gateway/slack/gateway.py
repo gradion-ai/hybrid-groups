@@ -3,6 +3,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
+from typing import Any
 from uuid import uuid4
 
 from markdown_to_mrkdwn import SlackMarkdownConverter
@@ -16,6 +17,7 @@ from hygroup.agent import (
     AgentResponse,
     PermissionRequest,
 )
+from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway.base import Gateway
 from hygroup.session import Session, SessionManager
 from hygroup.user import RequestHandler
@@ -49,6 +51,7 @@ class SlackGateway(Gateway, RequestHandler):
     def __init__(
         self,
         session_manager: SessionManager,
+        composio_connector: ComposioConnector,
         user_mapping: dict[str, str] = {},
         handle_permission_requests: bool = False,
         wip_emoji: str = "beer",
@@ -57,6 +60,7 @@ class SlackGateway(Gateway, RequestHandler):
         wip_update_max: int = 10,
     ):
         self.session_manager = session_manager
+        self.composio_connector = composio_connector
         self.delegate_handler = session_manager.request_handler
         self.handle_permission_requests = handle_permission_requests
 
@@ -90,6 +94,7 @@ class SlackGateway(Gateway, RequestHandler):
         self._app.action("session_button")(self.handle_permission_response)
         self._app.action("always_button")(self.handle_permission_response)
         self._app.action("deny_button")(self.handle_permission_response)
+        self._app.command("/hygroup-connect")(self.handle_connect)
 
         # Suppress "unhandled request" log messages
         self.logger = logging.getLogger("slack_bolt.AsyncApp")
@@ -102,6 +107,50 @@ class SlackGateway(Gateway, RequestHandler):
     @property
     def client(self) -> AsyncWebClient:
         return self._client
+
+    async def handle_connect(self, ack, body, respond):
+        await ack()
+
+        user = self._resolve_system_user_id(body["user_id"])
+        text = body["text"].strip()
+
+        if text:
+            block = await self._connect_toolkit_response(system_user_id=user, toolkit_name=text)
+        else:
+            block = await self._connection_status_response(system_user_id=user)
+
+        await respond(blocks=[block])
+
+    async def _connection_status_response(self, system_user_id: str) -> dict[str, Any]:
+        composio_config = await self.composio_connector.load_config()
+        composio_connections = await self.composio_connector.connection_status(system_user_id, composio_config)
+
+        connection_lines = []
+
+        connected_emoji = ":white_check_mark:"
+        disconnected_emoji = ":heavy_multiplication_x:"
+
+        for toolkit_name, connected in sorted(composio_connections.items()):
+            emoji = connected_emoji if connected else disconnected_emoji
+            connection_lines.append(f"{emoji} `{toolkit_name}` - {composio_config.display_name(toolkit_name)}")
+
+        connections_text = "\n".join(connection_lines) if connection_lines else "No toolkits configured"
+        response_text = f"**Composio toolkits** - {connected_emoji} connected {disconnected_emoji} disconnected\n\n{connections_text}"
+
+        return {"type": "section", "text": {"type": "mrkdwn", "text": self._converter.convert(response_text)}}
+
+    async def _connect_toolkit_response(self, system_user_id: str, toolkit_name: str) -> dict[str, Any]:
+        composio_config = await self.composio_connector.load_config()
+        toolkit_names = composio_config.toolkit_names()
+
+        if toolkit_name not in toolkit_names:
+            toolkits_text = "\n".join(f"- `{toolkit_name}`" for toolkit_name in toolkit_names)
+            response_text = f"Invalid toolkit name: `{toolkit_name}`. Must be one of:\n\n{toolkits_text}"
+        else:
+            redirect_url = await self.composio_connector.connect_toolkit(system_user_id, toolkit_name)
+            response_text = f"Follow [this link]({redirect_url}) for authorizing Composio to access your {composio_config.display_name(toolkit_name)} account."
+
+        return {"type": "section", "text": {"type": "mrkdwn", "text": self._converter.convert(response_text)}}
 
     async def start(self, join: bool = True):
         if join:

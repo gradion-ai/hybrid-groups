@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from hygroup.agent.default import DefaultAgentRegistry
+from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
@@ -34,10 +35,12 @@ async def main(args):
     # Database for tool execution permissions (session, permanent)
     permission_store = DefaultPermissionStore(allowed_tools=[])
 
-    # A user registry that encrypts user secrets at rest with an
-    # admin password.
+    # A user registry that encrypts user secrets at rest with an admin password.
     user_registry = DefaultUserRegistry(args.user_registry)
     await user_registry.unlock(args.user_registry_password)
+
+    # Connector for toolkits provided by Composio
+    composio_connector = ComposioConnector(user_registry=user_registry)
 
     request_handler: RequestHandler
     match args.user_channel:
@@ -72,6 +75,7 @@ async def main(args):
         case "slack":
             gateway = SlackGateway(
                 session_manager=manager,
+                composio_connector=composio_connector,
                 user_mapping=user_registry.get_mappings("slack"),
                 # If True, prompt users in Slack to approve
                 # tool execution via ephemeral messages.

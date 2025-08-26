@@ -10,10 +10,18 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
     "features": {
         "app_home": {
             "home_tab_enabled": True,
-            "messages_tab_enabled": False,
+            "messages_tab_enabled": True,
             "messages_tab_read_only_enabled": False,
         },
         "bot_user": {"display_name": "", "always_online": False},
+        "slash_commands": [
+            {
+                "command": "/hygroup-connect",
+                "description": "Connect to external services",
+                "usage_hint": "[service-name]",
+                "should_escape": True,
+            }
+        ],
     },
     "oauth_config": {
         "scopes": {
@@ -30,6 +38,7 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
                 "channels:read",
                 "reactions:write",
                 "users:read",
+                "commands",
             ]
         }
     },
