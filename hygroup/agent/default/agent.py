@@ -221,11 +221,6 @@ class AgentBase(Generic[D], Agent):
         updates: Sequence[Message],
         tool_interceptor: "ToolInterceptor",
     ):
-        # print("\n\n\n\n")
-        # print(f"======================================== AGENT: {self.name} ========================================")
-        # print(self.input_formatter(request, updates))
-        # print("\n\n\n\n")
-
         result: AgentRunResult = await self.agent.run(
             user_prompt=self.input_formatter(request, updates),
             toolsets=[tool_interceptor],

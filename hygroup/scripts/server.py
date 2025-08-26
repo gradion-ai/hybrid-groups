@@ -41,6 +41,7 @@ async def main(args):
 
     # Connector for toolkits provided by Composio
     composio_connector = ComposioConnector(user_registry=user_registry)
+    composio_config = await composio_connector.load_config()
 
     request_handler: RequestHandler
     match args.user_channel:
@@ -65,6 +66,7 @@ async def main(args):
         permission_store=permission_store,
         preferences_store=preference_store,
         request_handler=request_handler,
+        composio_config=composio_config,
     )
 
     # A gateway provides connectivity to platforms like Slack, GitHub, or a terminal.

@@ -1,1 +1,1 @@
-from hygroup.connect.composio import ComposioConnector
+from hygroup.connect.composio import ComposioConfig, ComposioConnector

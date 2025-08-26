@@ -44,6 +44,14 @@ class ComposioConfig:
     def mcp_config_ids(self) -> list[str]:
         return [item["mcp_config_id"] for item in self._data.values()]
 
+    def mcp_config_vars(self) -> dict[str, str]:
+        vars = {}
+
+        for toolkit_name in self.toolkit_names():
+            vars[f"COMPOSIO_{toolkit_name.upper()}_ID"] = self.mcp_config_id(toolkit_name)
+
+        return vars
+
 
 class ComposioConnector:
     def __init__(
@@ -175,17 +183,19 @@ class ComposioConnector:
         if toolkit_name not in config.data:
             raise ValueError(f"Toolkit {toolkit_name} not found in config")
 
+        auth_config_id = config.auth_config_id(toolkit_name)
+
         accounts = self.client.connected_accounts.list(
             limit=100,
             user_ids=[composio_user_id],
-            auth_config_ids=config.auth_config_ids(),
-            toolkit_slugs=config.toolkit_names(),
+            auth_config_ids=[auth_config_id],
+            toolkit_slugs=[toolkit_name],
         )
         for account in accounts.items:
             self.client.connected_accounts.delete(account.id)
 
         response = self.client.connected_accounts.create(
-            auth_config={"id": config.auth_config_id(toolkit_name)},
+            auth_config={"id": auth_config_id},
             connection={"user_id": composio_user_id},
         )
         return response.connection_data.val.redirect_url
