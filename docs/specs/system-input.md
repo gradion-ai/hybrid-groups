@@ -10,10 +10,11 @@ The main container is the `<input>` element, which contains the query and contex
 <input>
 <query sender="sender_id" receiver="receiver_id">
     The user's direct query text.
+    {attachments}  <!-- Optional -->
 </query>
 <context>
-    {updates}
-    {threads}
+    {updates}  <!-- Optional -->
+    {threads}  <!-- Optional -->
 </context>
 </input>
 ```
@@ -27,6 +28,7 @@ The `<query>` element contains the direct message from the user.
     -   `receiver`: The name of the receiver of the query. Is "" if not defined.
 -   **Content**:
     -   The raw text of the user's query (the direct instructions to execute).
+    -   Optional `<attachments>` element containing file attachments.
 
 ### Context Element: `<context>`
 
@@ -65,9 +67,28 @@ An external group chat is referenced as `<thread>` element containing the group 
         -   `receiver`: The name of the message receiver (can be "").
     -   **Content**:
         -   The text content of the message.
+        -   An optional `<attachments>` element.
         -   An optional `<threads>` element.
 
 **Recursion**: A `<message>` can itself contain a `<threads>` block. This allows for complex, nested group chat references.
+
+### Attachments Element: `<attachments>`
+
+The `<attachments>` element contains metadata about file attachments that accompany a query or message.
+
+-   **Purpose**: Provides attachment metadata (not actual content) for files referenced in the query or message
+-   **Location**: Can appear within `<query>` or `<message>` elements
+-   **Content**: Contains one or more `<attachment>` elements
+
+### Attachment Element: `<attachment>`
+
+Represents metadata for a single file attachment.
+
+-   **Attributes**:
+    -   `name`: The filename of the attachment
+    -   `media_type`: The MIME type of the attachment (e.g., "image/png", "application/pdf", "text/plain")
+-   **Content**: The local file path to the attachment
+-   **Note**: Contains only metadata and file path, never the actual file content
 
 ---
 
@@ -79,11 +100,24 @@ Here is a full example demonstrating the structure:
 <input>
 <query sender="user1" receiver="agent1">
 What's the weather?
+<attachments>
+  <attachment name="image.png" media_type="image/png">
+    /path/to/image.png
+  </attachment>
+  <attachment name="document.pdf" media_type="application/pdf">
+    /path/to/doc.pdf
+  </attachment>
+</attachments>
 </query>
 <context>
 <updates>
   <message sender="user1" receiver="agent1">
     Hello
+    <attachments>
+      <attachment name="file.txt" media_type="text/plain">
+        /path/to/file.txt
+      </attachment>
+    </attachments>
     <threads>
       <thread id="thread1">
         <message sender="user2" receiver="agent1">
