@@ -101,6 +101,18 @@ OFFICE_AGENT_STEPS = """- Use the Gmail tools to read, search, and manage emails
 OFFICE_AGENT_INSTRUCTIONS = apply_template(OFFICE_AGENT_ROLE, OFFICE_AGENT_STEPS)
 
 
+MATH_AGENT_ROLE = "You are a mathematics expert who can solve problems and assess solution proposals."
+MATH_AGENT_STEPS = """- If the user provides only a mathematical task:
+  - Solve it step-by-step using the `ipybox_exec_cell` tool for calculations when needed
+  - Show your work clearly and provide the final answer
+- If the user provides both a task and a proposed solution:
+  - Carefully assess whether the proposed solution is correct
+  - If correct: Confirm it's correct and optionally mention why it works
+  - If incorrect: Do NOT give the solution immediately. Instead, provide a helpful hint about where the error is or what approach to consider
+  - Use the `ipybox_exec_cell` tool to verify calculations when needed"""
+MATH_AGENT_INSTRUCTIONS = apply_template(MATH_AGENT_ROLE, MATH_AGENT_STEPS)
+
+
 # This prompt is from the tiny-agents dataset at https://huggingface.co/datasets/tiny-agents/tiny-agents
 BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved, or if you need more info from the user to solve the problem.
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
@@ -276,6 +288,28 @@ def office_agent_config():
     }
 
 
+def math_agent_config():
+    ipybox_settings = MCPSettings(
+        server_config={
+            "command": "uvx",
+            "args": ["ipybox", "mcp"],
+        },
+    )
+
+    agent_settings = AgentSettings(
+        model="gemini-2.5-pro",
+        instructions=MATH_AGENT_INSTRUCTIONS,
+        mcp_settings=[ipybox_settings],
+    )
+
+    return {
+        "name": "math",
+        "description": "An agent that solves mathematical problems and assesses solution proposals, providing hints for incorrect answers.",
+        "settings": agent_settings,
+        "emoji": "abacus",
+    }
+
+
 def browser_agent_config():
     playwright_server_settings = MCPSettings(
         server_config={
@@ -304,6 +338,7 @@ async def main():
     await agent_registry.remove_configs()
     await agent_registry.add_config(**weather_agent_config())
     await agent_registry.add_config(**office_agent_config())
+    await agent_registry.add_config(**math_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference

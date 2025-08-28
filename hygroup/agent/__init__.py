@@ -4,6 +4,7 @@ from hygroup.agent.base import (
     AgentRegistry,
     AgentRequest,
     AgentResponse,
+    Attachment,
     FeedbackRequest,
     Message,
     PermissionRequest,

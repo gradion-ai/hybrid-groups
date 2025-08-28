@@ -39,6 +39,8 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
                 "reactions:write",
                 "users:read",
                 "commands",
+                "files:read",
+                "files:write",
             ]
         }
     },

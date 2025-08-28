@@ -17,6 +17,7 @@ from hygroup.agent import (
     AgentRegistry,
     AgentRequest,
     AgentResponse,
+    Attachment,
     FeedbackRequest,
     Message,
     PermissionRequest,
@@ -107,9 +108,10 @@ class SessionAgent:
             match item:
                 case Message():
                     self._updates.append(item)
-                case AgentRequest(sender=sender, id=request_id) as request, secrets:
-                    # sender name and secrets needed by run_agent tool
-                    self.session._sender_info.set({"name": sender, "secrets": secrets})
+                case AgentRequest(sender=sender, id=request_id, attachments=attachments) as request, secrets:
+                    self.session._request_context.set(
+                        {"sender": sender, "secrets": secrets, "attachments": attachments}
+                    )
 
                     try:
                         response = await self.run(request, secrets)
@@ -159,7 +161,7 @@ class Session:
         self._request_handler_task: Task = create_task(self._request_handler_worker())
         self._request_handler = self.manager.request_handler
 
-        self._sender_info = ContextVar[dict[str, Any]]("sender_info")
+        self._request_context = ContextVar[dict[str, Any]]("request_context")
 
         # -------------------------------------
         #  TODO: make settings configurable
@@ -278,7 +280,13 @@ class Session:
             receiver=receiver,
         )
 
-    async def handle_gateway_message(self, message_text: str, message_sender: str, message_id: str | None):
+    async def handle_gateway_message(
+        self,
+        message_text: str,
+        message_sender: str,
+        message_id: str | None,
+        attachments: list[Attachment] | None = None,
+    ):
         # first @mention, if any, in the message text is the receiver
         receiver, remaining_text = self._extract_initial_mention(message_text)
 
@@ -290,6 +298,7 @@ class Session:
             sender=message_sender,
             receiver=receiver,
             threads=threads,
+            attachments=attachments or [],
             id=message_id,
         )
         request = AgentRequest(
@@ -297,6 +306,7 @@ class Session:
             sender=message.sender,
             receiver=message.receiver,
             threads=message.threads,
+            attachments=message.attachments,
             message_id=message.id,
         )
 
@@ -363,16 +373,17 @@ class Session:
         except ValueError:
             return f'Agent "{agent_name}" not registered'
 
-        sender_info = self._sender_info.get()
+        request_context = self._request_context.get()
 
         request = AgentRequest(
             query=query,
-            sender=sender_info["name"],
+            sender=request_context["sender"],
             receiver=agent_name,
+            attachments=request_context["attachments"],
         )
         response = await agent.run(
             request=request,
-            secrets=sender_info["secrets"],
+            secrets=request_context["secrets"],
         )
         return response.text
 
@@ -386,6 +397,9 @@ class Session:
 
     def contains(self, id: str) -> bool:
         return any(message.id == id for message in self._messages)
+
+    def root(self) -> Path:
+        return self.manager.session_dir(self.id)
 
     def sync(self, interval: float = 3.0):
         if self._sync_task is None:
@@ -451,14 +465,19 @@ class SessionManager:
         await session.load()
         return session
 
+    def session_dir(self, id: str) -> Path:
+        return self.root_dir / id
+
     def session_path(self, id: str) -> Path:
-        return self.root_dir / f"{id}.json"
+        return self.session_dir(id) / "state.json"
 
     async def session_saved(self, id: str) -> bool:
         return await aiofiles.os.path.exists(str(self.session_path(id)))
 
     async def save_session_state(self, id: str, state: dict[str, Any]):
-        async with aiofiles.open(self.session_path(id), "w") as f:
+        session_path = self.session_path(id)
+        session_path.parent.mkdir(parents=True, exist_ok=True)
+        async with aiofiles.open(session_path, "w") as f:
             await f.write(json.dumps(state, indent=2))
 
     async def load_session_state(self, id: str) -> dict[str, Any]:

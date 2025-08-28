@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
+import aiofiles
+import aiohttp
 from markdown_to_mrkdwn import SlackMarkdownConverter
 from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 from slack_bolt.async_app import AsyncApp
@@ -15,6 +17,7 @@ from slack_sdk.web.async_slack_response import AsyncSlackResponse
 from hygroup.agent import (
     AgentActivation,
     AgentResponse,
+    Attachment,
     PermissionRequest,
 )
 from hygroup.connect.composio import ComposioConnector
@@ -40,11 +43,52 @@ class SlackThread:
         if self.session.contains(msg["id"]):
             return  # idempotency
 
+        # download attachments to session store ...
+        attachments = await self._download_attachments(msg)
+
+        # and pass attachment references to handler
         await self.session.handle_gateway_message(
             message_text=msg["text"],
             message_sender=msg["sender"],
             message_id=msg["id"],
+            attachments=attachments,
         )
+
+    async def _download_attachments(self, msg: dict) -> list[Attachment] | None:
+        root = self.session.root()
+
+        files = msg.get("files")
+
+        if not files:
+            return None
+
+        headers = {"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}"}
+        result = []
+
+        async with aiohttp.ClientSession() as session:
+            for i, file in enumerate(files):
+                mimetype = file.get("mimetype", "application/octet-stream")
+                filetype = file.get("filetype", "bin")
+                name = file.get("name", f"unknown_{i}.{filetype}")
+                url_private_download = file.get("url_private_download")
+
+                if not url_private_download:
+                    continue
+
+                attachment_id = uuid4().hex[:8]
+                filename = f"slack-attachment-{attachment_id}.{filetype}"
+                target_path = root / filename
+
+                async with session.get(url_private_download, headers=headers) as response:
+                    response.raise_for_status()
+                    async with aiofiles.open(target_path, "wb") as f:
+                        async for chunk in response.content.iter_chunked(8192):
+                            await f.write(chunk)
+
+                attachment = Attachment(path=str(target_path), name=name, media_type=mimetype)
+                result.append(attachment)
+
+        return result
 
 
 class SlackGateway(Gateway, RequestHandler):
@@ -435,6 +479,7 @@ class SlackGateway(Gateway, RequestHandler):
             "channel": message.get("channel"),
             "sender": sender_resolved,
             "text": text_resolved,
+            "files": message.get("files"),
         }
 
     def _resolve_mentions(self, text: str | None) -> str:

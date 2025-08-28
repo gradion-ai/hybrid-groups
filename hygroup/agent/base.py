@@ -5,6 +5,19 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Callable, Sequence
 
+import aiofiles
+
+
+@dataclass
+class Attachment:
+    path: str
+    name: str
+    media_type: str
+
+    async def bytes(self) -> bytes:
+        async with aiofiles.open(self.path, "rb") as f:
+            return await f.read()
+
 
 @dataclass
 class Thread:
@@ -27,6 +40,7 @@ class Message:
     sender: str
     receiver: str | None
     threads: list[Thread] = field(default_factory=list)
+    attachments: list[Attachment] = field(default_factory=list)
 
     id: str | None = None
     """Id of the gateway message represented by this message."""
@@ -52,6 +66,7 @@ class AgentRequest:
     sender: str
     receiver: str | None = None
     threads: list[Thread] = field(default_factory=list)
+    attachments: list[Attachment] = field(default_factory=list)
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     """Id of this request."""
