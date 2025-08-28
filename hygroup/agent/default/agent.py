@@ -11,7 +11,7 @@ from typing import Any, AsyncIterator, Callable, Generic, Sequence, Type, TypeVa
 
 from pydantic_ai import Agent as AgentImpl
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
-from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_ai.messages import BinaryContent, ModelMessagesTypeAdapter
 from pydantic_ai.run import AgentRunResult
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.toolsets import CombinedToolset, FunctionToolset, WrapperToolset
@@ -148,7 +148,7 @@ class AgentBase(Generic[D], Agent):
             self.tool(self.ask_user)
 
     def get_state(self) -> Any:
-        return to_jsonable_python(self._history)
+        return to_jsonable_python(self._history, bytes_mode="base64")
 
     def set_state(self, state: Any):
         self._history = ModelMessagesTypeAdapter.validate_python(state)
@@ -221,8 +221,22 @@ class AgentBase(Generic[D], Agent):
         updates: Sequence[Message],
         tool_interceptor: "ToolInterceptor",
     ):
+        user_prompt = []
+
+        if request.attachments:
+            for attachment in request.attachments:
+                user_prompt.append(f'Attachment name="{attachment.name}": ')
+                user_prompt.append(
+                    BinaryContent(
+                        data=await attachment.bytes(),
+                        media_type=attachment.media_type,
+                    )
+                )
+
+        user_prompt.append(self.input_formatter(request, updates))
+
         result: AgentRunResult = await self.agent.run(
-            user_prompt=self.input_formatter(request, updates),
+            user_prompt=user_prompt,
             toolsets=[tool_interceptor],
             message_history=self._history,
         )
