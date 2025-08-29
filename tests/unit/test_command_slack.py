@@ -14,10 +14,11 @@ from hygroup.user.default.command import DefaultCommandStore
 
 
 @pytest.fixture
-def session_manager():
+def session_manager(command_store):
     """Create a mock session manager for testing."""
     manager = MagicMock(spec=SessionManager)
     manager.request_handler = MagicMock()
+    manager.command_store = command_store
     return manager
 
 
@@ -36,7 +37,7 @@ def command_store():
 
 
 @pytest.fixture
-def slack_gateway(session_manager, composio_connector, command_store, monkeypatch):
+def slack_gateway(session_manager, composio_connector, monkeypatch):
     """Create a SlackGateway instance with test user mappings."""
     # Set required environment variables
     monkeypatch.setenv("SLACK_BOT_TOKEN", "test-bot-token")
@@ -56,7 +57,6 @@ def slack_gateway(session_manager, composio_connector, command_store, monkeypatc
         gateway = SlackGateway(
             session_manager=session_manager,
             composio_connector=composio_connector,
-            command_store=command_store,
             user_mapping=user_mapping,
             handle_permission_requests=False,
         )
@@ -141,12 +141,12 @@ class TestSlackCommandHandling:
         assert "Error" in blocks[0]["text"]["text"]
 
     @pytest.mark.asyncio
-    async def test_handle_command_load(self, slack_gateway, command_store):
-        """Test loading a command."""
+    async def test_handle_command_view(self, slack_gateway, command_store):
+        """Test viewing a command."""
         command_store.load_command.return_value = "echo hello world"
 
         ack = AsyncMock()
-        body = {"user_id": "U123", "text": "load test-cmd"}
+        body = {"user_id": "U123", "text": "view test-cmd"}
         respond = AsyncMock()
 
         await slack_gateway.handle_command(ack, body, respond)
@@ -161,12 +161,12 @@ class TestSlackCommandHandling:
         assert "echo hello world" in text
 
     @pytest.mark.asyncio
-    async def test_handle_command_load_not_found(self, slack_gateway, command_store):
-        """Test loading a non-existent command."""
-        command_store.load_command.side_effect = FileNotFoundError()
+    async def test_handle_command_view_not_found(self, slack_gateway, command_store):
+        """Test viewing a non-existent command."""
+        command_store.load_command.side_effect = KeyError()
 
         ack = AsyncMock()
-        body = {"user_id": "U123", "text": "load nonexistent"}
+        body = {"user_id": "U123", "text": "view nonexistent"}
         respond = AsyncMock()
 
         await slack_gateway.handle_command(ack, body, respond)
@@ -252,7 +252,7 @@ class TestSlackCommandHandling:
         text = blocks[0]["text"]["text"]
         assert "Usage" in text
         assert "save" in text
-        assert "load" in text
+        assert "view" in text
         assert "delete" in text
         assert "list" in text
         assert "help" in text
@@ -312,7 +312,7 @@ class TestDefaultCommandStore:
     @pytest.mark.asyncio
     async def test_load_nonexistent_command(self, temp_command_store):
         """Test loading a command that doesn't exist."""
-        with pytest.raises(FileNotFoundError) as exc_info:
+        with pytest.raises(KeyError) as exc_info:
             await temp_command_store.load_command("nonexistent", "alice")
         assert "not found" in str(exc_info.value)
 
@@ -326,13 +326,13 @@ class TestDefaultCommandStore:
         await temp_command_store.save_command(command, command_name, username)
         await temp_command_store.delete_command(command_name, username)
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(KeyError):
             await temp_command_store.load_command(command_name, username)
 
     @pytest.mark.asyncio
     async def test_delete_nonexistent_command(self, temp_command_store):
         """Test deleting a command that doesn't exist."""
-        with pytest.raises(FileNotFoundError) as exc_info:
+        with pytest.raises(KeyError) as exc_info:
             await temp_command_store.delete_command("nonexistent", "alice")
         assert "not found" in str(exc_info.value)
 
@@ -368,7 +368,7 @@ class TestDefaultCommandStore:
         await temp_command_store.save_command(command, command_name, "alice")
 
         # Bob shouldn't have access to Alice's command
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(KeyError):
             await temp_command_store.load_command(command_name, "bob")
 
         # Bob's command list should be empty

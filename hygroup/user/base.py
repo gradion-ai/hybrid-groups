@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
@@ -75,6 +76,8 @@ class PermissionStore(ABC):
 
 
 class CommandStore(ABC):
+    COMMAND_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
     @abstractmethod
     async def save_command(self, command: str, command_name: str, username: str): ...
 

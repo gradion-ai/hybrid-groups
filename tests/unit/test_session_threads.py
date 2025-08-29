@@ -16,6 +16,7 @@ def session_manager():
         preferences_store=MagicMock(),
         request_handler=MagicMock(),
         composio_config=MagicMock(),
+        command_store=MagicMock(),
         root_dir=MagicMock(),
     )
     return manager

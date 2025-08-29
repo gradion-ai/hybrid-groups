@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 
 import aiofiles
@@ -14,7 +13,7 @@ class DefaultCommandStore(CommandStore):
 
     async def save_command(self, command: str, command_name: str, username: str) -> None:
         # Validate command name - only alphanumeric, underscore, and hyphen
-        if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
+        if not self.COMMAND_NAME_PATTERN.match(command_name):
             raise ValueError(
                 f"Invalid command name: {command_name}. Only alphanumeric characters, underscores, and hyphens are allowed."
             )
@@ -30,7 +29,7 @@ class DefaultCommandStore(CommandStore):
         command_file = self.root_dir / username / f"{command_name}.md"
 
         if not await aiofiles.os.path.exists(command_file):
-            raise FileNotFoundError(f"Command '{command_name}' not found for user '{username}'")
+            raise KeyError(f"Command '{command_name}' not found for user '{username}'")
 
         async with aiofiles.open(command_file, mode="r") as f:
             return await f.read()
@@ -39,7 +38,7 @@ class DefaultCommandStore(CommandStore):
         command_file = self.root_dir / username / f"{command_name}.md"
 
         if not await aiofiles.os.path.exists(command_file):
-            raise FileNotFoundError(f"Command '{command_name}' not found for user '{username}'")
+            raise KeyError(f"Command '{command_name}' not found for user '{username}'")
 
         await aiofiles.os.remove(command_file)
 

@@ -24,7 +24,6 @@ from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway.base import Gateway
 from hygroup.session import Session, SessionManager
 from hygroup.user import RequestHandler
-from hygroup.user.base import CommandStore
 
 
 @dataclass
@@ -97,7 +96,6 @@ class SlackGateway(Gateway, RequestHandler):
         self,
         session_manager: SessionManager,
         composio_connector: ComposioConnector,
-        command_store: CommandStore,
         user_mapping: dict[str, str] = {},
         handle_permission_requests: bool = False,
         wip_emoji: str = "beer",
@@ -107,7 +105,6 @@ class SlackGateway(Gateway, RequestHandler):
     ):
         self.session_manager = session_manager
         self.composio_connector = composio_connector
-        self.command_store = command_store
         self.delegate_handler = session_manager.request_handler
         self.handle_permission_requests = handle_permission_requests
 
@@ -175,9 +172,12 @@ class SlackGateway(Gateway, RequestHandler):
         user = self._resolve_system_user_id(body["user_id"])
         text = body["text"].strip()
 
+        # Get command_store from the session manager
+        command_store = self.session_manager.command_store
+
         try:
             if not text or text == "list":
-                command_names = await self.command_store.command_names(user)
+                command_names = await command_store.command_names(user)
                 if command_names:
                     command_list = "\n".join(f"• `{name}`" for name in sorted(command_names))
                     response_text = f"**Saved commands:**\n{command_list}"
@@ -190,28 +190,28 @@ class SlackGateway(Gateway, RequestHandler):
                 else:
                     command_name, command_content = parts
                     command_content = command_content.strip()
-                    await self.command_store.save_command(command_content, command_name, user)
+                    await command_store.save_command(command_content, command_name, user)
                     response_text = f":white_check_mark: Command `{command_name}` saved successfully."
-            elif text.startswith("load "):
+            elif text.startswith("view "):
                 command_name = text[5:].strip()
                 if not command_name:
                     response_text = ":x: Error: Please provide a command name."
                 else:
-                    command_content = await self.command_store.load_command(command_name, user)
+                    command_content = await command_store.load_command(command_name, user)
                     response_text = f"**Command `{command_name}`:**\n```\n{command_content}\n```"
             elif text.startswith("delete "):
                 command_name = text[7:].strip()
                 if not command_name:
                     response_text = ":x: Error: Please provide a command name."
                 else:
-                    await self.command_store.delete_command(command_name, user)
+                    await command_store.delete_command(command_name, user)
                     response_text = f":white_check_mark: Command `{command_name}` deleted successfully."
             elif text == "help":
                 lines = [
                     "**Usage:**",
                     "- `/hygroup-command` or `/hygroup-command list` - List all saved commands",
                     "- `/hygroup-command save <name> <command>` - Save a command",
-                    "- `/hygroup-command load <name>` - Load a command",
+                    "- `/hygroup-command view <name>` - View a command",
                     "- `/hygroup-command delete <name>` - Delete a command",
                     "- `/hygroup-command help` - Show this help message",
                 ]
@@ -219,7 +219,7 @@ class SlackGateway(Gateway, RequestHandler):
             else:
                 response_text = ":x: Unknown operation. Use `/hygroup-command` without arguments to see usage."
 
-        except FileNotFoundError:
+        except KeyError:
             response_text = ":x: Command not found."
         except ValueError as e:
             response_text = f":x: Error: {str(e)}"

@@ -54,7 +54,6 @@ def slack_gateway(session_manager, composio_connector, command_store, monkeypatc
         gateway = SlackGateway(
             session_manager=session_manager,
             composio_connector=composio_connector,
-            command_store=command_store,
             user_mapping=user_mapping,
             handle_permission_requests=False,
         )

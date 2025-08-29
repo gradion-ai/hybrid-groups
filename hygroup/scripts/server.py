@@ -71,6 +71,7 @@ async def main(args):
         preferences_store=preference_store,
         request_handler=request_handler,
         composio_config=composio_config,
+        command_store=command_store,
     )
 
     # A gateway provides connectivity to platforms like Slack, GitHub, or a terminal.
@@ -82,7 +83,6 @@ async def main(args):
             gateway = SlackGateway(
                 session_manager=manager,
                 composio_connector=composio_connector,
-                command_store=command_store,
                 user_mapping=user_registry.get_mappings("slack"),
                 # If True, prompt users in Slack to approve
                 # tool execution via ephemeral messages.

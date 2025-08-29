@@ -26,7 +26,7 @@ from hygroup.agent import (
 from hygroup.agent.system import SystemAgent
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
-from hygroup.user import PermissionStore, RequestHandler, UserRegistry
+from hygroup.user import CommandStore, PermissionStore, RequestHandler, UserRegistry
 from hygroup.user.default import DefaultPreferenceStore
 
 logger = logging.getLogger(__name__)
@@ -148,6 +148,7 @@ class Session:
         self.permission_store: PermissionStore = self.manager.permission_store
         self.preference_store: DefaultPreferenceStore = self.manager.preference_store
         self.composio_config: ComposioConfig = self.manager.composio_config
+        self.command_store: CommandStore = self.manager.command_store
 
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
@@ -280,6 +281,34 @@ class Session:
             receiver=receiver,
         )
 
+    async def _expand_command(self, message_text: str, message_sender: str) -> str:
+        if not message_text or not message_text.startswith("%"):
+            return message_text
+
+        # Extract potential command name and arguments
+        parts = message_text[1:].split(None, 1)
+        if not parts:
+            return message_text
+
+        command_name = parts[0]
+        arguments = parts[1] if len(parts) > 1 else ""
+
+        # Check if it matches the command name pattern
+        if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
+            return message_text
+
+        # Try to load the command - let KeyError bubble up
+        command_content = await self.command_store.load_command(command_name, message_sender)
+
+        # Handle {ARGUMENTS} placeholder
+        if "{ARGUMENTS}" in command_content:
+            return command_content.replace("{ARGUMENTS}", arguments)
+        elif arguments:
+            # Append arguments after a newline if no placeholder
+            return f"{command_content}\n{arguments}"
+        else:
+            return command_content
+
     async def handle_gateway_message(
         self,
         message_text: str,
@@ -287,6 +316,20 @@ class Session:
         message_id: str | None,
         attachments: list[Attachment] | None = None,
     ):
+        try:
+            message_text = await self._expand_command(message_text.strip(), message_sender)
+        except KeyError as e:
+            # if command expansion fails, neither the command message
+            # nor the response is added to the session's message history
+            coro = self.gateway.handle_agent_response(
+                response=AgentResponse(text=e.args[0]),
+                sender="system",
+                receiver=message_sender,
+                session_id=self.id,
+            )
+            await self._gateway_queue.put(coro)
+            return
+
         # first @mention, if any, in the message text is the receiver
         receiver, remaining_text = self._extract_initial_mention(message_text)
 
@@ -443,6 +486,7 @@ class SessionManager:
         preferences_store: DefaultPreferenceStore,
         request_handler: RequestHandler,
         composio_config: ComposioConfig,
+        command_store: CommandStore,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registry = agent_registry
@@ -451,6 +495,7 @@ class SessionManager:
         self.preference_store = preferences_store
         self.request_handler = request_handler
         self.composio_config = composio_config
+        self.command_store = command_store
 
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)
