@@ -166,69 +166,6 @@ class SlackGateway(Gateway, RequestHandler):
 
         await respond(blocks=[block])
 
-    async def handle_command(self, ack, body, respond):
-        await ack()
-
-        user = self._resolve_system_user_id(body["user_id"])
-        text = body["text"].strip()
-
-        # Get command_store from the session manager
-        command_store = self.session_manager.command_store
-
-        try:
-            if not text or text == "list":
-                command_names = await command_store.command_names(user)
-                if command_names:
-                    command_list = "\n".join(f"• `{name}`" for name in sorted(command_names))
-                    response_text = f"**Saved commands:**\n{command_list}"
-                else:
-                    response_text = "No saved commands found."
-            elif text.startswith("save "):
-                parts = text[5:].split(None, 1)
-                if len(parts) < 2:
-                    response_text = ":x: Error: Please provide both a command name and command content."
-                else:
-                    command_name, command_content = parts
-                    command_content = command_content.strip()
-                    await command_store.save_command(command_content, command_name, user)
-                    response_text = f":white_check_mark: Command `{command_name}` saved successfully."
-            elif text.startswith("view "):
-                command_name = text[5:].strip()
-                if not command_name:
-                    response_text = ":x: Error: Please provide a command name."
-                else:
-                    command_content = await command_store.load_command(command_name, user)
-                    response_text = f"**Command `{command_name}`:**\n```\n{command_content}\n```"
-            elif text.startswith("delete "):
-                command_name = text[7:].strip()
-                if not command_name:
-                    response_text = ":x: Error: Please provide a command name."
-                else:
-                    await command_store.delete_command(command_name, user)
-                    response_text = f":white_check_mark: Command `{command_name}` deleted successfully."
-            elif text == "help":
-                lines = [
-                    "**Usage:**",
-                    "- `/hygroup-command` or `/hygroup-command list` - List all saved commands",
-                    "- `/hygroup-command save <name> <command>` - Save a command",
-                    "- `/hygroup-command view <name>` - View a command",
-                    "- `/hygroup-command delete <name>` - Delete a command",
-                    "- `/hygroup-command help` - Show this help message",
-                ]
-                response_text = "\n".join(lines)
-            else:
-                response_text = ":x: Unknown operation. Use `/hygroup-command` without arguments to see usage."
-
-        except KeyError:
-            response_text = ":x: Command not found."
-        except ValueError as e:
-            response_text = f":x: Error: {str(e)}"
-        except Exception as e:
-            response_text = f":x: An error occurred: {str(e)}"
-
-        block = {"type": "section", "text": {"type": "mrkdwn", "text": self._converter.convert(response_text)}}
-        await respond(blocks=[block])
-
     async def _connection_status_response(self, system_user_id: str) -> dict[str, Any]:
         composio_config = await self.composio_connector.load_config()
         composio_connections = await self.composio_connector.connection_status(system_user_id, composio_config)
@@ -265,6 +202,72 @@ class SlackGateway(Gateway, RequestHandler):
             await self._handler.start_async()
         else:
             await self._handler.connect_async()
+
+    async def handle_command(self, ack, body, respond):
+        await ack()
+
+        user = self._resolve_system_user_id(body["user_id"])
+        text = body["text"].strip()
+
+        try:
+            response_text = await self._handle_command(text, user)
+        except KeyError:
+            response_text = ":x: Command not found."
+        except ValueError as e:
+            response_text = f":x: Error: {str(e)}"
+        except Exception as e:
+            response_text = f":x: An error occurred: {str(e)}"
+
+        block = {"type": "section", "text": {"type": "mrkdwn", "text": self._converter.convert(response_text)}}
+        await respond(blocks=[block])
+
+    async def _handle_command(self, text: str, user: str) -> str:
+        command_store = self.session_manager.command_store
+
+        if not text or text == "list":
+            command_names = await command_store.command_names(user)
+            if command_names:
+                command_list = "\n".join(f"• `{name}`" for name in sorted(command_names))
+                response_text = f"**Saved commands:**\n{command_list}"
+            else:
+                response_text = "No saved commands found."
+        elif text.startswith("save "):
+            parts = text[5:].split(None, 1)
+            if len(parts) < 2:
+                response_text = ":x: Error: Please provide both a command name and command content."
+            else:
+                command_name, command_content = parts
+                command_content = command_content.strip()
+                await command_store.save_command(command_content, command_name, user)
+                response_text = f":white_check_mark: Command `{command_name}` saved successfully."
+        elif text.startswith("view "):
+            command_name = text[5:].strip()
+            if not command_name:
+                response_text = ":x: Error: Please provide a command name."
+            else:
+                command_content = await command_store.load_command(command_name, user)
+                response_text = f"**Command `{command_name}`:**\n```\n{command_content}\n```"
+        elif text.startswith("delete "):
+            command_name = text[7:].strip()
+            if not command_name:
+                response_text = ":x: Error: Please provide a command name."
+            else:
+                await command_store.delete_command(command_name, user)
+                response_text = f":white_check_mark: Command `{command_name}` deleted successfully."
+        elif text == "help":
+            lines = [
+                "**Usage:**",
+                "- `/hygroup-command` or `/hygroup-command list` - List all saved commands",
+                "- `/hygroup-command save <name> <command>` - Save a command",
+                "- `/hygroup-command view <name>` - View a command",
+                "- `/hygroup-command delete <name>` - Delete a command",
+                "- `/hygroup-command help` - Show this help message",
+            ]
+            response_text = "\n".join(lines)
+        else:
+            response_text = ":x: Unknown operation. Use `/hygroup-command` without arguments to see usage."
+
+        return response_text
 
     async def handle_feedback_request(self, *args, **kwargs):
         await self.delegate_handler.handle_feedback_request(*args, **kwargs)

@@ -108,13 +108,23 @@ class SessionAgent:
             match item:
                 case Message():
                     self._updates.append(item)
-                case AgentRequest(sender=sender, id=request_id, attachments=attachments) as request, secrets:
+                case AgentRequest(query=query, sender=sender, id=request_id) as request, secrets:
                     self.session._request_context.set(
-                        {"sender": sender, "secrets": secrets, "attachments": attachments}
+                        {"sender": sender, "secrets": secrets, "attachments": request.attachments}
                     )
 
                     try:
-                        response = await self.run(request, secrets)
+                        query = await self._expand_command(query, sender)
+                        response = await self.run(replace(request, query=query), secrets)
+                    except KeyError as e:
+                        response = AgentResponse(
+                            text=e.args[0],
+                            request_id=request_id,
+                        )
+                        await self.session.handle_system_response(
+                            response=response,
+                            receiver=sender,
+                        )
                     except Exception as e:
                         logger.exception(e)
                         response = AgentResponse(
@@ -130,6 +140,34 @@ class SessionAgent:
                             response=response, sender=self.agent.name, receiver=sender
                         )
                         self._updates = []
+
+    async def _expand_command(self, query: str, sender: str) -> str:
+        if not query or not query.startswith("%"):
+            return query
+
+        # Extract potential command name and arguments
+        parts = query[1:].split(None, 1)
+        if not parts:
+            return query
+
+        command_name = parts[0]
+        arguments = parts[1] if len(parts) > 1 else ""
+
+        # Check if it matches the command name pattern
+        if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
+            return query
+
+        # Try to load the command - let KeyError bubble up
+        command_content = await self.session.command_store.load_command(command_name, sender)
+
+        # Handle {ARGUMENTS} placeholder
+        if "{ARGUMENTS}" in command_content:
+            return command_content.replace("{ARGUMENTS}", arguments)
+        elif arguments:
+            # Append arguments after a newline if no placeholder
+            return f"{command_content}\n{arguments}"
+        else:
+            return command_content
 
 
 class Session:
@@ -281,34 +319,6 @@ class Session:
             receiver=receiver,
         )
 
-    async def _expand_command(self, message_text: str, message_sender: str) -> str:
-        if not message_text or not message_text.startswith("%"):
-            return message_text
-
-        # Extract potential command name and arguments
-        parts = message_text[1:].split(None, 1)
-        if not parts:
-            return message_text
-
-        command_name = parts[0]
-        arguments = parts[1] if len(parts) > 1 else ""
-
-        # Check if it matches the command name pattern
-        if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
-            return message_text
-
-        # Try to load the command - let KeyError bubble up
-        command_content = await self.command_store.load_command(command_name, message_sender)
-
-        # Handle {ARGUMENTS} placeholder
-        if "{ARGUMENTS}" in command_content:
-            return command_content.replace("{ARGUMENTS}", arguments)
-        elif arguments:
-            # Append arguments after a newline if no placeholder
-            return f"{command_content}\n{arguments}"
-        else:
-            return command_content
-
     async def handle_gateway_message(
         self,
         message_text: str,
@@ -316,20 +326,6 @@ class Session:
         message_id: str | None,
         attachments: list[Attachment] | None = None,
     ):
-        try:
-            message_text = await self._expand_command(message_text.strip(), message_sender)
-        except KeyError as e:
-            # if command expansion fails, neither the command message
-            # nor the response is added to the session's message history
-            coro = self.gateway.handle_agent_response(
-                response=AgentResponse(text=e.args[0]),
-                sender="system",
-                receiver=message_sender,
-                session_id=self.id,
-            )
-            await self._gateway_queue.put(coro)
-            return
-
         # first @mention, if any, in the message text is the receiver
         receiver, remaining_text = self._extract_initial_mention(message_text)
 
