@@ -20,7 +20,13 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
                 "description": "Connect to external services",
                 "usage_hint": "[service-name]",
                 "should_escape": True,
-            }
+            },
+            {
+                "command": "/hygroup-command",
+                "description": "Manage commands",
+                "usage_hint": "[list save load delete help]",
+                "should_escape": True,
+            },
         ],
     },
     "oauth_config": {

@@ -20,6 +20,7 @@ from hygroup.user.default import (
     RequestServer,
     RichConsoleHandler,
 )
+from hygroup.user.default.command import DefaultCommandStore
 
 
 async def main(args):
@@ -34,6 +35,9 @@ async def main(args):
 
     # Database for tool execution permissions (session, permanent)
     permission_store = DefaultPermissionStore(allowed_tools=[])
+
+    # Database for user commands
+    command_store = DefaultCommandStore()
 
     # A user registry that encrypts user secrets at rest with an admin password.
     user_registry = DefaultUserRegistry(args.user_registry)
@@ -67,6 +71,7 @@ async def main(args):
         preferences_store=preference_store,
         request_handler=request_handler,
         composio_config=composio_config,
+        command_store=command_store,
     )
 
     # A gateway provides connectivity to platforms like Slack, GitHub, or a terminal.
