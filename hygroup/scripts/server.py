@@ -20,6 +20,7 @@ from hygroup.user.default import (
     RequestServer,
     RichConsoleHandler,
 )
+from hygroup.user.default.command import DefaultCommandStore
 
 
 async def main(args):
@@ -34,6 +35,9 @@ async def main(args):
 
     # Database for tool execution permissions (session, permanent)
     permission_store = DefaultPermissionStore(allowed_tools=[])
+
+    # Database for user commands
+    command_store = DefaultCommandStore()
 
     # A user registry that encrypts user secrets at rest with an admin password.
     user_registry = DefaultUserRegistry(args.user_registry)
@@ -78,6 +82,7 @@ async def main(args):
             gateway = SlackGateway(
                 session_manager=manager,
                 composio_connector=composio_connector,
+                command_store=command_store,
                 user_mapping=user_registry.get_mappings("slack"),
                 # If True, prompt users in Slack to approve
                 # tool execution via ephemeral messages.

@@ -1,10 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from hygroup.connect import ComposioConnector
 from hygroup.gateway.slack import SlackGateway
 from hygroup.session import SessionManager
+from hygroup.user.base import CommandStore
 
 
 @pytest.fixture
@@ -23,7 +24,14 @@ def composio_connector():
 
 
 @pytest.fixture
-def slack_gateway(session_manager, composio_connector, monkeypatch):
+def command_store():
+    """Create a mock command store for testing."""
+    store = AsyncMock(spec=CommandStore)
+    return store
+
+
+@pytest.fixture
+def slack_gateway(session_manager, composio_connector, command_store, monkeypatch):
     """Create a SlackGateway instance with test user mappings."""
     # Set required environment variables
     monkeypatch.setenv("SLACK_BOT_TOKEN", "test-bot-token")
@@ -46,6 +54,7 @@ def slack_gateway(session_manager, composio_connector, monkeypatch):
         gateway = SlackGateway(
             session_manager=session_manager,
             composio_connector=composio_connector,
+            command_store=command_store,
             user_mapping=user_mapping,
             handle_permission_requests=False,
         )

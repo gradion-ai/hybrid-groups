@@ -72,3 +72,17 @@ class PermissionStore(ABC):
 
     @abstractmethod
     async def set_permission(self, tool_name: str, username: str, session_id: str, permission: int): ...
+
+
+class CommandStore(ABC):
+    @abstractmethod
+    async def save_command(self, command: str, command_name: str, username: str): ...
+
+    @abstractmethod
+    async def load_command(self, command_name: str, username: str): ...
+
+    @abstractmethod
+    async def delete_command(self, command_name: str, username: str): ...
+
+    @abstractmethod
+    async def command_names(self, username: str) -> list[str]: ...
