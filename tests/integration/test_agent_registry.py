@@ -67,13 +67,14 @@ async def test_factory_initialization(registry: DefaultAgentRegistry, test_agent
     expected_registry_path = test_agents_dir / "registry.json"
     assert registry.registry_path == expected_registry_path
     assert registry.registry_path.parent.exists()
-    assert hasattr(registry, "_tinydb")
+    assert hasattr(registry, "_configs")
+    assert isinstance(registry._configs, dict)
 
 
 @pytest.mark.asyncio
 async def test_empty_descriptions_initially(registry: DefaultAgentRegistry):
     """Test that descriptions returns empty dict initially."""
-    descriptions = await registry.get_descriptions()
+    descriptions = registry.get_descriptions()
     assert descriptions == {}
 
 
@@ -82,7 +83,7 @@ async def test_register_default_agent(registry: DefaultAgentRegistry, default_se
     """Test registering a default agent."""
     await registry.add_config(name="test-agent", description="A test agent", settings=default_settings)
 
-    descriptions = await registry.get_descriptions()
+    descriptions = registry.get_descriptions()
     assert descriptions == {"test-agent": "A test agent"}
 
 
@@ -91,7 +92,7 @@ async def test_create_default_agent(registry: DefaultAgentRegistry, default_sett
     """Test creating a default agent."""
     await registry.add_config(name="test-agent", description="A test agent", settings=default_settings)
 
-    agent = await registry.create_agent("test-agent")
+    agent = registry.create_agent("test-agent")
     assert isinstance(agent, DefaultAgent)
     assert agent.name == "test-agent"
     assert agent.settings.model == "gpt-3.5-turbo"
@@ -105,7 +106,7 @@ async def test_multiple_agents(registry: DefaultAgentRegistry, default_settings:
     await registry.add_config(name="agent1", description="First agent", settings=default_settings)
     await registry.add_config(name="agent2", description="Second agent", settings=default_settings)
 
-    descriptions = await registry.get_descriptions()
+    descriptions = registry.get_descriptions()
     expected = {"agent1": "First agent", "agent2": "Second agent"}
     assert descriptions == expected
 
@@ -117,7 +118,7 @@ async def test_deregister_agent(registry: DefaultAgentRegistry, default_settings
     await registry.add_config(name="agent2", description="Second agent", settings=default_settings)
     await registry.remove_config("agent1")
 
-    descriptions = await registry.get_descriptions()
+    descriptions = registry.get_descriptions()
     assert descriptions == {"agent2": "Second agent"}
 
 
@@ -134,7 +135,7 @@ async def test_duplicate_name_error(registry: DefaultAgentRegistry, default_sett
 async def test_create_nonexistent_agent_error(registry: DefaultAgentRegistry):
     """Test that creating non-existent agent raises ValueError."""
     with pytest.raises(ValueError, match="No agent registered with name 'nonexistent'"):
-        await registry.create_agent("nonexistent")
+        registry.create_agent("nonexistent")
 
 
 @pytest.mark.asyncio
@@ -165,7 +166,7 @@ async def test_agent_settings_roundtrip(registry: DefaultAgentRegistry, api_key:
         name="roundtrip-agent", description="Agent for roundtrip test", settings=original_settings
     )
 
-    agent = await registry.create_agent("roundtrip-agent")
+    agent = registry.create_agent("roundtrip-agent")
     assert isinstance(agent, DefaultAgent)
     restored_settings = agent.settings
 
@@ -197,10 +198,10 @@ async def test_model_as_dict_basic(registry: DefaultAgentRegistry, mcp_stdio_set
         name="dict-model-agent", description="Agent with dictionary model config", settings=settings
     )
 
-    descriptions = await registry.get_descriptions()
+    descriptions = registry.get_descriptions()
     assert "dict-model-agent" in descriptions
 
-    agent = await registry.create_agent("dict-model-agent")
+    agent = registry.create_agent("dict-model-agent")
     assert isinstance(agent, DefaultAgent)
     assert agent.name == "dict-model-agent"
     assert agent.settings.instructions == "Test agent with dict model"
@@ -235,7 +236,7 @@ async def test_model_as_dict_with_provider(registry: DefaultAgentRegistry, mcp_h
         settings=settings,
     )
 
-    agent = await registry.create_agent("local-llm-agent")
+    agent = registry.create_agent("local-llm-agent")
     assert isinstance(agent, DefaultAgent)
     assert agent.settings.human_feedback is False
 
@@ -271,7 +272,7 @@ async def test_model_dict_persistence(registry: DefaultAgentRegistry, test_agent
 
     # Load with second registry instance
     registry2 = DefaultAgentRegistry(registry_path)
-    agent = await registry2.create_agent("persist-dict-agent")
+    agent = registry2.create_agent("persist-dict-agent")
 
     # Verify model dict was preserved
     assert isinstance(agent, DefaultAgent)
@@ -304,19 +305,19 @@ async def test_mixed_model_types(registry: DefaultAgentRegistry):
     await registry.add_config(name="dict-agent", description="Agent with dict model", settings=dict_settings)
 
     # Verify both agents exist
-    descriptions = await registry.get_descriptions()
+    descriptions = registry.get_descriptions()
     assert len(descriptions) == 2
     assert "string-agent" in descriptions
     assert "dict-agent" in descriptions
 
     # Create and verify string model agent
-    string_agent = await registry.create_agent("string-agent")
+    string_agent = registry.create_agent("string-agent")
     assert isinstance(string_agent, DefaultAgent)
     assert isinstance(string_agent.settings.model, str)
     assert string_agent.settings.model == "gpt-3.5-turbo"
 
     # Create and verify dict model agent
-    dict_agent = await registry.create_agent("dict-agent")
+    dict_agent = registry.create_agent("dict-agent")
     assert isinstance(dict_agent, DefaultAgent)
     assert isinstance(dict_agent.settings.model, dict)
 
@@ -363,7 +364,7 @@ async def test_complex_model_dict_with_all_settings(registry: DefaultAgentRegist
         settings=settings,
     )
 
-    agent = await registry.create_agent("complex-dict-agent")
+    agent = registry.create_agent("complex-dict-agent")
     assert isinstance(agent, DefaultAgent)
     assert len(agent.settings.mcp_settings) == 2
     assert agent.settings.model_settings is not None
@@ -381,7 +382,7 @@ async def test_update_config_single_field(registry: DefaultAgentRegistry, defaul
     await registry.update_config(name="update-test", description="Updated description")
 
     # Verify the change
-    config = await registry.get_config("update-test")
+    config = registry.get_config("update-test")
     assert config is not None
     assert config["description"] == "Updated description"
     assert config["settings"]["model"] == "gpt-3.5-turbo"  # Should remain unchanged
@@ -397,7 +398,7 @@ async def test_update_config_multiple_fields(registry: DefaultAgentRegistry, def
     await registry.update_config(name="multi-update", description="Updated description", emoji="🚀")
 
     # Verify all changes
-    config = await registry.get_config("multi-update")
+    config = registry.get_config("multi-update")
     assert config is not None
     assert config["description"] == "Updated description"
     assert config["emoji"] == "🚀"
@@ -411,7 +412,7 @@ async def test_update_config_settings(registry: DefaultAgentRegistry, default_se
     await registry.add_config(name="settings-update", description="Test agent", settings=default_settings)
 
     # Verify initial settings
-    agent = await registry.create_agent("settings-update")
+    agent = registry.create_agent("settings-update")
     assert isinstance(agent, DefaultAgent)
     assert agent.settings.model == "gpt-3.5-turbo"
     assert agent.settings.instructions == "You are a helpful assistant."
@@ -429,7 +430,7 @@ async def test_update_config_settings(registry: DefaultAgentRegistry, default_se
     await registry.update_config(name="settings-update", settings=updated_settings)
 
     # Verify updated settings
-    updated_agent = await registry.create_agent("settings-update")
+    updated_agent = registry.create_agent("settings-update")
     assert isinstance(updated_agent, DefaultAgent)
     assert updated_agent.settings.model == "gpt-4"
     assert updated_agent.settings.instructions == "Updated instructions"
@@ -453,7 +454,7 @@ async def test_update_config_partial_fields(registry: DefaultAgentRegistry, defa
     )
 
     # Verify only specified fields were updated
-    config = await registry.get_config("partial-update")
+    config = registry.get_config("partial-update")
     assert config is not None
     assert config["description"] == "New description"
     assert config["emoji"] == "🎯"
@@ -489,7 +490,7 @@ async def test_update_config_preserves_unchanged_fields(
     await registry.update_config(name="preserve-test", description="New description")
 
     # Verify all other fields remain unchanged
-    config = await registry.get_config("preserve-test")
+    config = registry.get_config("preserve-test")
     assert config is not None
     assert config["description"] == "New description"
     assert config["emoji"] == "🤖"
@@ -507,19 +508,19 @@ async def test_update_config_emoji_field(registry: DefaultAgentRegistry, default
     await registry.add_config(name="emoji-test", description="Test agent", settings=default_settings)
 
     # Verify no emoji initially
-    emoji = await registry.get_emoji("emoji-test")
+    emoji = registry.get_emoji("emoji-test")
     assert emoji is None
 
     # Update to add emoji
     await registry.update_config(name="emoji-test", emoji="🎯")
 
     # Verify emoji was added
-    emoji = await registry.get_emoji("emoji-test")
+    emoji = registry.get_emoji("emoji-test")
     assert emoji == "🎯"
 
     # Update emoji to different value
     await registry.update_config(name="emoji-test", emoji="🚀")
 
     # Verify emoji was changed
-    emoji = await registry.get_emoji("emoji-test")
+    emoji = registry.get_emoji("emoji-test")
     assert emoji == "🚀"

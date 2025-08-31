@@ -1,12 +1,12 @@
 import asyncio
+import json
 from pathlib import Path
 from typing import Any, Callable
 
-from tinydb import Query, TinyDB
+import aiofiles
 
 from hygroup.agent.base import Agent, AgentFactory, AgentRegistry
 from hygroup.agent.default.agent import AgentSettings, DefaultAgent
-from hygroup.utils import arun
 
 
 class DefaultAgentRegistry(AgentRegistry):
@@ -22,15 +22,20 @@ class DefaultAgentRegistry(AgentRegistry):
         self.registry_path.parent.mkdir(parents=True, exist_ok=True)
 
         self._factories: dict[str, dict[str, Any]] = {}
-        self._tinydb = TinyDB(str(self.registry_path), indent=2)
+        self._configs: dict[str, dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
-    async def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent:
+        if self.registry_path.exists():
+            self._configs = json.loads(self.registry_path.read_text())
+        else:
+            self._configs = {}
+
+    def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent:
         """Create an agent from config or factory registered under `name`."""
         if doc := self._factories.get(name):
             return doc["factory"]()
 
-        doc = await self.get_config(name)
+        doc = self.get_config(name)
 
         if doc is None:
             raise ValueError(f"No agent registered with name '{name}'")
@@ -44,42 +49,39 @@ class DefaultAgentRegistry(AgentRegistry):
 
         return agent
 
-    async def get_registered_names(self) -> set[str]:
+    def get_registered_names(self) -> set[str]:
         """Get the names of all registered agent configs and factories."""
-        descriptions = await self.get_descriptions()
+        descriptions = self.get_descriptions()
         return set(descriptions.keys())
 
-    async def get_descriptions(self) -> dict[str, str]:
+    def get_descriptions(self) -> dict[str, str]:
         """Return a dictionary of agent names and their descriptions."""
         descriptions = {}
 
-        async with self._lock:
-            for doc in await arun(self._tinydb.all):
-                descriptions[doc["name"]] = doc["description"]
+        for name, doc in self._configs.items():
+            descriptions[name] = doc["description"]
 
         for name, doc in self._factories.items():
             descriptions[name] = doc["description"]
 
         return descriptions
 
-    async def get_emoji(self, name: str) -> str | None:
+    def get_emoji(self, name: str) -> str | None:
         if factory_doc := self._factories.get(name):
             return factory_doc.get("emoji")
 
-        if config_doc := await self.get_config(name):
+        if config_doc := self.get_config(name):
             return config_doc.get("emoji")
 
         return None
 
-    async def get_config(self, name: str) -> dict[str, Any] | None:
+    def get_config(self, name: str) -> dict[str, Any] | None:
         """Get the agent configuration registered under `name`."""
-        configs = await self.get_configs()
-        return configs.get(name)
+        return self._configs.get(name)
 
-    async def get_configs(self) -> dict[str, dict[str, Any]]:
+    def get_configs(self) -> dict[str, dict[str, Any]]:
         """Get the configurations for all agents."""
-        async with self._lock:
-            return {agent["name"]: agent for agent in await arun(self._tinydb.all)}
+        return self._configs.copy()
 
     async def add_config(
         self,
@@ -89,27 +91,26 @@ class DefaultAgentRegistry(AgentRegistry):
         emoji: str | None = None,
     ):
         """Register an agent configuration."""
-        Agent = Query()
-
         async with self._lock:
             # Check if name already exists
-            existing = await arun(self._tinydb.get, Agent.name == name)
-            if existing is not None:
+            if name in self._configs:
                 raise ValueError(f"Agent with name '{name}' already exists")
 
             # Convert AgentSettings to dict for storage
             settings_dict = settings.to_dict()
 
-            # Create document
+            # Create document (no 'name' field since it's the key)
             doc = {
-                "name": name,
                 "description": description,
                 "settings": settings_dict,
                 "emoji": emoji,
             }
 
-            # Insert document
-            await arun(self._tinydb.insert, doc)
+            # Add to in-memory configs
+            self._configs[name] = doc
+
+            # Save to file
+            await self._save_configs()
 
     async def update_config(
         self,
@@ -119,37 +120,47 @@ class DefaultAgentRegistry(AgentRegistry):
         emoji: str | None = None,
     ):
         """Update and existing agent configuration."""
-        Agent = Query()
-
         async with self._lock:
-            existing = await arun(self._tinydb.get, Agent.name == name)
-            if existing is None:
+            if name not in self._configs:
                 raise ValueError(f"No agent registered with name '{name}'")
 
-            update_doc: dict[str, Any] = {}
+            # Update in-memory config
             if description is not None:
-                update_doc["description"] = description
+                self._configs[name]["description"] = description
             if settings is not None:
-                update_doc["settings"] = settings.to_dict()
+                self._configs[name]["settings"] = settings.to_dict()
             if emoji is not None:
-                update_doc["emoji"] = emoji
+                self._configs[name]["emoji"] = emoji
 
-            if update_doc:
-                await arun(self._tinydb.update, update_doc, Agent.name == name)
+            # Save to file
+            await self._save_configs()
 
     async def remove_config(self, name: str):
         """Remove an agent configuration."""
-        Agent = Query()
-
         async with self._lock:
-            removed_ids = await arun(self._tinydb.remove, Agent.name == name)
+            if name not in self._configs:
+                raise ValueError(f"No agent registered with name '{name}'")
 
-        if not removed_ids:
-            raise ValueError(f"No agent registered with name '{name}'")
+            # Remove from in-memory configs
+            del self._configs[name]
+
+            # Save to file
+            await self._save_configs()
 
     async def remove_configs(self):
+        """Remove all agent configurations."""
         async with self._lock:
-            await arun(self._tinydb.drop_tables)
+            # Clear in-memory configs
+            self._configs.clear()
+
+            # Write empty dict to file
+            async with aiofiles.open(self.registry_path, "w") as f:
+                await f.write(json.dumps({}, indent=2))
+
+    async def _save_configs(self):
+        """Save the entire configs dict to the registry file."""
+        async with aiofiles.open(self.registry_path, "w") as f:
+            await f.write(json.dumps(self._configs, indent=2))
 
     def add_factory(self, name: str, description: str, factory: AgentFactory, emoji: str | None = None):
         self._factories[name] = {"name": name, "description": description, "factory": factory, "emoji": emoji}

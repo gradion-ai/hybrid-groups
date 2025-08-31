@@ -445,7 +445,7 @@ class SlackGateway(Gateway, RequestHandler):
         if sender == "system":
             sender_kwargs = {}
         else:
-            sender_emoji = await thread.session.agent_registry.get_emoji(sender)
+            sender_emoji = thread.session.agent_registry.get_emoji(sender)
             sender_kwargs = {
                 "username": sender,
                 "icon_emoji": f":{sender_emoji or 'robot_face'}:",
@@ -497,6 +497,9 @@ class SlackGateway(Gateway, RequestHandler):
                 if session := await self.session_manager.load_session(id=thread_id):
                     thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
                 else:
+                    channel_info = await self.client.conversations_info(channel=message["channel"])
+                    channel_name = channel_info.data["channel"]["name"]  # noqa: F841
+
                     session = self.session_manager.create_session(id=thread_id)
                     thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
 

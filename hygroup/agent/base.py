@@ -171,18 +171,18 @@ class Agent(ABC):
 
 class AgentRegistry(ABC):
     @abstractmethod
-    async def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent: ...
+    def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent: ...
 
     @abstractmethod
-    async def get_registered_names(self) -> set[str]: ...
+    def get_registered_names(self) -> set[str]: ...
 
     @abstractmethod
-    async def get_descriptions(self) -> dict[str, str]: ...
+    def get_descriptions(self) -> dict[str, str]: ...
 
     @abstractmethod
-    async def get_emoji(self, name: str) -> str | None: ...
+    def get_emoji(self, name: str) -> str | None: ...
 
-    async def get_registered_agents(self) -> str:
+    def get_registered_agents(self) -> str:
         """Get a list of registered agents in the format:
 
         - [agent name 1]: [agent description 1]
@@ -193,7 +193,7 @@ class AgentRegistry(ABC):
             A string with the list of registered agents.
         """
 
-        configs = await self.get_descriptions()
+        configs = self.get_descriptions()
         return "\n".join([f"- {name}: {description}" for name, description in configs.items()])
 
 

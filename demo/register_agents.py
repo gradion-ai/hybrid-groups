@@ -117,6 +117,18 @@ MATH_AGENT_STEPS = """- If the user provides only a mathematical task:
 MATH_AGENT_INSTRUCTIONS = apply_template(MATH_AGENT_ROLE, MATH_AGENT_STEPS)
 
 
+COMPUTER_AGENT_ROLE = "You are a computer assistant that can manage local files and directories, execute system commands, search the web, and fetch web content."
+COMPUTER_AGENT_STEPS = """- Use the file management tools to list, read, write, edit, and manage files and directories as requested by the user.
+- Use the bash/shell tools to execute system commands when needed for tasks like running scripts, checking system status, or performing operations.
+- Use the web search tools to find current information on the internet when the user needs up-to-date data or research.
+- Use the web fetch tools to retrieve and analyze content from specific URLs provided by the user.
+- When working with files, always verify paths exist before attempting operations.
+- For potentially destructive operations (like deleting files or modifying system settings), confirm the action with a summary of what will be done.
+- When executing commands, provide clear feedback about what was executed and the results.
+- If a command or operation fails, explain the error and suggest alternatives when possible."""
+COMPUTER_AGENT_INSTRUCTIONS = apply_template(COMPUTER_AGENT_ROLE, COMPUTER_AGENT_STEPS)
+
+
 # This prompt is from the tiny-agents dataset at https://huggingface.co/datasets/tiny-agents/tiny-agents
 BROWSER_AGENT_INSTRUCTIONS = """You are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Only terminate your turn when you are sure that the problem is solved, or if you need more info from the user to solve the problem.
 If you are not sure about anything pertaining to the user's request, use your tools to read files and gather the relevant information: do NOT guess or make up an answer.
@@ -266,13 +278,6 @@ def office_agent_config():
         },
     )
 
-    claude_mcp_settings = MCPSettings(
-        server_config={
-            "command": "claude",
-            "args": ["mcp", "serve"],
-        },
-    )
-
     agent_settings = AgentSettings(
         model="openai:gpt-5-mini",
         instructions=OFFICE_AGENT_INSTRUCTIONS,
@@ -280,7 +285,6 @@ def office_agent_config():
             gmail_settings,
             googlecalendar_settings,
             googledrive_settings,
-            claude_mcp_settings,
         ],
     )
 
@@ -314,6 +318,30 @@ def math_agent_config():
     }
 
 
+def computer_agent_config():
+    claude_mcp_settings = MCPSettings(
+        server_config={
+            "command": "claude",
+            "args": ["mcp", "serve"],
+        },
+    )
+
+    agent_settings = AgentSettings(
+        instructions=COMPUTER_AGENT_INSTRUCTIONS,
+        model="gemini-2.5-flash",
+        mcp_settings=[
+            claude_mcp_settings,
+        ],
+    )
+
+    return {
+        "name": "computer",
+        "description": "An agent that can manage local files and directories, execute bash commands, search the web and fetch web content.",
+        "settings": agent_settings,
+        "emoji": "file_folder",
+    }
+
+
 def browser_agent_config():
     playwright_server_settings = MCPSettings(
         server_config={
@@ -343,6 +371,7 @@ async def main():
     await agent_registry.add_config(**weather_agent_config())
     await agent_registry.add_config(**office_agent_config())
     await agent_registry.add_config(**math_agent_config())
+    await agent_registry.add_config(**computer_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference

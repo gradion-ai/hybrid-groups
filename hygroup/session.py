@@ -243,20 +243,20 @@ class Session:
     def add_agent(self, agent: Agent):
         self._agents[agent.name] = SessionAgent(agent, self)
 
-    async def create_agent(self, name: str, extra_tools: bool = True) -> Agent:
+    def create_agent(self, name: str, extra_tools: bool = True) -> Agent:
         tools = [self.get_user_preferences] if extra_tools else None
-        return await self.agent_registry.create_agent(name, tools=tools)
+        return self.agent_registry.create_agent(name, tools=tools)
 
     async def load_agent(self, name: str):
-        self.add_agent(await self.create_agent(name))
+        self.add_agent(self.create_agent(name))
 
-    async def agent_names(self) -> set[str]:
+    def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
-        names |= await self.agent_registry.get_registered_names()
+        names |= self.agent_registry.get_registered_names()
         return names
 
     async def _num_agent_responses(self) -> int:
-        agent_names = await self.agent_names()
+        agent_names = self.agent_names()
         agent_responses = [m for m in self._messages if m.sender in agent_names or m.sender == "system"]
         return len(agent_responses)
 
@@ -349,7 +349,7 @@ class Session:
             message_id=message.id,
         )
 
-        if receiver in await self.agent_names():
+        if receiver in self.agent_names():
             await self.update_agents(message, exclude=receiver)
             await self.invoke_agent(receiver, request)
         else:
@@ -408,7 +408,7 @@ class Session:
         """Run an agent identified by agent_name with the given query and return its response."""
 
         try:
-            agent = SessionAgent(await self.create_agent(agent_name, False), session=self)
+            agent = SessionAgent(self.create_agent(agent_name, False), session=self)
         except ValueError:
             return f'Agent "{agent_name}" not registered'
 

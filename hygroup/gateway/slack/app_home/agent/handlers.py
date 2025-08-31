@@ -18,7 +18,7 @@ class AgentConfigHandlers:
 
     async def _get_agents(self) -> list[AgentListViewModel]:
         agents = []
-        for agent_name, config in (await self._agent_registry.get_configs()).items():
+        for agent_name, config in self._agent_registry.get_configs().items():
             agents.append(
                 AgentListViewModel(
                     name=agent_name,
@@ -29,12 +29,12 @@ class AgentConfigHandlers:
         return sorted(agents, key=lambda x: x.name)
 
     async def _get_agent(self, name: str) -> AgentViewModel | None:
-        if agent := await self._agent_registry.get_config(name):
+        if agent := self._agent_registry.get_config(name):
             return AgentViewModel.from_agent_config(agent)
         return None
 
     async def _get_agent_names(self) -> list[str]:
-        return list(await self._agent_registry.get_registered_names())
+        return list(self._agent_registry.get_registered_names())
 
     async def _save_agent(self, agent: AgentViewModel):
         await self._agent_registry.add_config(
@@ -53,7 +53,7 @@ class AgentConfigHandlers:
         )
 
     async def _update_agent(self, agent: AgentViewModel):
-        config = await self._agent_registry.get_config(agent.name)
+        config = self._agent_registry.get_config(agent.name)
         if config is None:
             logger.warning(f"Agent not found: {agent.name}")
             return
