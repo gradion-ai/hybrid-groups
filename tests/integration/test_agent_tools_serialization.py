@@ -116,7 +116,7 @@ async def test_registry_stores_and_retrieves_tools():
         )
 
         # Add to registry
-        await registry.add_config("weather", "Weather forecast agent", settings)
+        registry.add_config("weather", "Weather forecast agent", settings)
 
         # Create agent from registry
         agent = registry.create_agent("weather")
@@ -150,7 +150,7 @@ async def test_registry_handles_missing_tools_gracefully(capsys):
             },
         }
         # Save to file
-        await registry._save_configs()
+        await registry.save()
 
         # Create agent from registry
         agent = registry.create_agent("test_agent")
@@ -183,7 +183,7 @@ async def test_full_workflow_with_multiple_tools():
         )
 
         # Add to registry
-        await registry.add_config("multi_tool", "Agent with multiple tools", settings)
+        registry.add_config("multi_tool", "Agent with multiple tools", settings)
 
         # Retrieve config
         config = registry.get_config("multi_tool")

@@ -1,4 +1,3 @@
-import asyncio
 import json
 from pathlib import Path
 from typing import Any, Callable
@@ -23,7 +22,6 @@ class DefaultAgentRegistry(AgentRegistry):
 
         self._factories: dict[str, dict[str, Any]] = {}
         self._configs: dict[str, dict[str, Any]] = {}
-        self._lock = asyncio.Lock()
 
         if self.registry_path.exists():
             self._configs = json.loads(self.registry_path.read_text())
@@ -83,81 +81,64 @@ class DefaultAgentRegistry(AgentRegistry):
         """Get the configurations for all agents."""
         return self._configs.copy()
 
-    async def add_config(
+    def add_config(
         self,
         name: str,
         description: str,
         settings: AgentSettings,
         emoji: str | None = None,
     ):
-        """Register an agent configuration."""
-        async with self._lock:
-            # Check if name already exists
-            if name in self._configs:
-                raise ValueError(f"Agent with name '{name}' already exists")
+        """Register an agent configuration in memory. Call save() to persist."""
+        # Check if name already exists
+        if name in self._configs:
+            raise ValueError(f"Agent with name '{name}' already exists")
 
-            # Convert AgentSettings to dict for storage
-            settings_dict = settings.to_dict()
+        # Convert AgentSettings to dict for storage
+        settings_dict = settings.to_dict()
 
-            # Create document (no 'name' field since it's the key)
-            doc = {
-                "description": description,
-                "settings": settings_dict,
-                "emoji": emoji,
-            }
+        # Create document (no 'name' field since it's the key)
+        doc = {
+            "description": description,
+            "settings": settings_dict,
+            "emoji": emoji,
+        }
 
-            # Add to in-memory configs
-            self._configs[name] = doc
+        # Add to in-memory configs
+        self._configs[name] = doc
 
-            # Save to file
-            await self._save_configs()
-
-    async def update_config(
+    def update_config(
         self,
         name: str,
         description: str | None = None,
         settings: AgentSettings | None = None,
         emoji: str | None = None,
     ):
-        """Update and existing agent configuration."""
-        async with self._lock:
-            if name not in self._configs:
-                raise ValueError(f"No agent registered with name '{name}'")
+        """Update an existing agent configuration in memory. Call save() to persist."""
+        if name not in self._configs:
+            raise ValueError(f"No agent registered with name '{name}'")
 
-            # Update in-memory config
-            if description is not None:
-                self._configs[name]["description"] = description
-            if settings is not None:
-                self._configs[name]["settings"] = settings.to_dict()
-            if emoji is not None:
-                self._configs[name]["emoji"] = emoji
+        # Update in-memory config
+        if description is not None:
+            self._configs[name]["description"] = description
+        if settings is not None:
+            self._configs[name]["settings"] = settings.to_dict()
+        if emoji is not None:
+            self._configs[name]["emoji"] = emoji
 
-            # Save to file
-            await self._save_configs()
+    def remove_config(self, name: str):
+        """Remove an agent configuration from memory. Call save() to persist."""
+        if name not in self._configs:
+            raise ValueError(f"No agent registered with name '{name}'")
 
-    async def remove_config(self, name: str):
-        """Remove an agent configuration."""
-        async with self._lock:
-            if name not in self._configs:
-                raise ValueError(f"No agent registered with name '{name}'")
+        # Remove from in-memory configs
+        del self._configs[name]
 
-            # Remove from in-memory configs
-            del self._configs[name]
+    def remove_configs(self):
+        """Remove all agent configurations from memory. Call save() to persist."""
+        # Clear in-memory configs
+        self._configs.clear()
 
-            # Save to file
-            await self._save_configs()
-
-    async def remove_configs(self):
-        """Remove all agent configurations."""
-        async with self._lock:
-            # Clear in-memory configs
-            self._configs.clear()
-
-            # Write empty dict to file
-            async with aiofiles.open(self.registry_path, "w") as f:
-                await f.write(json.dumps({}, indent=2))
-
-    async def _save_configs(self):
+    async def save(self):
         """Save the entire configs dict to the registry file."""
         async with aiofiles.open(self.registry_path, "w") as f:
             await f.write(json.dumps(self._configs, indent=2))

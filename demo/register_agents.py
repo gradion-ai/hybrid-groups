@@ -367,24 +367,26 @@ def browser_agent_config():
 async def main():
     agent_registry = DefaultAgentRegistry()
 
-    await agent_registry.remove_configs()
-    await agent_registry.add_config(**weather_agent_config())
-    await agent_registry.add_config(**office_agent_config())
-    await agent_registry.add_config(**math_agent_config())
-    await agent_registry.add_config(**computer_agent_config())
+    agent_registry.remove_configs()
+    agent_registry.add_config(**weather_agent_config())
+    agent_registry.add_config(**office_agent_config())
+    agent_registry.add_config(**math_agent_config())
+    agent_registry.add_config(**computer_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference
-        await agent_registry.add_config(**scrape_agent_config())
+        agent_registry.add_config(**scrape_agent_config())
     if os.environ.get("BRAVE_API_KEY"):
         # see https://api-dashboard.search.brave.com/app/keys
-        await agent_registry.add_config(**search_agent_config())
+        agent_registry.add_config(**search_agent_config())
     if mcp_exec := os.environ.get("ZOTERO_MCP_EXEC"):
         # see https://github.com/54yyyu/zotero-mcp
-        await agent_registry.add_config(**zotero_agent_config(mcp_exec))
+        agent_registry.add_config(**zotero_agent_config(mcp_exec))
     if mcp_exec := os.environ.get("READER_MCP_EXEC"):
         # see https://github.com/edricgsh/Readwise-Reader-MCP
-        await agent_registry.add_config(**reader_agent_config(mcp_exec))
+        agent_registry.add_config(**reader_agent_config(mcp_exec))
+
+    await agent_registry.save()
 
 
 if __name__ == "__main__":
