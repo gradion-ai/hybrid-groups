@@ -9,4 +9,3 @@ from hygroup.agent.base import (
     PermissionRequest,
     Thread,
 )
-from hygroup.agent.registry import AgentRegistry

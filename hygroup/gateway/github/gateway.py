@@ -213,8 +213,8 @@ class GithubGateway(Gateway):
         )
 
         await conversation.session.handle_gateway_message(
-            message_text=text,
-            message_sender=sender_resolved,
+            text=text,
+            sender=sender_resolved,
             message_id=message_id,
         )
 

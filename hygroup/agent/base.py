@@ -106,9 +106,6 @@ class PermissionRequest:
     # tool, executed by a user with its own secrets.
     as_user: bool = False
 
-    # Snapshot of the number of agent responses in session
-    _num_agent_responses: int = field(default=0, init=False)
-
     @property
     def call(self) -> str:
         args_str = ", ".join([repr(arg) for arg in self.tool_args])

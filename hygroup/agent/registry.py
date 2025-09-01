@@ -9,6 +9,24 @@ from hygroup.agent.default import AgentSettings, DefaultAgent
 from hygroup.agent.system import SystemAgent
 
 
+class AgentRegistries:
+    def __init__(self, root_path: Path = Path(".data", "agents")):
+        self.root_path = root_path
+        self.root_path.mkdir(parents=True, exist_ok=True)
+
+        self._default_registry = AgentRegistry(root_path / "registry.json")
+        self._custom_registries: dict[str, AgentRegistry] = {}
+
+        for path in self.root_path.glob("*/registry.json"):
+            self._custom_registries[path.parent.name] = AgentRegistry(path)
+
+    def get_registry(self, name: str | None = None) -> "AgentRegistry":
+        if name in self._custom_registries:
+            return self._custom_registries[name]
+        else:
+            return self._default_registry
+
+
 class AgentRegistry:
     """Registry for agent configurations and agent factories."""
 
@@ -60,6 +78,7 @@ class AgentRegistry:
         """
 
         configs = self.get_descriptions()
+        # Used by system agent find subagents in the registry, hence the system agent is excluded from the list
         return "\n".join([f"- {name}: {description}" for name, description in configs.items() if name != "system"])
 
     def get_registered_names(self) -> set[str]:

@@ -1,12 +1,11 @@
 import json
 import logging
 import re
-import uuid
 from asyncio import Queue, Task, create_task, sleep
 from contextvars import ContextVar
 from dataclasses import asdict, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import aiofiles
 import aiofiles.os
@@ -14,7 +13,6 @@ import aiofiles.os
 from hygroup.agent import (
     Agent,
     AgentActivation,
-    AgentRegistry,
     AgentRequest,
     AgentResponse,
     Attachment,
@@ -23,6 +21,7 @@ from hygroup.agent import (
     PermissionRequest,
     Thread,
 )
+from hygroup.agent.registry import AgentRegistries
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
 from hygroup.user import CommandStore, PermissionStore, RequestHandler, UserRegistry
@@ -170,17 +169,11 @@ class SessionAgent:
 
 
 class Session:
-    def __init__(
-        self,
-        manager: "SessionManager",
-        id: str | None = None,
-        group: bool = True,
-    ):
-        self.id = id or str(uuid.uuid4())
-        self.group = group
+    def __init__(self, id: str, manager: "SessionManager"):
+        self.id = id
         self.manager = manager
 
-        self.agent_registry: AgentRegistry = self.manager.agent_registry
+        self.agent_registries: AgentRegistries = self.manager.agent_registries
         self.user_registry: UserRegistry = self.manager.user_registry
         self.permission_store: PermissionStore = self.manager.permission_store
         self.preference_store: DefaultPreferenceStore = self.manager.preference_store
@@ -194,14 +187,13 @@ class Session:
         self._gateway_queue: Queue = Queue()
         self._gateway_task: Task = create_task(self._gateway_worker())
         self._gateway: Gateway | None = None
+        self._channel: str | None = None
 
         self._request_handler_queue: Queue = Queue()
         self._request_handler_task: Task = create_task(self._request_handler_worker())
         self._request_handler = self.manager.request_handler
 
         self._run_context = ContextVar[dict[str, Any]]("run_context")
-
-        self.load_agent(name="system", tools=[self.get_user_preferences, self.run_agent])
 
     async def _gateway_worker(self):
         # for sequential (but not atomic) execution of gateway methods
@@ -226,30 +218,32 @@ class Session:
         return self._gateway
 
     @property
+    def channel(self) -> str | None:
+        return self._channel
+
+    @property
     def messages(self) -> list[Message]:
         return self._messages
 
     def set_gateway(self, gateway: Gateway):
         self._gateway = gateway
 
+    def set_channel(self, channel: str):
+        self._channel = channel
+
     def add_agent(self, agent: Agent):
         self._agents[agent.name] = SessionAgent(agent, self)
 
     def create_agent(self, name: str, tools: list | None = None) -> Agent:
-        return self.agent_registry.create_agent(name, tools=tools)
+        return self.agent_registries.get_registry(name=self.channel).create_agent(name, tools=tools)
 
     def load_agent(self, name: str, tools: list | None = None):
         self.add_agent(self.create_agent(name, tools=tools))
 
     def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
-        names |= self.agent_registry.get_registered_names()
+        names |= self.agent_registries.get_registry(name=self.channel).get_registered_names()
         return names
-
-    async def _num_agent_responses(self) -> int:
-        agent_names = self.agent_names()
-        agent_responses = [m for m in self._messages if m.sender in agent_names or m.sender == "system"]
-        return len(agent_responses)
 
     async def _load_referenced_threads(self, text: str) -> list[Thread]:
         refs = self._extract_thread_references(text)
@@ -277,10 +271,6 @@ class Session:
         if permission := await self.permission_store.get_permission(request.tool_name, receiver, self.id):
             request.respond(permission)
             return
-
-        # snapshot of the number of agent responses in session
-        # (relevant only for Slack gateway at the moment)
-        request._num_agent_responses = await self._num_agent_responses()
 
         coro = self._request_handler.handle_permission_request(request, sender, receiver, session_id=self.id)
         await self._request_handler_queue.put(coro)
@@ -312,20 +302,20 @@ class Session:
 
     async def handle_gateway_message(
         self,
-        message_text: str,
-        message_sender: str,
-        message_id: str | None,
+        text: str,
+        sender: str,
+        message_id: str | None = None,
         attachments: list[Attachment] | None = None,
     ):
         # first @mention, if any, in the message text is the receiver
-        receiver, remaining_text = self._extract_initial_mention(message_text)
+        receiver, remaining_text = self._extract_initial_mention(text)
 
         # Load any threads referenced with `thread:...` in the message text.
-        threads = await self._load_referenced_threads(message_text)
+        threads = await self._load_referenced_threads(text)
 
         message = Message(
             text=remaining_text,
-            sender=message_sender,
+            sender=sender,
             receiver=receiver,
             threads=threads,
             attachments=attachments or [],
@@ -359,8 +349,11 @@ class Session:
 
     async def invoke_agent(self, agent_name: str, request: AgentRequest):
         if agent_name not in self._agents:
+            tools: list[Callable] = [self.get_user_preferences]
+            if agent_name == "system":
+                tools.append(self.run_agent)
             try:
-                self.load_agent(agent_name, tools=[self.get_user_preferences])
+                self.load_agent(agent_name, tools=tools)
             except ValueError:
                 response = AgentResponse(
                     text=f'Agent "{agent_name}" not registered',
@@ -464,7 +457,7 @@ class Session:
 class SessionManager:
     def __init__(
         self,
-        agent_registry: AgentRegistry,
+        agent_registries: AgentRegistries,
         user_registry: UserRegistry,
         permission_store: PermissionStore,
         preferences_store: DefaultPreferenceStore,
@@ -473,7 +466,7 @@ class SessionManager:
         command_store: CommandStore,
         root_dir: Path = Path(".data", "sessions"),
     ):
-        self.agent_registry = agent_registry
+        self.agent_registries = agent_registries
         self.user_registry = user_registry
         self.permission_store = permission_store
         self.preference_store = preferences_store
@@ -484,8 +477,8 @@ class SessionManager:
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
-    def create_session(self, id: str | None = None) -> Session:
-        return Session(manager=self, id=id)
+    def create_session(self, id: str) -> Session:
+        return Session(id=id, manager=self)
 
     async def load_session(self, id: str) -> Session | None:
         if not await self.session_saved(id):
@@ -511,8 +504,7 @@ class SessionManager:
 
     async def load_session_state(self, id: str) -> dict[str, Any]:
         async with aiofiles.open(self.session_path(id), "r") as f:
-            state_str = await f.read()
-        return json.loads(state_str)
+            return json.loads(await f.read())
 
     async def load_thread(self, id: str) -> Thread:
         state = await self.load_session_state(id)

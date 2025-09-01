@@ -4,6 +4,7 @@ import os
 import sys
 import termios
 import tty
+import uuid
 from contextlib import contextmanager
 
 import uvicorn
@@ -30,7 +31,7 @@ class TerminalGateway(Gateway):
         port: int = 8723,
     ):
         self._session_manager = session_manager
-        self._session_id = session_id
+        self._session_id = session_id or str(uuid.uuid4())
         self._session: Session
 
         self.host = host
@@ -132,9 +133,8 @@ class TerminalGateway(Gateway):
 
     async def handle_client_message(self, content: str, sender: str):
         await self._session.handle_gateway_message(
-            message_text=content,
-            message_sender=sender,
-            message_id=None,
+            text=content,
+            sender=sender,
         )
         await self.send_message(content, sender, agent=False)
 

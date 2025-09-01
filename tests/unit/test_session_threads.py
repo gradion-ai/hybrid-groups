@@ -10,7 +10,7 @@ from hygroup.session import SessionManager
 def session_manager():
     """Create a SessionManager with mocked dependencies."""
     manager = SessionManager(
-        agent_registry=MagicMock(),
+        agent_registries=MagicMock(),
         user_registry=MagicMock(),
         permission_store=MagicMock(),
         preferences_store=MagicMock(),
