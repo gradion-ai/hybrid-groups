@@ -4,11 +4,11 @@ from typing import Any, Callable
 
 import aiofiles
 
-from hygroup.agent.base import Agent, AgentFactory, AgentRegistry
+from hygroup.agent.base import Agent, AgentFactory
 from hygroup.agent.default.agent import AgentSettings, DefaultAgent
 
 
-class DefaultAgentRegistry(AgentRegistry):
+class AgentRegistry:
     """Registry for agent configurations and agent factories.
 
     Agent configurations are persisted in `registry_path`, agent factories are kept in memory.
@@ -51,6 +51,20 @@ class DefaultAgentRegistry(AgentRegistry):
         """Get the names of all registered agent configs and factories."""
         descriptions = self.get_descriptions()
         return set(descriptions.keys())
+
+    def get_registered_agents(self) -> str:
+        """Get a list of registered agents in the format:
+
+        - [agent name 1]: [agent description 1]
+        - [agent name 2]: [agent description 2]
+        - ...
+
+        Returns:
+            A string with the list of registered agents.
+        """
+
+        configs = self.get_descriptions()
+        return "\n".join([f"- {name}: {description}" for name, description in configs.items()])
 
     def get_descriptions(self) -> dict[str, str]:
         """Return a dictionary of agent names and their descriptions."""

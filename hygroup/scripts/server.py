@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from hygroup.agent.default import DefaultAgentRegistry
+from hygroup.agent.registry import AgentRegistry
 from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
@@ -28,7 +28,7 @@ async def main(args):
         raise ValueError("The 'slack' user channel is only available with the 'slack' gateway.")
 
     # Registry for agent configurations and factories
-    agent_registry = DefaultAgentRegistry()
+    agent_registry = AgentRegistry()
 
     # Database for user preferences
     preference_store = DefaultPreferenceStore()

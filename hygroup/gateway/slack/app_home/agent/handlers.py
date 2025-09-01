@@ -3,7 +3,7 @@ import logging
 from slack_sdk.web.async_client import AsyncWebClient
 
 from hygroup.agent.default.agent import AgentSettings
-from hygroup.agent.default.registry import DefaultAgentRegistry
+from hygroup.agent.registry import AgentRegistry
 from hygroup.gateway.slack.app_home.agent.validator import AgentValidator
 from hygroup.gateway.slack.app_home.agent.views import AgentViewBuilder
 from hygroup.gateway.slack.app_home.models import AgentListViewModel, AgentViewModel
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class AgentConfigHandlers:
-    def __init__(self, client: AsyncWebClient, agent_registry: DefaultAgentRegistry):
+    def __init__(self, client: AsyncWebClient, agent_registry: AgentRegistry):
         self._client = client
         self._agent_registry = agent_registry
 

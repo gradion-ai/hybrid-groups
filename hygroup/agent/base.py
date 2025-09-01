@@ -169,32 +169,4 @@ class Agent(ABC):
     def set_state(self, state: Any): ...
 
 
-class AgentRegistry(ABC):
-    @abstractmethod
-    def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent: ...
-
-    @abstractmethod
-    def get_registered_names(self) -> set[str]: ...
-
-    @abstractmethod
-    def get_descriptions(self) -> dict[str, str]: ...
-
-    @abstractmethod
-    def get_emoji(self, name: str) -> str | None: ...
-
-    def get_registered_agents(self) -> str:
-        """Get a list of registered agents in the format:
-
-        - [agent name 1]: [agent description 1]
-        - [agent name 2]: [agent description 2]
-        - ...
-
-        Returns:
-            A string with the list of registered agents.
-        """
-
-        configs = self.get_descriptions()
-        return "\n".join([f"- {name}: {description}" for name, description in configs.items()])
-
-
 AgentFactory = Callable[[], Agent]

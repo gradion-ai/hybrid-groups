@@ -247,7 +247,7 @@ class Session:
         tools = [self.get_user_preferences] if extra_tools else None
         return self.agent_registry.create_agent(name, tools=tools)
 
-    async def load_agent(self, name: str):
+    def load_agent(self, name: str):
         self.add_agent(self.create_agent(name))
 
     def agent_names(self) -> set[str]:
@@ -367,12 +367,9 @@ class Session:
                 await agent.update(message)
 
     async def invoke_agent(self, agent_name: str, request: AgentRequest):
-        # -------------------------------------
-        #  FIXME: run this if block atomically
-        # -------------------------------------
         if agent_name not in self._agents:
             try:
-                await self.load_agent(agent_name)
+                self.load_agent(agent_name)
             except ValueError:
                 response = AgentResponse(
                     text=f'Agent "{agent_name}" not registered',

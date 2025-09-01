@@ -4,7 +4,7 @@ import re
 from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
-from hygroup.agent.default.registry import DefaultAgentRegistry
+from hygroup.agent.registry import AgentRegistry
 from hygroup.gateway.slack.app_home.agent.handlers import AgentConfigHandlers
 from hygroup.gateway.slack.app_home.preferences.handlers import UserPreferenceConfigHandlers
 from hygroup.gateway.slack.app_home.secrets.handlers import SecretConfigHandlers
@@ -28,7 +28,7 @@ class SlackHomeHandlers:
         self,
         client: AsyncWebClient,
         app: AsyncApp,
-        agent_registry: DefaultAgentRegistry,
+        agent_registry: AgentRegistry,
         user_registry: DefaultUserRegistry,
         preference_store: DefaultPreferenceStore,
         system_editor_ids: list[str] | None = None,

@@ -3,7 +3,8 @@ import os
 import textwrap
 
 from demo.weather import get_weather_forecast
-from hygroup.agent.default import AgentSettings, DefaultAgentRegistry, MCPSettings
+from hygroup.agent.default import AgentSettings, MCPSettings
+from hygroup.agent.registry import AgentRegistry
 
 INSTRUCTION_TEMPLATE = """{role_description}
 
@@ -365,7 +366,7 @@ def browser_agent_config():
 
 
 async def main():
-    agent_registry = DefaultAgentRegistry()
+    agent_registry = AgentRegistry()
 
     agent_registry.remove_configs()
     agent_registry.add_config(**weather_agent_config())

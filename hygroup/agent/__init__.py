@@ -1,7 +1,6 @@
 from hygroup.agent.base import (
     Agent,
     AgentActivation,
-    AgentRegistry,
     AgentRequest,
     AgentResponse,
     Attachment,
@@ -10,3 +9,4 @@ from hygroup.agent.base import (
     PermissionRequest,
     Thread,
 )
+from hygroup.agent.registry import AgentRegistry

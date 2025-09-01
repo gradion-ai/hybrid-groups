@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from pydantic_ai.settings import ModelSettings
 
 from hygroup.agent.default.agent import AgentSettings, DefaultAgent
-from hygroup.agent.default.registry import DefaultAgentRegistry
+from hygroup.agent.registry import AgentRegistry
 from tests.integration.example_tools import current_time, get_weather_forecast
 
 load_dotenv()
@@ -105,7 +105,7 @@ async def test_registry_stores_and_retrieves_tools():
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"
-        registry = DefaultAgentRegistry(registry_path)
+        registry = AgentRegistry(registry_path)
 
         # Create agent settings with tools
         settings = AgentSettings(
@@ -135,7 +135,7 @@ async def test_registry_handles_missing_tools_gracefully(capsys):
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"
-        registry = DefaultAgentRegistry(registry_path)
+        registry = AgentRegistry(registry_path)
 
         # Manually create a registry entry with a non-existent tool
         registry._configs["test_agent"] = {
@@ -172,7 +172,7 @@ async def test_full_workflow_with_multiple_tools():
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"
-        registry = DefaultAgentRegistry(registry_path)
+        registry = AgentRegistry(registry_path)
 
         # Create agent settings with multiple tools
         settings = AgentSettings(
