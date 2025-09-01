@@ -365,10 +365,33 @@ def browser_agent_config():
     }
 
 
+def system_agent_config():
+    from pydantic_ai.models.google import GoogleModelSettings
+
+    from hygroup.agent.system.agent import system_agent_instructions
+
+    system_agent_settings = AgentSettings(
+        instructions=system_agent_instructions(),
+        model="gemini-2.5-flash",
+        model_settings=GoogleModelSettings(
+            google_thinking_config={
+                "include_thoughts": True,
+            }
+        ),
+    )
+
+    return {
+        "name": "system",
+        "description": "The system agent",
+        "settings": system_agent_settings,
+    }
+
+
 async def main():
     agent_registry = AgentRegistry()
-
     agent_registry.remove_configs()
+
+    agent_registry.add_config(**system_agent_config())
     agent_registry.add_config(**weather_agent_config())
     agent_registry.add_config(**office_agent_config())
     agent_registry.add_config(**math_agent_config())

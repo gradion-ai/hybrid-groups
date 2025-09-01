@@ -5,16 +5,12 @@ from typing import Any, Callable
 import aiofiles
 
 from hygroup.agent.base import Agent, AgentFactory
-from hygroup.agent.default.agent import AgentSettings, DefaultAgent
+from hygroup.agent.default import AgentSettings, DefaultAgent
+from hygroup.agent.system import SystemAgent
 
 
 class AgentRegistry:
-    """Registry for agent configurations and agent factories.
-
-    Agent configurations are persisted in `registry_path`, agent factories are kept in memory.
-
-    **THIS IS A REFERENCE IMPLEMENTATION FOR EXPERIMENTATION, DO NOT USE IN PRODUCTION.**
-    """
+    """Registry for agent configurations and agent factories."""
 
     def __init__(self, registry_path: Path | str = Path(".data", "agents", "registry.json")):
         self.registry_path = Path(registry_path)
@@ -30,27 +26,27 @@ class AgentRegistry:
 
     def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent:
         """Create an agent from config or factory registered under `name`."""
-        if doc := self._factories.get(name):
-            return doc["factory"]()
+        if config := self._factories.get(name):
+            return config["factory"]()
 
-        doc = self.get_config(name)
+        config = self.get_config(name)
 
-        if doc is None:
+        if config is None:
             raise ValueError(f"No agent registered with name '{name}'")
 
-        settings = AgentSettings.from_dict(doc["settings"])
-        agent = DefaultAgent(name=name, settings=settings)
+        settings = AgentSettings.from_dict(config["settings"])
+
+        if name == "system":
+            agent = SystemAgent(settings=settings)
+            agent.tool(self.get_registered_agents)
+        else:
+            agent = DefaultAgent(name=name, settings=settings)  # type: ignore
 
         if tools is not None:
             for tool in tools:
                 agent.tool(tool)
 
         return agent
-
-    def get_registered_names(self) -> set[str]:
-        """Get the names of all registered agent configs and factories."""
-        descriptions = self.get_descriptions()
-        return set(descriptions.keys())
 
     def get_registered_agents(self) -> str:
         """Get a list of registered agents in the format:
@@ -64,26 +60,31 @@ class AgentRegistry:
         """
 
         configs = self.get_descriptions()
-        return "\n".join([f"- {name}: {description}" for name, description in configs.items()])
+        return "\n".join([f"- {name}: {description}" for name, description in configs.items() if name != "system"])
+
+    def get_registered_names(self) -> set[str]:
+        """Get the names of all registered agent configs and factories."""
+        descriptions = self.get_descriptions()
+        return set(descriptions.keys())
 
     def get_descriptions(self) -> dict[str, str]:
         """Return a dictionary of agent names and their descriptions."""
         descriptions = {}
 
-        for name, doc in self._configs.items():
-            descriptions[name] = doc["description"]
+        for name, config in self._configs.items():
+            descriptions[name] = config["description"]
 
-        for name, doc in self._factories.items():
-            descriptions[name] = doc["description"]
+        for name, config in self._factories.items():
+            descriptions[name] = config["description"]
 
         return descriptions
 
     def get_emoji(self, name: str) -> str | None:
-        if factory_doc := self._factories.get(name):
-            return factory_doc.get("emoji")
+        if factory_config := self._factories.get(name):
+            return factory_config.get("emoji")
 
-        if config_doc := self.get_config(name):
-            return config_doc.get("emoji")
+        if config := self.get_config(name):
+            return config.get("emoji")
 
         return None
 
@@ -110,15 +111,14 @@ class AgentRegistry:
         # Convert AgentSettings to dict for storage
         settings_dict = settings.to_dict()
 
-        # Create document (no 'name' field since it's the key)
-        doc = {
+        config = {
             "description": description,
             "settings": settings_dict,
             "emoji": emoji,
         }
 
         # Add to in-memory configs
-        self._configs[name] = doc
+        self._configs[name] = config
 
     def update_config(
         self,

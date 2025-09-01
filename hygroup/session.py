@@ -23,7 +23,6 @@ from hygroup.agent import (
     PermissionRequest,
     Thread,
 )
-from hygroup.agent.system import SystemAgent
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
 from hygroup.user import CommandStore, PermissionStore, RequestHandler, UserRegistry
@@ -109,7 +108,7 @@ class SessionAgent:
                 case Message():
                     self._updates.append(item)
                 case AgentRequest(query=query, sender=sender, id=request_id) as request, secrets:
-                    self.session._request_context.set(
+                    self.session._run_context.set(
                         {"sender": sender, "secrets": secrets, "attachments": request.attachments}
                     )
 
@@ -200,16 +199,9 @@ class Session:
         self._request_handler_task: Task = create_task(self._request_handler_worker())
         self._request_handler = self.manager.request_handler
 
-        self._request_context = ContextVar[dict[str, Any]]("request_context")
+        self._run_context = ContextVar[dict[str, Any]]("run_context")
 
-        # -------------------------------------
-        #  TODO: make settings configurable
-        # -------------------------------------
-        system_agent = SystemAgent()
-        system_agent.tool(self.run_agent)
-        system_agent.tool(self.get_user_preferences)
-        system_agent.tool(self.agent_registry.get_registered_agents)
-        self.add_agent(system_agent)
+        self.load_agent(name="system", tools=[self.get_user_preferences, self.run_agent])
 
     async def _gateway_worker(self):
         # for sequential (but not atomic) execution of gateway methods
@@ -243,12 +235,11 @@ class Session:
     def add_agent(self, agent: Agent):
         self._agents[agent.name] = SessionAgent(agent, self)
 
-    def create_agent(self, name: str, extra_tools: bool = True) -> Agent:
-        tools = [self.get_user_preferences] if extra_tools else None
+    def create_agent(self, name: str, tools: list | None = None) -> Agent:
         return self.agent_registry.create_agent(name, tools=tools)
 
-    def load_agent(self, name: str):
-        self.add_agent(self.create_agent(name))
+    def load_agent(self, name: str, tools: list | None = None):
+        self.add_agent(self.create_agent(name, tools=tools))
 
     def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
@@ -369,7 +360,7 @@ class Session:
     async def invoke_agent(self, agent_name: str, request: AgentRequest):
         if agent_name not in self._agents:
             try:
-                self.load_agent(agent_name)
+                self.load_agent(agent_name, tools=[self.get_user_preferences])
             except ValueError:
                 response = AgentResponse(
                     text=f'Agent "{agent_name}" not registered',
@@ -405,21 +396,21 @@ class Session:
         """Run an agent identified by agent_name with the given query and return its response."""
 
         try:
-            agent = SessionAgent(self.create_agent(agent_name, False), session=self)
+            agent = SessionAgent(self.create_agent(agent_name, tools=[]), session=self)
         except ValueError:
             return f'Agent "{agent_name}" not registered'
 
-        request_context = self._request_context.get()
+        run_context = self._run_context.get()
 
         request = AgentRequest(
             query=query,
-            sender=request_context["sender"],
+            sender=run_context["sender"],
             receiver=agent_name,
-            attachments=request_context["attachments"],
+            attachments=run_context["attachments"],
         )
         response = await agent.run(
             request=request,
-            secrets=request_context["secrets"],
+            secrets=run_context["secrets"],
         )
         return response.text
 
