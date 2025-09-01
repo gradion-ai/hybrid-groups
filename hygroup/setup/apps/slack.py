@@ -27,6 +27,11 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
                 "usage_hint": "[list save load delete help]",
                 "should_escape": True,
             },
+            {
+                "command": "/hygroup-agents",
+                "description": "List available agents",
+                "should_escape": True,
+            },
         ],
     },
     "oauth_config": {

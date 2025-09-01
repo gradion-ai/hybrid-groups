@@ -1,15 +1,21 @@
 import logging
 import re
+from dataclasses import dataclass
 from typing import Callable
 
 from slack_sdk.web.async_client import AsyncWebClient
 
-from hygroup.gateway.slack.app_home.models import ValidationError
 from hygroup.gateway.slack.app_home.secrets.views import SecretViewBuilder
 from hygroup.user.base import User
 from hygroup.user.default.registry import DefaultUserRegistry
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ValidationError:
+    field: str
+    message: str
 
 
 class SecretConfigHandlers:

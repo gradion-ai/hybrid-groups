@@ -382,7 +382,7 @@ def system_agent_config():
 
     return {
         "name": "system",
-        "description": "The system agent",
+        "description": "The system agent.",
         "settings": system_agent_settings,
     }
 

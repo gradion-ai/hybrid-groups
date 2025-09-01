@@ -138,12 +138,17 @@ class SlackGateway(Gateway, RequestHandler):
 
         # register event handlers
         self._app.message("")(self.handle_slack_message)
+
+        # register action listeners
         self._app.action("once_button")(self.handle_permission_response)
         self._app.action("session_button")(self.handle_permission_response)
         self._app.action("always_button")(self.handle_permission_response)
         self._app.action("deny_button")(self.handle_permission_response)
+
+        # register command handlers
         self._app.command("/hygroup-connect")(self.handle_connect)
         self._app.command("/hygroup-command")(self.handle_command)
+        self._app.command("/hygroup-agents")(self.handle_agents)
 
         # Suppress "unhandled request" log messages
         self.logger = logging.getLogger("slack_bolt.AsyncApp")
@@ -272,6 +277,36 @@ class SlackGateway(Gateway, RequestHandler):
             response_text = ":x: Unknown operation. Use `/hygroup-command` without arguments to see usage."
 
         return response_text
+
+    async def handle_agents(self, ack, body, respond):
+        await ack()
+
+        # Get channel ID from the command body
+        channel_name = body.get("channel_name")
+
+        # Get agent registry for that channel
+        registry = self.session_manager.agent_registries.get_registry(name=channel_name)
+
+        # Get all agent descriptions
+        descriptions = registry.get_descriptions()
+
+        # Format agent list
+        agent_lines = []
+        for name, description in sorted(descriptions.items()):
+            emoji = registry.get_emoji(name)
+            emoji_str = f":{emoji}:" if emoji else ":robot_face:"
+            agent_lines.append(f"- {emoji_str} `{name}`: {description}")
+
+        # Create response
+        if agent_lines:
+            agents_text = "\n".join(agent_lines)
+            response_text = f"**Available agents**\n\n{agents_text}"
+        else:
+            response_text = "No agents are currently registered."
+
+        # Send markdown response
+        block = {"type": "section", "text": {"type": "mrkdwn", "text": self._converter.convert(response_text)}}
+        await respond(blocks=[block])
 
     async def handle_feedback_request(self, *args, **kwargs):
         await self.delegate_handler.handle_feedback_request(*args, **kwargs)

@@ -93,7 +93,6 @@ async def main(args):
             handlers = SlackHomeHandlers(
                 client=gateway.client,
                 app=gateway.app,
-                agent_registry=agent_registries.get_registry(),
                 user_registry=user_registry,
                 preference_store=preference_store,
             )
