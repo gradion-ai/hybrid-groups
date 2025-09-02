@@ -607,7 +607,7 @@ class SlackGateway(Gateway, RequestHandler):
         return re.sub(r"<@([/\w-]+)>", resolve, text)
 
     async def _load_thread_history(self, channel: str, thread_ts: str) -> list[dict]:
-        """Load all messages from a Slack thread.
+        """Load all messages from a Slack thread except those sent by the installed app.
 
         Args:
             channel: The channel ID where the thread exists
@@ -616,6 +616,8 @@ class SlackGateway(Gateway, RequestHandler):
         Returns:
             List of Message objects sorted by timestamp (oldest first)
         """
+        bot_id = os.getenv("SLACK_BOT_ID")
+
         msgs = []
         cursor = None
 
@@ -630,13 +632,12 @@ class SlackGateway(Gateway, RequestHandler):
                     # Rate limit: https://api.slack.com/methods/conversations.replies
                     response = await self._client.conversations_replies(**params)
                 except Exception as e:
-                    # Log error and return. We can recover from this error later.
                     self.logger.exception(e)
                     return []
 
                 for message in response["messages"]:
-                    # Skip bot messages and messages without a user
-                    if message.get("subtype") == "bot_message" or "user" not in message:
+                    # Skip messages sent by the installed app
+                    if message.get("bot_id") == bot_id:
                         continue
 
                     msg = self._parse_slack_message(message)

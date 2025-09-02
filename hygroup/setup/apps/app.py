@@ -159,7 +159,7 @@ def create_app(
     @app.post(Routes.SLACK_COMPLETE, response_model=SlackCompleteResponse)
     async def complete_slack_registration(request: SlackCompleteRequest):
         try:
-            success, app_user_id, data = await slack_app_setup_service.get_app_user_id(request.bot_token)
+            success, data = await slack_app_setup_service.get_app_user_id(request.bot_token)
 
             if not success:
                 return SlackCompleteResponse(success=False, error=data.get("error", "Unknown error"))
@@ -167,20 +167,21 @@ def create_app(
             await credential_manager.save_slack_credentials(
                 app_name=request.app_name,
                 bot_token=request.bot_token,
+                bot_id=data.get("bot_id"),  # type: ignore
                 app_token=request.app_token,
-                app_id=app_user_id,  # type: ignore
+                app_user_id=data.get("user_id"),  # type: ignore
             )
 
             logger.info(
-                "Slack credentials saved (app_name='%s', app_id='%s', user_id='%s')",
+                "Slack credentials saved (app_name='%s', app_id='%s', app_user_id='%s')",
                 request.app_name,
                 request.app_id,
-                app_user_id,
+                data.get("user_id"),
             )
 
             asyncio.create_task(_schedule_shutdown(5))
 
-            return SlackCompleteResponse(success=True, app_user_id=app_user_id)
+            return SlackCompleteResponse(success=True, app_user_id=data.get("user_id"))
 
         except Exception as e:
             logger.error("Error completing Slack registration: %s", e)

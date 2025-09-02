@@ -55,12 +55,20 @@ GITHUB_APP_PRIVATE_KEY_PATH={key_path}
         with open(self.env_file, "a") as f:
             f.write(env_line)
 
-    async def save_slack_credentials(self, app_name: str, bot_token: str, app_token: str, app_id: str) -> Path:
+    async def save_slack_credentials(
+        self,
+        app_name: str,
+        bot_token: str,
+        bot_id: str,
+        app_token: str,
+        app_user_id: str,
+    ) -> Path:
         env_content = f"""
 # Slack App: {app_name}
 SLACK_BOT_TOKEN={bot_token}
+SLACK_BOT_ID={bot_id}
 SLACK_APP_TOKEN={app_token}
-SLACK_APP_ID={app_id}
+SLACK_APP_USER_ID={app_user_id}
 """
         with open(self.env_file, "a") as f:
             f.write(env_content)
