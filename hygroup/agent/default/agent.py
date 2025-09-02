@@ -184,8 +184,10 @@ class AgentBase(Generic[D], Agent):
                 )
             else:
                 self._mcp_servers.append(settings.server())
-        yield
-        self._mcp_servers.clear()
+        try:
+            yield
+        finally:
+            self._mcp_servers.clear()
 
     async def run(
         self,
