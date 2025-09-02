@@ -231,19 +231,20 @@ class Session:
     def set_channel(self, channel: str):
         self._channel = channel
 
-    def add_agent(self, agent: Agent):
-        self._agents[agent.name] = SessionAgent(agent, self)
-
-    def create_agent(self, name: str, tools: list | None = None) -> Agent:
-        return self.agent_registries.get_registry(name=self.channel).create_agent(name, tools=tools)
-
-    def load_agent(self, name: str, tools: list | None = None):
-        self.add_agent(self.create_agent(name, tools=tools))
-
     def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
         names |= self.agent_registries.get_registry(name=self.channel).get_registered_names()
         return names
+
+    def _create_agent(self, name: str, tools: list | None = None) -> SessionAgent:
+        registry = self.agent_registries.get_registry(name=self.channel)
+        return SessionAgent(registry.create_agent(name, tools=tools), session=self)
+
+    def _load_agent(self, agent_name: str):
+        tools: list[Callable] = [self.get_user_preferences]
+        if agent_name == "system":
+            tools.append(self.run_agent)
+        self._agents[agent_name] = self._create_agent(agent_name, tools=tools)
 
     async def _load_referenced_threads(self, text: str) -> list[Thread]:
         refs = self._extract_thread_references(text)
@@ -331,13 +332,17 @@ class Session:
         )
 
         if receiver in self.agent_names():
+            if receiver not in self._agents:
+                self._load_agent(receiver)
             await self.update_agents(message, exclude=receiver)
             await self.invoke_agent(receiver, request)
-        else:
-            await self.update_agents(message, exclude="system")
-            await self.invoke_agent("system", request)
+        elif default := self.agent_registries.get_registry(name=self.channel).get_default_agent():
+            if default not in self._agents:
+                self._load_agent(default)
+            await self.update_agents(message, exclude=default)
+            await self.invoke_agent(default, request)
 
-    async def update_agents(self, message: Message, exclude: str):
+    async def update_agents(self, message: Message, exclude: str | None = None):
         # Add message to this session's message history. These are
         # the messages that users see on the platforms integrated
         # by gateways.
@@ -348,22 +353,6 @@ class Session:
                 await agent.update(message)
 
     async def invoke_agent(self, agent_name: str, request: AgentRequest):
-        if agent_name not in self._agents:
-            tools: list[Callable] = [self.get_user_preferences]
-            if agent_name == "system":
-                tools.append(self.run_agent)
-            try:
-                self.load_agent(agent_name, tools=tools)
-            except ValueError:
-                response = AgentResponse(
-                    text=f'Agent "{agent_name}" not registered',
-                    request_id=request.id,
-                )
-                return await self.handle_system_response(
-                    response=response,
-                    receiver=request.sender,
-                )
-
         activation = AgentActivation(
             agent_name=agent_name,
             message_id=request.message_id,
@@ -389,7 +378,7 @@ class Session:
         """Run an agent identified by agent_name with the given query and return its response."""
 
         try:
-            agent = SessionAgent(self.create_agent(agent_name, tools=[]), session=self)
+            agent = self._create_agent(agent_name, tools=[])
         except ValueError:
             return f'Agent "{agent_name}" not registered'
 

@@ -81,6 +81,13 @@ class AgentRegistry:
         # Used by system agent find subagents in the registry, hence the system agent is excluded from the list
         return "\n".join([f"- {name}: {description}" for name, description in configs.items() if name != "system"])
 
+    def get_default_agent(self) -> str | None:
+        """Get the name of the default agent."""
+        for name, config in self._configs.items():
+            if config.get("default"):
+                return name
+        return "system" if "system" in self._configs else None
+
     def get_registered_names(self) -> set[str]:
         """Get the names of all registered agent configs and factories."""
         descriptions = self.get_descriptions()
@@ -121,6 +128,7 @@ class AgentRegistry:
         description: str,
         settings: AgentSettings,
         emoji: str | None = None,
+        default: bool | None = None,
     ):
         """Register an agent configuration in memory. Call save() to persist."""
         # Check if name already exists
@@ -130,11 +138,14 @@ class AgentRegistry:
         # Convert AgentSettings to dict for storage
         settings_dict = settings.to_dict()
 
-        config = {
+        config: dict[str, Any] = {
             "description": description,
             "settings": settings_dict,
             "emoji": emoji,
         }
+
+        if default is not None:
+            config["default"] = default
 
         # Add to in-memory configs
         self._configs[name] = config
