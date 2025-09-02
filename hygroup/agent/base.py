@@ -106,9 +106,6 @@ class PermissionRequest:
     # tool, executed by a user with its own secrets.
     as_user: bool = False
 
-    # Snapshot of the number of agent responses in session
-    _num_agent_responses: int = field(default=0, init=False)
-
     @property
     def call(self) -> str:
         args_str = ", ".join([repr(arg) for arg in self.tool_args])
@@ -167,34 +164,6 @@ class Agent(ABC):
 
     @abstractmethod
     def set_state(self, state: Any): ...
-
-
-class AgentRegistry(ABC):
-    @abstractmethod
-    async def create_agent(self, name: str, tools: list[Callable] | None = None) -> Agent: ...
-
-    @abstractmethod
-    async def get_registered_names(self) -> set[str]: ...
-
-    @abstractmethod
-    async def get_descriptions(self) -> dict[str, str]: ...
-
-    @abstractmethod
-    async def get_emoji(self, name: str) -> str | None: ...
-
-    async def get_registered_agents(self) -> str:
-        """Get a list of registered agents in the format:
-
-        - [agent name 1]: [agent description 1]
-        - [agent name 2]: [agent description 2]
-        - ...
-
-        Returns:
-            A string with the list of registered agents.
-        """
-
-        configs = await self.get_descriptions()
-        return "\n".join([f"- {name}: {description}" for name, description in configs.items()])
 
 
 AgentFactory = Callable[[], Agent]

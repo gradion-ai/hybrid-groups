@@ -28,7 +28,7 @@ from hygroup.user import RequestHandler
 
 @dataclass
 class SlackThread:
-    channel: str
+    channel_id: str
     session: Session
     permission_requests: dict[str, PermissionRequest] = field(default_factory=dict)
     response_ids: dict[str, str] = field(default_factory=dict)
@@ -39,6 +39,10 @@ class SlackThread:
     def id(self) -> str:
         return self.session.id
 
+    @property
+    def channel_name(self) -> str | None:
+        return self.session.channel
+
     async def handle_message(self, msg: dict):
         if self.session.contains(msg["id"]):
             return  # idempotency
@@ -48,8 +52,8 @@ class SlackThread:
 
         # and pass attachment references to handler
         await self.session.handle_gateway_message(
-            message_text=msg["text"],
-            message_sender=msg["sender"],
+            text=msg["text"],
+            sender=msg["sender"],
             message_id=msg["id"],
             attachments=attachments,
         )
@@ -134,12 +138,17 @@ class SlackGateway(Gateway, RequestHandler):
 
         # register event handlers
         self._app.message("")(self.handle_slack_message)
+
+        # register action listeners
         self._app.action("once_button")(self.handle_permission_response)
         self._app.action("session_button")(self.handle_permission_response)
         self._app.action("always_button")(self.handle_permission_response)
         self._app.action("deny_button")(self.handle_permission_response)
+
+        # register command handlers
         self._app.command("/hygroup-connect")(self.handle_connect)
         self._app.command("/hygroup-command")(self.handle_command)
+        self._app.command("/hygroup-agents")(self.handle_agents)
 
         # Suppress "unhandled request" log messages
         self.logger = logging.getLogger("slack_bolt.AsyncApp")
@@ -269,6 +278,36 @@ class SlackGateway(Gateway, RequestHandler):
 
         return response_text
 
+    async def handle_agents(self, ack, body, respond):
+        await ack()
+
+        # Get channel ID from the command body
+        channel_name = body.get("channel_name")
+
+        # Get agent registry for that channel
+        registry = self.session_manager.agent_registries.get_registry(name=channel_name)
+
+        # Get all agent descriptions
+        descriptions = registry.get_descriptions()
+
+        # Format agent list
+        agent_lines = []
+        for name, description in sorted(descriptions.items()):
+            emoji = registry.get_emoji(name)
+            emoji_str = f":{emoji}:" if emoji else ":robot_face:"
+            agent_lines.append(f"- {emoji_str} `{name}`: {description}")
+
+        # Create response
+        if agent_lines:
+            agents_text = "\n".join(agent_lines)
+            response_text = f"**Available agents**\n\n{agents_text}"
+        else:
+            response_text = "No agents are currently registered."
+
+        # Send markdown response
+        block = {"type": "section", "text": {"type": "mrkdwn", "text": self._converter.convert(response_text)}}
+        await respond(blocks=[block])
+
     async def handle_feedback_request(self, *args, **kwargs):
         await self.delegate_handler.handle_feedback_request(*args, **kwargs)
 
@@ -277,7 +316,7 @@ class SlackGateway(Gateway, RequestHandler):
 
         if activation.message_id:
             await self._client.reactions_add(
-                channel=thread.channel,
+                channel=thread.channel_id,
                 timestamp=activation.message_id,
                 name="eyes",
             )
@@ -303,7 +342,7 @@ class SlackGateway(Gateway, RequestHandler):
 
         if response.message_id:
             await self._client.reactions_add(
-                channel=thread.channel,
+                channel=thread.channel_id,
                 timestamp=response.message_id,
                 name="robot_face" if response.text else "ballot_box_with_check",
             )
@@ -319,7 +358,7 @@ class SlackGateway(Gateway, RequestHandler):
 
             if response_id := thread.response_ids.pop(request_id, None):
                 await self._client.chat_delete(
-                    channel=thread.channel,
+                    channel=thread.channel_id,
                     thread_ts=thread.id,
                     ts=response_id,
                 )
@@ -445,14 +484,14 @@ class SlackGateway(Gateway, RequestHandler):
         if sender == "system":
             sender_kwargs = {}
         else:
-            sender_emoji = await thread.session.agent_registry.get_emoji(sender)
+            sender_emoji = thread.session.agent_registries.get_registry(name=thread.channel_name).get_emoji(sender)
             sender_kwargs = {
                 "username": sender,
                 "icon_emoji": f":{sender_emoji or 'robot_face'}:",
             }
 
         return await coro(
-            channel=thread.channel,
+            channel=thread.channel_id,
             thread_ts=thread.id,
             text=text,
             **sender_kwargs,
@@ -495,11 +534,10 @@ class SlackGateway(Gateway, RequestHandler):
 
             if not thread:
                 if session := await self.session_manager.load_session(id=thread_id):
-                    thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
+                    thread = await self._register_slack_thread(channel_id=msg["channel"], session=session)
                 else:
                     session = self.session_manager.create_session(id=thread_id)
-                    thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
-
+                    thread = await self._register_slack_thread(channel_id=msg["channel"], session=session)
                 async with thread.lock:
                     history = await self._load_thread_history(
                         channel=msg["channel"],
@@ -514,16 +552,21 @@ class SlackGateway(Gateway, RequestHandler):
 
         else:
             session = self.session_manager.create_session(id=msg["id"])
-            thread = self._register_slack_thread(channel_id=msg["channel"], session=session)
+            thread = await self._register_slack_thread(channel_id=msg["channel"], session=session)
 
             async with thread.lock:
                 await thread.handle_message(msg)
 
-    def _register_slack_thread(self, channel_id: str, session: Session) -> SlackThread:
+    async def _register_slack_thread(self, channel_id: str, session: Session) -> SlackThread:
+        channel_info = await self.client.conversations_info(channel=channel_id)
+        channel_name = channel_info.data["channel"]["name"]  # noqa: F841
+
         session.set_gateway(self)
+        session.set_channel(channel_name)
         session.sync()
+
         self._threads[session.id] = SlackThread(
-            channel=channel_id,
+            channel_id=channel_id,
             session=session,
         )
         return self._threads[session.id]
@@ -564,7 +607,7 @@ class SlackGateway(Gateway, RequestHandler):
         return re.sub(r"<@([/\w-]+)>", resolve, text)
 
     async def _load_thread_history(self, channel: str, thread_ts: str) -> list[dict]:
-        """Load all messages from a Slack thread.
+        """Load all messages from a Slack thread except those sent by the installed app.
 
         Args:
             channel: The channel ID where the thread exists
@@ -573,6 +616,8 @@ class SlackGateway(Gateway, RequestHandler):
         Returns:
             List of Message objects sorted by timestamp (oldest first)
         """
+        bot_id = os.getenv("SLACK_BOT_ID")
+
         msgs = []
         cursor = None
 
@@ -587,13 +632,12 @@ class SlackGateway(Gateway, RequestHandler):
                     # Rate limit: https://api.slack.com/methods/conversations.replies
                     response = await self._client.conversations_replies(**params)
                 except Exception as e:
-                    # Log error and return. We can recover from this error later.
                     self.logger.exception(e)
                     return []
 
                 for message in response["messages"]:
-                    # Skip bot messages and messages without a user
-                    if message.get("subtype") == "bot_message" or "user" not in message:
+                    # Skip messages sent by the installed app
+                    if message.get("bot_id") == bot_id:
                         continue
 
                     msg = self._parse_slack_message(message)

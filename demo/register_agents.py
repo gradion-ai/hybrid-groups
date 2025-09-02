@@ -3,7 +3,8 @@ import os
 import textwrap
 
 from demo.weather import get_weather_forecast
-from hygroup.agent.default import AgentSettings, DefaultAgentRegistry, MCPSettings
+from hygroup.agent.default import AgentSettings, MCPSettings
+from hygroup.agent.registry import AgentRegistry
 
 INSTRUCTION_TEMPLATE = """{role_description}
 
@@ -115,6 +116,18 @@ MATH_AGENT_STEPS = """- If the user provides only a mathematical task:
   - If incorrect: Do NOT give the solution immediately. Instead, provide a helpful hint about where the error is or what approach to consider
   - Use the `ipybox_exec_cell` tool to verify calculations when needed"""
 MATH_AGENT_INSTRUCTIONS = apply_template(MATH_AGENT_ROLE, MATH_AGENT_STEPS)
+
+
+COMPUTER_AGENT_ROLE = "You are a computer assistant that can manage local files and directories, execute system commands, search the web, and fetch web content."
+COMPUTER_AGENT_STEPS = """- Use the file management tools to list, read, write, edit, and manage files and directories as requested by the user.
+- Use the bash/shell tools to execute system commands when needed for tasks like running scripts, checking system status, or performing operations.
+- Use the web search tools to find current information on the internet when the user needs up-to-date data or research.
+- Use the web fetch tools to retrieve and analyze content from specific URLs provided by the user.
+- When working with files, always verify paths exist before attempting operations.
+- For potentially destructive operations (like deleting files or modifying system settings), confirm the action with a summary of what will be done.
+- When executing commands, provide clear feedback about what was executed and the results.
+- If a command or operation fails, explain the error and suggest alternatives when possible."""
+COMPUTER_AGENT_INSTRUCTIONS = apply_template(COMPUTER_AGENT_ROLE, COMPUTER_AGENT_STEPS)
 
 
 # This prompt is from the tiny-agents dataset at https://huggingface.co/datasets/tiny-agents/tiny-agents
@@ -266,13 +279,6 @@ def office_agent_config():
         },
     )
 
-    claude_mcp_settings = MCPSettings(
-        server_config={
-            "command": "claude",
-            "args": ["mcp", "serve"],
-        },
-    )
-
     agent_settings = AgentSettings(
         model="openai:gpt-5-mini",
         instructions=OFFICE_AGENT_INSTRUCTIONS,
@@ -280,7 +286,6 @@ def office_agent_config():
             gmail_settings,
             googlecalendar_settings,
             googledrive_settings,
-            claude_mcp_settings,
         ],
     )
 
@@ -314,6 +319,30 @@ def math_agent_config():
     }
 
 
+def computer_agent_config():
+    claude_mcp_settings = MCPSettings(
+        server_config={
+            "command": "claude",
+            "args": ["mcp", "serve"],
+        },
+    )
+
+    agent_settings = AgentSettings(
+        instructions=COMPUTER_AGENT_INSTRUCTIONS,
+        model="gemini-2.5-flash",
+        mcp_settings=[
+            claude_mcp_settings,
+        ],
+    )
+
+    return {
+        "name": "computer",
+        "description": "An agent that can manage local files and directories, execute bash commands, search the web and fetch web content.",
+        "settings": agent_settings,
+        "emoji": "file_folder",
+    }
+
+
 def browser_agent_config():
     playwright_server_settings = MCPSettings(
         server_config={
@@ -336,26 +365,52 @@ def browser_agent_config():
     }
 
 
-async def main():
-    agent_registry = DefaultAgentRegistry()
+def system_agent_config():
+    from pydantic_ai.models.google import GoogleModelSettings
 
-    await agent_registry.remove_configs()
-    await agent_registry.add_config(**weather_agent_config())
-    await agent_registry.add_config(**office_agent_config())
-    await agent_registry.add_config(**math_agent_config())
+    from hygroup.agent.system.agent import system_agent_instructions
+
+    system_agent_settings = AgentSettings(
+        instructions=system_agent_instructions(),
+        model="gemini-2.5-flash",
+        model_settings=GoogleModelSettings(
+            google_thinking_config={
+                "include_thoughts": True,
+            }
+        ),
+    )
+
+    return {
+        "name": "system",
+        "description": "The system agent.",
+        "settings": system_agent_settings,
+    }
+
+
+async def main():
+    agent_registry = AgentRegistry()
+    agent_registry.remove_configs()
+
+    agent_registry.add_config(**system_agent_config())
+    agent_registry.add_config(**weather_agent_config())
+    agent_registry.add_config(**office_agent_config())
+    agent_registry.add_config(**math_agent_config())
+    agent_registry.add_config(**computer_agent_config())
 
     if os.environ.get("FIRECRAWL_API_KEY"):
         # see https://docs.firecrawl.com/docs/api-reference/api-reference
-        await agent_registry.add_config(**scrape_agent_config())
+        agent_registry.add_config(**scrape_agent_config())
     if os.environ.get("BRAVE_API_KEY"):
         # see https://api-dashboard.search.brave.com/app/keys
-        await agent_registry.add_config(**search_agent_config())
+        agent_registry.add_config(**search_agent_config())
     if mcp_exec := os.environ.get("ZOTERO_MCP_EXEC"):
         # see https://github.com/54yyyu/zotero-mcp
-        await agent_registry.add_config(**zotero_agent_config(mcp_exec))
+        agent_registry.add_config(**zotero_agent_config(mcp_exec))
     if mcp_exec := os.environ.get("READER_MCP_EXEC"):
         # see https://github.com/edricgsh/Readwise-Reader-MCP
-        await agent_registry.add_config(**reader_agent_config(mcp_exec))
+        agent_registry.add_config(**reader_agent_config(mcp_exec))
+
+    await agent_registry.save()
 
 
 if __name__ == "__main__":

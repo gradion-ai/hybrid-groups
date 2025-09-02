@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from pydantic_ai.settings import ModelSettings
 
 from hygroup.agent.default.agent import AgentSettings, DefaultAgent
-from hygroup.agent.default.registry import DefaultAgentRegistry
+from hygroup.agent.registry import AgentRegistry
 from tests.integration.example_tools import current_time, get_weather_forecast
 
 load_dotenv()
@@ -105,7 +105,7 @@ async def test_registry_stores_and_retrieves_tools():
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"
-        registry = DefaultAgentRegistry(registry_path)
+        registry = AgentRegistry(registry_path)
 
         # Create agent settings with tools
         settings = AgentSettings(
@@ -116,10 +116,10 @@ async def test_registry_stores_and_retrieves_tools():
         )
 
         # Add to registry
-        await registry.add_config("weather", "Weather forecast agent", settings)
+        registry.add_config("weather", "Weather forecast agent", settings)
 
         # Create agent from registry
-        agent = await registry.create_agent("weather")
+        agent = registry.create_agent("weather")
 
         # Verify the agent has the tools
         assert hasattr(agent, "settings")
@@ -135,26 +135,25 @@ async def test_registry_handles_missing_tools_gracefully(capsys):
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"
-        registry = DefaultAgentRegistry(registry_path)
+        registry = AgentRegistry(registry_path)
 
         # Manually create a registry entry with a non-existent tool
-        registry._tinydb.insert(
-            {
-                "name": "test_agent",
-                "description": "Test agent with missing tool",
-                "settings": {
-                    "model": "gpt-3.5-turbo",
-                    "instructions": "Test instructions",
-                    "human_feedback": True,
-                    "model_settings": model_settings,
-                    "mcp_settings": [],
-                    "tools": [{"module": "nonexistent.module", "function": "missing_function"}],
-                },
-            }
-        )
+        registry._configs["test_agent"] = {
+            "description": "Test agent with missing tool",
+            "settings": {
+                "model": "gpt-3.5-turbo",
+                "instructions": "Test instructions",
+                "human_feedback": True,
+                "model_settings": model_settings,
+                "mcp_settings": [],
+                "tools": [{"module": "nonexistent.module", "function": "missing_function"}],
+            },
+        }
+        # Save to file
+        await registry.save()
 
         # Create agent from registry
-        agent = await registry.create_agent("test_agent")
+        agent = registry.create_agent("test_agent")
 
         # Should create agent successfully but without the missing tool
         assert hasattr(agent, "settings")
@@ -173,7 +172,7 @@ async def test_full_workflow_with_multiple_tools():
 
     with TemporaryDirectory() as tmpdir:
         registry_path = Path(tmpdir) / "test_registry.json"
-        registry = DefaultAgentRegistry(registry_path)
+        registry = AgentRegistry(registry_path)
 
         # Create agent settings with multiple tools
         settings = AgentSettings(
@@ -184,10 +183,10 @@ async def test_full_workflow_with_multiple_tools():
         )
 
         # Add to registry
-        await registry.add_config("multi_tool", "Agent with multiple tools", settings)
+        registry.add_config("multi_tool", "Agent with multiple tools", settings)
 
         # Retrieve config
-        config = await registry.get_config("multi_tool")
+        config = registry.get_config("multi_tool")
         assert config is not None
         assert len(config["settings"]["tools"]) == 2
         assert {
@@ -197,7 +196,7 @@ async def test_full_workflow_with_multiple_tools():
         assert {"module": "tests.integration.example_tools", "function": "current_time"} in config["settings"]["tools"]
 
         # Create agent from registry
-        agent = await registry.create_agent("multi_tool")
+        agent = registry.create_agent("multi_tool")
 
         # Verify both tools are present
         assert isinstance(agent, DefaultAgent)

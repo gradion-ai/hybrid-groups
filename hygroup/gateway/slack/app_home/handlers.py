@@ -4,8 +4,6 @@ import re
 from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
-from hygroup.agent.default.registry import DefaultAgentRegistry
-from hygroup.gateway.slack.app_home.agent.handlers import AgentConfigHandlers
 from hygroup.gateway.slack.app_home.preferences.handlers import UserPreferenceConfigHandlers
 from hygroup.gateway.slack.app_home.secrets.handlers import SecretConfigHandlers
 from hygroup.gateway.slack.app_home.views import HomeViewBuilder
@@ -19,7 +17,6 @@ class SlackHomeHandlers:
     Args:
         client: Slack Web API client for making API calls
         app: Slack Bolt app instance for registering event handlers
-        agent_registry: Registry containing available agents and their configurations
         system_editor_ids: List of Slack user IDs authorized to edit system-wide settings.
             If None, all users can edit system configurations.
     """
@@ -28,7 +25,6 @@ class SlackHomeHandlers:
         self,
         client: AsyncWebClient,
         app: AsyncApp,
-        agent_registry: DefaultAgentRegistry,
         user_registry: DefaultUserRegistry,
         preference_store: DefaultPreferenceStore,
         system_editor_ids: list[str] | None = None,
@@ -38,7 +34,6 @@ class SlackHomeHandlers:
         self._system_editor_ids = system_editor_ids
         self._slack_user_mapping = user_registry.get_mappings("slack")
 
-        self._agent_config_handlers = AgentConfigHandlers(client, agent_registry)
         self._secret_config_handlers = SecretConfigHandlers(client, user_registry, self._resolve_system_user_id)
         self._user_preference_config_handlers = UserPreferenceConfigHandlers(
             client, preference_store, self._resolve_system_user_id
@@ -53,29 +48,6 @@ class SlackHomeHandlers:
     def register(self):
         # Home page handlers
         self._app.event("app_home_opened")(self.handle_app_home_opened)
-
-        # Agent handlers
-        self._app.action("home_add_agent")(
-            self.require_system_edit_permission(self._agent_config_handlers.handle_add_agent),
-        )
-        self._app.view("home_agent_added_view")(
-            self.refresh_home_after_completion(
-                self.require_system_edit_permission(self._agent_config_handlers.handle_agent_added)
-            )
-        )
-        self._app.action(re.compile(r"^home_agent_menu:"))(
-            self.require_system_edit_permission_for_agent_menu(self._agent_config_handlers.handle_agent_menu)
-        )
-        self._app.view("home_agent_edited_view")(
-            self.refresh_home_after_completion(
-                self.require_system_edit_permission(self._agent_config_handlers.handle_agent_edited)
-            )
-        )
-        self._app.view("home_agent_delete_confirm_view")(
-            self.refresh_home_after_completion(
-                self.require_system_edit_permission(self._agent_config_handlers.handle_agent_delete_confirmed)
-            )
-        )
 
         # User secret handlers
         self._app.action("home_add_user_secret")(self._secret_config_handlers.handle_add_user_secret)
@@ -121,18 +93,14 @@ class SlackHomeHandlers:
         try:
             app_name = await self._get_app_display_name()
             username = await self._get_user_display_name(user_id)
-            agents = await self._agent_config_handlers._get_agents()
             user_secrets = await self._secret_config_handlers.get_user_secrets(user_id)
             user_preferences = await self._user_preference_config_handlers._get_user_preferences(user_id)
-            is_system_editor = self._is_system_editor(user_id)
 
             view = HomeViewBuilder.build_home_view(
                 app_name=app_name,
                 username=username,
                 user_secrets=user_secrets,
                 user_preferences=user_preferences,
-                agents=agents,
-                is_system_editor=is_system_editor,
             )
 
             await self._client.views_publish(user_id=user_id, view=view)
@@ -184,27 +152,6 @@ class SlackHomeHandlers:
         async def wrapper(ack, body, client, view, logger, *args, **kwargs):
             result = await handler(ack, body, client, view, logger, *args, **kwargs)
             await self.refresh_home_view(body["user"]["id"])
-            return result
-
-        return wrapper
-
-    def require_system_edit_permission_for_agent_menu(self, handler):
-        async def wrapper(ack, body, client, *args, **kwargs):
-            user_id = body["user"]["id"]
-            selected_option = body["actions"][0]["selected_option"]["value"]
-            action, _ = selected_option.split(":", 1)
-
-            if action in ["edit", "delete"]:
-                if not self._is_system_editor(user_id):
-                    await ack()
-                    self._logger.warning(f"User {user_id} attempted to edit system config without permission: {action}")
-                    return
-
-            result = await handler(ack, body, client, *args, **kwargs)
-
-            if action in ["edit", "delete"]:
-                await self.refresh_home_view(user_id)
-
             return result
 
         return wrapper

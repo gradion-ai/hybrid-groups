@@ -19,7 +19,7 @@ class MockSession(Mock):
         self.handle_permission_request_mock = AsyncMock()
         self.handle_feedback_request_mock = AsyncMock()
         self.handle_agent_response_mock = AsyncMock()
-        self._request_context = ContextVar[dict[str, Any]]("request_context")
+        self._run_context = ContextVar[dict[str, Any]]("run_context")
 
     async def handle_permission_request(self, *args, **kwargs):
         await self.handle_permission_request_mock(*args, **kwargs)

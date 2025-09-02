@@ -27,6 +27,11 @@ MANIFEST_TEMPLATE: Dict[str, Any] = {
                 "usage_hint": "[list save load delete help]",
                 "should_escape": True,
             },
+            {
+                "command": "/hygroup-agents",
+                "description": "List available agents",
+                "should_escape": True,
+            },
         ],
     },
     "oauth_config": {
@@ -93,7 +98,7 @@ class SlackAppSetupService:
             except aiohttp.ClientError as e:
                 raise RuntimeError(f"Network error: {e}")
 
-    async def get_app_user_id(self, bot_token: str) -> Tuple[bool, str | None, Dict[str, Any]]:
+    async def get_app_user_id(self, bot_token: str) -> Tuple[bool, Dict[str, Any]]:
         headers = {"Authorization": f"Bearer {bot_token}", "Content-Type": "application/json"}
 
         async with aiohttp.ClientSession() as session:
@@ -102,9 +107,9 @@ class SlackAppSetupService:
                     data = await response.json()
 
                     if data.get("ok"):
-                        return True, data.get("user_id"), data
+                        return True, data
                     else:
-                        return False, None, data
+                        return False, data
 
             except aiohttp.ClientError as e:
-                return False, None, {"error": f"Network error: {str(e)}"}
+                return False, {"error": f"Network error: {str(e)}"}
