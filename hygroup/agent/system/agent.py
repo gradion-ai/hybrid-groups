@@ -37,9 +37,9 @@ class SystemAgent(AgentBase[SystemAgentOutput]):
             output_type=SystemAgentOutput,
         )
         if registered_agents is not None:
-            self._init_history(registered_agents)
+            self._history = self._registered_agents_conversation(registered_agents)
 
-    def _init_history(self, registered_agents: str):
+    def _registered_agents_conversation(self, registered_agents: str):
         tool_call_part = ToolCallPart(
             tool_name="get_registered_agents",
         )
@@ -49,7 +49,7 @@ class SystemAgent(AgentBase[SystemAgentOutput]):
             tool_call_id=tool_call_part.tool_call_id,
         )
 
-        self._history = [
+        return [
             ModelRequest(
                 parts=[
                     SystemPromptPart(content=self.settings.instructions),

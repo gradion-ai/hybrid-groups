@@ -305,7 +305,8 @@ class AgentBase(Generic[D], Agent):
             new_messages[0].parts.insert(0, system_prompt_part)
         self._history.extend(new_messages)
 
-    def _preferences_conversation(self, preferences: str, sender: str) -> list[ModelRequest | ModelResponse]:
+    @staticmethod
+    def _preferences_conversation(preferences: str, sender: str) -> list[ModelRequest | ModelResponse]:
         input_part = UserPromptPart(
             content=f"Call get_user_preferences({sender})",
         )
