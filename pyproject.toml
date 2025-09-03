@@ -10,8 +10,8 @@ requires-python = ">=3.11,<3.14"
 readme = "README.md"
 license = "Apache-2.0"
 dependencies = [
-    "pydantic-ai>=0.7.2,<0.8",
-    "mcp>=1.12.2,<2",
+    "pydantic-ai>=0.8.1,<0.9",
+    "mcp>=1.13.0,<2",
     "aioconsole>=0.8.1,<0.9",
     "slack-bolt>=1.23.0,<2",
     "aiohttp>=3.11.16,<4",

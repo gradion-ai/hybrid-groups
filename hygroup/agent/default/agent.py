@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Generic, Sequence, Type, TypeVar
 
 from pydantic_ai import Agent as AgentImpl
+from pydantic_ai.builtin_tools import AbstractBuiltinTool
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
 from pydantic_ai.messages import BinaryContent, ModelMessagesTypeAdapter
 from pydantic_ai.run import AgentRunResult
@@ -52,7 +53,18 @@ class AgentSettings:
     human_feedback: bool = False
     model_settings: ModelSettings | None = None
     mcp_settings: list[MCPSettings] = field(default_factory=list)
-    tools: list[Callable] = field(default_factory=list)
+    builtin_tools: list[Callable] = field(default_factory=list)
+    tools: list[AbstractBuiltinTool] = field(default_factory=list)
+
+    @staticmethod
+    def serialize_builtin_tool(builtin_tool: AbstractBuiltinTool) -> dict[str, str]:
+        result = asdict(builtin_tool)
+        result["class"] = builtin_tool.__class__.__name__
+        return result
+
+    @staticmethod
+    def deserialize_builtin_tool(tool_dict: dict[str, str]) -> AbstractBuiltinTool | None:
+        return globals()[tool_dict.pop("class")](**tool_dict)
 
     @staticmethod
     def serialize_tool(tool: Callable) -> dict[str, str] | None:
@@ -93,6 +105,7 @@ class AgentSettings:
     def to_dict(self) -> dict[str, Any]:
         """Convert AgentSettings to dict, serializing tools."""
         data = asdict(self)
+
         # Serialize tools
         serialized_tools = []
         for tool in self.tools:
@@ -100,12 +113,22 @@ class AgentSettings:
             if serialized is not None:
                 serialized_tools.append(serialized)
         data["tools"] = serialized_tools
+
+        # Serialize builtin tools
+        serialized_builtin_tools = []
+        for builtin_tool in self.builtin_tools:
+            serialized = self.serialize_builtin_tool(builtin_tool)
+            if serialized is not None:
+                serialized_builtin_tools.append(serialized)
+        data["builtin_tools"] = serialized_builtin_tools
+
         return data
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "AgentSettings":
         data = data.copy()
         data["mcp_settings"] = [MCPSettings(**s) for s in data.get("mcp_settings", [])]
+
         # Deserialize tools
         tools = []
         for tool_dict in data.get("tools", []):
@@ -113,6 +136,15 @@ class AgentSettings:
             if tool is not None:
                 tools.append(tool)
         data["tools"] = tools
+
+        # Deserialize builtin tools
+        builtin_tools = []
+        for builtin_tool_dict in data.get("builtin_tools", []):
+            builtin_tool = AgentSettings.deserialize_builtin_tool(builtin_tool_dict)
+            if builtin_tool is not None:
+                builtin_tools.append(builtin_tool)
+        data["builtin_tools"] = builtin_tools
+
         return AgentSettings(**data)
 
 
@@ -137,6 +169,7 @@ class AgentBase(Generic[D], Agent):
             model=model,
             system_prompt=settings.instructions,
             model_settings=settings.model_settings,
+            builtin_tools=settings.builtin_tools,
             output_type=output_type,
         )
 
