@@ -7,7 +7,7 @@ from hygroup.user.base import CommandStore
 
 
 class DefaultCommandStore(CommandStore):
-    def __init__(self, root_dir: Path = Path(".data", "commands")):
+    def __init__(self, root_dir: Path = Path(".data", "users", "commands")):
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
