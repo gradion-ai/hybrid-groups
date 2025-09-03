@@ -55,8 +55,10 @@ class AgentRegistry:
         settings = AgentSettings.from_dict(config["settings"])
 
         if name == "system":
-            agent = SystemAgent(settings=settings)
-            agent.tool(self.get_registered_agents)
+            agent = SystemAgent(
+                settings=settings,
+                registered_agents=self.get_registered_agents(),
+            )
         else:
             agent = DefaultAgent(name=name, settings=settings)  # type: ignore
 
@@ -66,7 +68,7 @@ class AgentRegistry:
 
         return agent
 
-    def get_registered_agents(self) -> str:
+    def get_registered_agents(self) -> str | None:
         """Get a list of registered agents in the format:
 
         - [agent name 1]: [agent description 1]
@@ -76,10 +78,16 @@ class AgentRegistry:
         Returns:
             A string with the list of registered agents.
         """
+        descriptions = []
 
-        configs = self.get_descriptions()
-        # Used by system agent find subagents in the registry, hence the system agent is excluded from the list
-        return "\n".join([f"- {name}: {description}" for name, description in configs.items() if name != "system"])
+        for name, description in self.get_descriptions().items():
+            if name != "system":
+                descriptions.append(f"- {name}: {description}")
+
+        if descriptions:
+            return "\n".join(descriptions)
+
+        return None
 
     def get_default_agent(self) -> str | None:
         """Get the name of the default agent."""
