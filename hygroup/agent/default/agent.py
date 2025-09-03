@@ -12,7 +12,16 @@ from typing import Any, AsyncIterator, Callable, Generic, Sequence, Type, TypeVa
 from pydantic_ai import Agent as AgentImpl
 from pydantic_ai.builtin_tools import AbstractBuiltinTool
 from pydantic_ai.mcp import MCPServer, MCPServerStdio, MCPServerStreamableHTTP
-from pydantic_ai.messages import BinaryContent, ModelMessagesTypeAdapter
+from pydantic_ai.messages import (
+    BinaryContent,
+    ModelMessagesTypeAdapter,
+    ModelRequest,
+    ModelResponse,
+    SystemPromptPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 from pydantic_ai.run import AgentRunResult
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.toolsets import CombinedToolset, FunctionToolset, WrapperToolset
@@ -256,6 +265,19 @@ class AgentBase(Generic[D], Agent):
         updates: Sequence[Message],
         tool_interceptor: "ToolInterceptor",
     ):
+        system_prompt_part: SystemPromptPart | None = None
+
+        if request.preferences:
+            message_history = self._history + self._preferences_conversation(
+                request.preferences,
+                sender=request.sender,
+            )
+            if len(self._history) == 0:
+                system_prompt_part = SystemPromptPart(content=self.settings.instructions)
+                message_history[0].parts.insert(0, system_prompt_part)
+        else:
+            message_history = self._history
+
         user_prompt = []
 
         if request.attachments:
@@ -273,11 +295,36 @@ class AgentBase(Generic[D], Agent):
         result: AgentRunResult = await self.agent.run(
             user_prompt=user_prompt,
             toolsets=[tool_interceptor],
-            message_history=self._history,
+            message_history=message_history,
         )
         response = AgentResponse(text=self._text(result.output))
         await tool_interceptor.queue.put(response)
-        self._history.extend(result.new_messages())
+
+        new_messages = result.new_messages()
+        if system_prompt_part is not None:
+            new_messages[0].parts.insert(0, system_prompt_part)
+        self._history.extend(new_messages)
+
+    @staticmethod
+    def _preferences_conversation(preferences: str, sender: str) -> list[ModelRequest | ModelResponse]:
+        input_part = UserPromptPart(
+            content=f"Call get_user_preferences({sender})",
+        )
+        tool_call_part = ToolCallPart(
+            tool_name="get_user_preferences",
+            args={"username": sender},
+        )
+        tool_return_part = ToolReturnPart(
+            tool_name="get_user_preferences",
+            content=preferences,
+            tool_call_id=tool_call_part.tool_call_id,
+        )
+
+        return [
+            ModelRequest(parts=[input_part]),
+            ModelResponse(parts=[tool_call_part]),
+            ModelRequest(parts=[tool_return_part]),
+        ]
 
     @abstractmethod
     def _text(self, data: D) -> str: ...

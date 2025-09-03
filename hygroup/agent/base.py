@@ -67,6 +67,8 @@ class AgentRequest:
     receiver: str | None = None
     threads: list[Thread] = field(default_factory=list)
     attachments: list[Attachment] = field(default_factory=list)
+    preferences: str | None = None
+    """Sender preferences."""
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     """Id of this request."""

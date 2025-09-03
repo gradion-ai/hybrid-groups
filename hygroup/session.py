@@ -126,7 +126,7 @@ class SessionAgent:
                     except Exception as e:
                         logger.exception(e)
                         response = AgentResponse(
-                            text=f"Execution of agent '{self.agent.name}' failed.",
+                            text=f"Error executing agent '{self.agent.name}'.",
                             request_id=request_id,
                         )
                         await self.session.handle_system_response(
@@ -241,7 +241,8 @@ class Session:
         return SessionAgent(registry.create_agent(name, tools=tools), session=self)
 
     def _load_agent(self, agent_name: str):
-        tools: list[Callable] = [self.get_user_preferences]
+        # tools: list[Callable] = [self.get_user_preferences]
+        tools: list[Callable] = []
         if agent_name == "system":
             tools.append(self.run_agent)
         self._agents[agent_name] = self._create_agent(agent_name, tools=tools)
@@ -314,6 +315,9 @@ class Session:
         # Load any threads referenced with `thread:...` in the message text.
         threads = await self._load_referenced_threads(text)
 
+        # get stored preferences of message sender
+        preferences = await self.get_user_preferences(sender)
+
         message = Message(
             text=remaining_text,
             sender=sender,
@@ -328,6 +332,7 @@ class Session:
             receiver=message.receiver,
             threads=message.threads,
             attachments=message.attachments,
+            preferences=preferences,
             message_id=message.id,
         )
 
@@ -396,13 +401,10 @@ class Session:
         )
         return response.text
 
-    # -------------------------------------
-    #  Used as agent tool
-    # -------------------------------------
-    async def get_user_preferences(self, username: str):
-        preferences = await self.preference_store.get_preferences(username)
-        preferences = preferences or "n/a"
-        return f"User preferences for {username}:\n{preferences}"
+    async def get_user_preferences(self, username: str) -> str | None:
+        if preferences := await self.preference_store.get_preferences(username):
+            return f"User preferences for {username}:\n{preferences}"
+        return None
 
     def contains(self, id: str) -> bool:
         return any(message.id == id for message in self._messages)

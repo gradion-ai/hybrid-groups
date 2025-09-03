@@ -99,7 +99,7 @@ async def test_worker_handles_agent_run_exception(session_agent: SessionAgent, m
         # Verify system response was sent
         call_args = mock_session.handle_system_response_mock.call_args
         assert call_args[1]["receiver"] == sender
-        assert call_args[1]["response"].text == "Execution of agent 'test_agent' failed."
+        assert call_args[1]["response"].text == "Error executing agent 'test_agent'."
         assert call_args[1]["response"].final is True
 
 
@@ -237,5 +237,5 @@ async def test_worker_handles_different_exception_types(
         # Verify system response was sent with generic message regardless of exception type
         call_args = mock_session.handle_system_response_mock.call_args
         assert call_args[1]["receiver"] == sender
-        assert call_args[1]["response"].text == "Execution of agent 'test_agent' failed."
+        assert call_args[1]["response"].text == "Error executing agent 'test_agent'."
         assert call_args[1]["response"].final is True
