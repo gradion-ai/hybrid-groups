@@ -19,6 +19,15 @@ async def main(args):
         await connector.setup()
     elif args.command == "cleanup":
         await connector.cleanup()
+    elif args.command == "tools":
+        if not args.toolkit:
+            print("Error: toolkit argument is required for 'tools' command")
+            exit(1)
+        tools = await connector.tools(args.toolkit)
+        for tool_key, description in tools.items():
+            print(tool_key)
+            print(description)
+            print()
 
 
 if __name__ == "__main__":
@@ -26,17 +35,20 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "command",
-        choices=["setup", "cleanup"],
-        help="Command to execute: setup or cleanup",
+        choices=["setup", "cleanup", "tools"],
+        help="Command to execute: setup, cleanup, or tools",
     )
-
+    parser.add_argument(
+        "toolkit",
+        nargs="?",
+        help="Toolkit name (required for 'tools' command)",
+    )
     parser.add_argument(
         "--connector-config-path",
         type=Path,
         default=Path(".data", "composio", "config.json"),
         help="Path to the Composio connector configuration file.",
     )
-
     parser.add_argument(
         "--toolkit-config-path",
         type=Path,
