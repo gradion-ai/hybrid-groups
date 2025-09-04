@@ -1,7 +1,9 @@
 import asyncio
 import logging
+import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 import uvicorn
 from github import Auth, GithubIntegration
@@ -57,42 +59,45 @@ class GithubGateway(Gateway):
     def __init__(
         self,
         session_manager: SessionManager,
-        github_app_id: int,
-        github_installation_id: int,
-        github_private_key: str,
-        github_app_username: str,
+        github_app_id: int | None = None,
+        github_app_installation_id: int | None = None,
+        github_app_webhook_secret: str | None = None,
+        github_app_webhook_port: int | None = None,
+        github_app_private_key: str | None = None,
+        github_app_username: str | None = None,
         user_mapping: dict[str, str] = {},
     ):
-        self._session_manager = session_manager
-        self._github_app_username = github_app_username
-        self._github_app_fullname = f"{github_app_username}[bot]"
-        self._github_installation_id = github_installation_id
+        github_app_id = github_app_id or int(os.environ["GITHUB_APP_ID"])
+        github_app_installation_id = github_app_installation_id or int(os.environ["GITHUB_APP_INSTALLATION_ID"])
+        github_app_private_key = github_app_private_key or Path(os.environ["GITHUB_APP_PRIVATE_KEY_PATH"]).read_text()
+        github_app_username = github_app_username or os.environ["GITHUB_APP_USERNAME"]
+        github_app_webhook_secret = github_app_webhook_secret or os.environ["GITHUB_APP_WEBHOOK_SECRET"]
+        github_app_webhook_port = github_app_webhook_port or 8000
 
+        self._session_manager = session_manager
         self._github_user_mapping = user_mapping
         self._system_user_mapping = {v: k for k, v in user_mapping.items()}
 
-        self._github_auth = Auth.AppAuth(
-            app_id=github_app_id,
-            private_key=github_private_key,
-        )
+        self._github_app_username = github_app_username
+        self._github_app_fullname = f"{github_app_username}[bot]"
+        self._github_auth = Auth.AppAuth(github_app_id, github_app_private_key)
         self._github_integration = GithubIntegration(auth=self._github_auth)
-        self._github_client = self._github_integration.get_github_for_installation(github_installation_id)
+        self._github_client = self._github_integration.get_github_for_installation(github_app_installation_id)
         self._github_service = GithubService(github_client=self._github_client)
 
-        self._webhooks_app_settings = AppSettings()
-        self._webhooks_app = create_app(
-            settings=self._webhooks_app_settings,
-            event_handler=self._handle_github_event,
+        self._webhooks_app_settings = AppSettings(
+            webhook_port=github_app_webhook_port,
+            webhook_secret=github_app_webhook_secret,
         )
+        self._webhooks_app = create_app(self._webhooks_app_settings, self._handle_github_event)
         self._webhooks_app_config = uvicorn.Config(
             self._webhooks_app,
             host="0.0.0.0",
-            port=self._webhooks_app_settings.api_port,
+            port=self._webhooks_app_settings.webhook_port,
             log_config=str(self._webhooks_app_settings.log_config_path),
             log_level=self._webhooks_app_settings.log_level.lower(),
             reload=False,
         )
-
         self._webhooks_app_server = uvicorn.Server(self._webhooks_app_config)
         self._conversations: dict[str, GithubConversation] = {}
 

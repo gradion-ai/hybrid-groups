@@ -31,7 +31,6 @@ RUN uv sync --locked --no-dev --no-install-project
 # Copy application files
 COPY hygroup /app/hygroup
 COPY demo /app/demo
-COPY logging.yaml /app/
 COPY docker/setup.sh /app/
 COPY docker/server.sh /app/
 COPY docker/entrypoint.sh /app/

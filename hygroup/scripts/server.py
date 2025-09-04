@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -27,43 +26,27 @@ async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
         raise ValueError("The 'slack' user channel is only available with the 'slack' gateway.")
 
-    # Registries for agent configurations and factories
     agent_registries = AgentRegistries()
-
-    # Database for user preferences
     preference_store = DefaultPreferenceStore()
-
-    # Database for tool execution permissions (session, permanent)
     permission_store = DefaultPermissionStore(allowed_tools=[])
-
-    # Database for user commands
     command_store = DefaultCommandStore()
-
-    # A user registry that encrypts user secrets at rest with an admin password.
     user_registry = DefaultUserRegistry(args.user_registry)
     await user_registry.unlock(args.user_registry_password)
 
-    # Connector for toolkits provided by Composio
     composio_connector = ComposioConnector(user_registry=user_registry)
     composio_config = await composio_connector.load_config()
 
     request_handler: RequestHandler
     match args.user_channel:
         case "terminal":
-            # Start a server for private user channels. See
-            # examples/user_channel.py for the terminal client.
             request_handler = RequestServer(user_registry)
             await request_handler.start(join=False)
         case _:
-            # Log permission and confirmation requests to the console,
-            # automatically approving all tool execution permissions
-            # and agent selections.
             request_handler = RichConsoleHandler(
                 default_permission_response=1,
                 default_confirmation_response=True,
             )
 
-    # Manages group sessions and their persistence.
     manager = SessionManager(
         agent_registries=agent_registries,
         user_registry=user_registry,
@@ -74,8 +57,6 @@ async def main(args):
         command_store=command_store,
     )
 
-    # A gateway provides connectivity to platforms like Slack, GitHub, or a terminal.
-    # A remote terminal interface can be used for internal experimentation and testing.
     gateway: Gateway
 
     match args.gateway:
@@ -84,10 +65,7 @@ async def main(args):
                 session_manager=manager,
                 composio_connector=composio_connector,
                 user_mapping=user_registry.get_mappings("slack"),
-                # If True, prompt users in Slack to approve
-                # tool execution via ephemeral messages.
                 handle_permission_requests=args.user_channel == "slack",
-                # Turn off animation of work-in-progress messages
                 wip_update=False,
             )
             handlers = SlackHomeHandlers(
@@ -101,10 +79,6 @@ async def main(args):
             gateway = GithubGateway(
                 session_manager=manager,
                 user_mapping=user_registry.get_mappings("github"),
-                github_app_id=int(os.environ["GITHUB_APP_ID"]),
-                github_installation_id=int(os.environ["GITHUB_APP_INSTALLATION_ID"]),
-                github_private_key=Path(os.environ["GITHUB_APP_PRIVATE_KEY_PATH"]).read_text(),
-                github_app_username=os.environ["GITHUB_APP_USERNAME"],
             )
         case "terminal":
             gateway = TerminalGateway(
