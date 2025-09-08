@@ -1,14 +1,17 @@
 # Agent registry
 
-Agents in *Hybrid Groups* are configured and registered programmatically. A common setup is to have a [system agent](#system-agent) and zero or more specialized agents. The system agent can use other agents in the registry as subagents, and selects them based on their `description`. An agent configuration includes system instructions, model settings, MCP servers and other tools. 
+Agents in *Hybrid Groups* are configured and registered programmatically. An agent configuration includes system instructions, model settings, MCP servers and other tools. 
 
 !!! Example
 
-    See [agents.py](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/agents.py) for an example of how to configure and register agents, and the [tutorial](tutorial.md) for a complete usage walkthrough. The following subsections explain key parts of the agent configuration.
+    See [agents.py](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/agents.py) for agent configuration and registration, and the [tutorial](tutorial.md) for usage examples.
+
+A common setup is to have a [system agent](#system-agent) and zero or more specialized agents. The system agent can use other agents in the registry as subagents, and selects them based on their `description`. 
+
 
 ## System agent
 
-A system agent monitors all messages in a [group chat](tutorial.md#group-sessions). It may decide to stay silent or respond to a message, depending on message content, context and system instructions. The [default instructions](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/agent/system/prompt.md) for the system agent can be loaded with `system_agent_instructions()`.
+A system agent monitors all messages in a [group session](tutorial.md#group-sessions). It may decide to stay silent or respond to a message, depending on message content, context and system instructions. [Default instructions](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/agent/system/prompt.md) for a system agent can be loaded with `system_agent_instructions()`.
 
 ```python
 from pydantic_ai.models.google import GoogleModelSettings
@@ -19,7 +22,7 @@ from hygroup.agent.system.agent import system_agent_instructions
 --8<-- "hygroup/examples/agents.py:system-agent"
 ```
 
-The `model` name in `AgentSettings` is a Pydantic AI [model name](https://ai.pydantic.dev/api/models/base/), `model_settings` are Pydantic AI [ModelSettings](https://ai.pydantic.dev/api/settings/) or those of a specific model provider, like [GoogleModelSettings](https://ai.pydantic.dev/models/google/#model-settings).
+The `model` name in `AgentSettings` is a Pydantic AI [model name](https://ai.pydantic.dev/api/models/base/), `model_settings` are general Pydantic AI [ModelSettings](https://ai.pydantic.dev/api/settings/) or those of a specific model provider, like [GoogleModelSettings](https://ai.pydantic.dev/models/google/#model-settings).
 
 The configuration returned from `system_agent_config()` is added to the `AgentRegistry` with the `add_config()` method. The registry is persisted to `registry_path` with the `save()` method.
 

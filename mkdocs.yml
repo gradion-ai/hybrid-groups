@@ -85,7 +85,6 @@ nav:
   - User Guide:
     - Introduction: index.md
     - Installation: installation.md
-    - Features: features.md
     - Tutorial: tutorial.md
     - Agent registry: agent-registry.md
     - Application server: application-server.md

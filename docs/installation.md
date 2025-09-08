@@ -2,11 +2,9 @@
 
 *Hybrid Groups* requires an installation of
 
-- the `hybrid-groups` [Python package](#python-package) locally,
+- the `hybrid-groups` [Python package](#python-package),
 - the [Slack app](#slack-app) in a Slack workspace, or
 - the [GitHub app](#github-app) in a GitHub repository
-
-See [Tutorial](tutorial.md) for running and using *Hybrid Groups*.
 
 ## Python package
 
@@ -21,7 +19,8 @@ For installing the *Hybrid Groups* Slack app in a Slack workspace, launch the se
 ```shell
 python -m hygroup.setup.apps slack
 ```
-After installation, you should see the following variables in a `.env` in the current working directory (creating a new one if it doesn't exist):
+
+After installation, you should see the following variables in a `.env` file in the current working directory:
 
 ```env title=".env"
 SLACK_BOT_TOKEN=...
@@ -40,7 +39,7 @@ For installing the *Hybrid Groups* GitHub app in a GitHub repository, launch the
 python -m hygroup.setup.apps github
 ```
 
-After installation, you should see the following variables in a `.env` in the current working directory (creating a new one if it doesn't exist):
+After installation, you should see the following variables in a `.env` file in the current working directory:
 
 ```env title=".env"
 GITHUB_APP_ID=...

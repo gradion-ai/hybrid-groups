@@ -12,7 +12,7 @@ COMPOSIO_API_KEY=...
 
 ## Setup MCP servers
 
-Input for creating Composio MCP servers is a JSON file like the following `toolkits.json`. Keys are Composio [toolkit](https://docs.composio.dev/toolkits/introduction) names (lowercase), values contain the `tools` that the corresponding MCP server should expose. 
+Input for creating Composio MCP servers is a JSON file like the following `toolkits.json`file. Keys are Composio [toolkit](https://docs.composio.dev/toolkits/introduction) names (lowercase), values contain the `tools` that the corresponding MCP server should expose. 
 
 ```json title="toolkits.json"
 {
@@ -72,21 +72,20 @@ You should now see a Composio configuration at `.data/composio/config.json`. Whe
 
 ![Connect command](images/tutorial/commands/cmd-connect.png)
 
-you should see the following message:
+you should see the following output:
 
 ![Composio toolkits](images/tutorial/commands/cmd-connect-result-1.png)
 
 ## Authorize access
 
-Run the `/hygroup-connect <toolkit>` slash command in Slack to authorize access to a service identified by `<toolkit>`. For example, running `/hygroup-connect gmail` returns a link to initiate the OAuth flow for Gmail.
+Run the `/hygroup-connect <toolkit>` command in Slack to initiate the authorization procedure for a service identified by `<toolkit>`. For example, running `/hygroup-connect gmail` returns a link to initiate the OAuth flow for Gmail:
 
 ![Composio toolkits](images/tutorial/commands/cmd-connect-result-2.png)
 
-Click on the link and follow the instructions on the OAuth consent screen to authorize access. After successful authorization, the `/hygroup-connect` slash command should show the `gmail` toolkit as :white_check_mark: connected:
+Click on the link and follow the instructions on the OAuth consent screen to authorize access. After successful authorization, the `/hygroup-connect` command should show the `gmail` toolkit as :white_check_mark: connected:
 
 ![Composio toolkits](images/tutorial/commands/cmd-connect-result-3.png)
 
 !!! Failure "Access restrictions"
 
-    An agent using the `gmail` toolkit's MCP server can now access your Gmail account when **you** interact with that agent. Other users in the group do not have access to your Gmail account when interacting with the agent. 
-    They can access their own Gmail accounts after they have authorized access for themselves. In other words, authorizing access to a service is done **on a per-user basis**, and **not globally** for the application.
+    An agent using the `gmail` toolkit's MCP server can now access your Gmail account when **you** interact with the agent. Other users do not have access to your Gmail account when interacting with the same agent. They can access their own Gmail accounts after they have authorized access. In other words, authorizing access to a user's service account is done **on a per-user basis**, and **not globally** for the application.

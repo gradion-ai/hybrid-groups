@@ -1,12 +1,16 @@
 # Introduction
 
-*Hybrid Groups* integrates human team collaboration with agentic AI. Unlike typical AI applications built for single-user interaction, *Hybrid Groups* enables AI agents to have conversations with multiple team members simultaneously, recognizing each member’s identity and respecting their unique preferences and permissions. Agents can also proactively support team discussions by contributing relevant information or initiating helpful actions.
+*Hybrid Groups* integrates human team collaboration with AI agents. Unlike typical AI applications built for single-user interaction, *Hybrid Groups* enables AI agents to have conversations with multiple team members simultaneously, recognizing each member’s identity and respecting their unique preferences and permissions. Agents can also proactively support team discussions by contributing relevant information or initiating helpful actions.
 
 <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
     <iframe src="https://www.youtube.com/embed/OxOmRsNin4o" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
 </div>
 
-*Hybrid Groups* currently supports Slack and GitHub as team collaboration platforms, and is extensible to other platforms. Users and agents collaborate in group sessions. A group session corresponds to a thread in Slack or an issue in GitHub. The system analyzes messages to determine if an agent should be activated, and users may also invoke an agent directly by mentioning it. Agents have full group session context, including all messages and participants.
+*Hybrid Groups* currently supports Slack and GitHub as team collaboration platforms, and is extensible to other platforms. Teams collaborate with agents in group sessions. A group session corresponds to a thread in Slack or an issue in GitHub. The system analyzes group messages to determine if an agent should be activated, but users may also invoke agents directly. All agents have full group session context, including messages and participants.
+
+!!! Tip "Tutorial"
+
+    Check the [tutorial](tutorial.md) for a feature overview with examples.
 
 <div class="image-row">
   <div class="image-item">
