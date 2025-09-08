@@ -1,12 +1,12 @@
 # Introduction
 
+*Hybrid Groups* integrates human team collaboration with agentic AI. Unlike typical AI applications built for single-user interaction, *Hybrid Groups* enables AI agents to have conversations with multiple team members simultaneously, recognizing each member’s identity and respecting their unique preferences and permissions. Agents can also proactively support team discussions by contributing relevant information or initiating helpful actions.
+
 <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
     <iframe src="https://www.youtube.com/embed/OxOmRsNin4o" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
 </div>
 
-## Overview
-
-*Hybrid Groups* is a multi-user, multi-agent collaboration platform that enables users to interact with both agents and other users in group chats on Slack and GitHub. Agents act and respond according to each user's identity, preferences and privileges, enabling secure access to a user's private resources while collaborating in a team. Agents can also contribute proactively based on context and ongoing conversations.
+*Hybrid Groups* currently supports Slack and GitHub as team collaboration platforms, and is extensible to other platforms. Users and agents collaborate in group sessions. A group session corresponds to a thread in Slack or an issue in GitHub. The system analyzes messages to determine if an agent should be activated, and users may also invoke an agent directly by mentioning it. Agents have full group session context, including all messages and participants.
 
 <div class="image-row">
   <div class="image-item">
@@ -18,31 +18,9 @@
   </div>
   <div class="image-item">
     <div class="image-zoom">
-      <a href="images/overview/overview-2.png" target="_blank"><img src="images/overview/overview-2.png" class="thumbnail"></a>
-      <a href="images/overview/overview-2.png" target="_blank" class="large-link"><img src="images/overview/overview-2.png" class="large"></a>
-    </div>
-    <p class="caption"><b>Figure 2:</b> The <i>Hybrid Groups</i> Slack app home view.</p>
-  </div>
-  <div class="image-item">
-    <div class="image-zoom">
       <a href="images/overview/overview-3.png" target="_blank"><img src="images/overview/overview-3-crop.png" class="thumbnail"></a>
       <a href="images/overview/overview-3.png" target="_blank" class="large-link"><img src="images/overview/overview-3.png" class="large"></a>
     </div>
-    <p class="caption"><b>Figure 3:</b> A <i>Hybrid Groups</i> thread in GitHub.</p>
+    <p class="caption"><b>Figure 2:</b> A <i>Hybrid Groups</i> thread in GitHub.</p>
   </div>
 </div>
-
-## Features
-
-| Feature | Example| Description |
-|---|---|---|
-| **Group sessions** | <div class="image-zoom"><a href="images/features/feature-4.png" target="_blank"><img src="images/features/feature-4.png" class="thumbnail"></a><a href="images/features/feature-4.png" target="_blank" class="large-link"><img src="images/features/feature-4.png" class="large"></a></div> | In *Hybrid Groups*, users and agents collaborate in *group sessions*. A group session corresponds to a [thread](https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions) in Slack or an issue in GitHub. Agents have the full context of their session, seeing all messages, senders, and receivers. Each session runs their own instances of agents and background reasoners to isolate them from other sessions. To include context from other sessions, *Hybrid Groups* supports session references, e.g. via issue references in GitHub issues.|
-| **Background reasoning** | <div class="image-zoom"><a href="images/features/feature-1.png" target="_blank"><img src="images/features/feature-1.png" class="thumbnail"></a><a href="images/features/feature-1.png" target="_blank" class="large-link"><img src="images/features/feature-1.png" class="large"></a></div> | The system analyzes messages to determine if an agent could contribute to a conversation without being mentioned, allowing for proactive assistance. For example, if two users discuss a topic, a search agent may proactively provide context information. This process is guided by an *agent activation policy* ([example](prompts/policy.md)) and its status is indicated with emoji reactions on user messages: :eyes: reasoning started, :robot: agent activated, and :ballot_box_with_check: no further action. On GitHub, the corresponding emojis are :eyes:, :rocket:, and :thumbs_up:.|
-| **Agent activation** | <div class="image-zoom"><a href="images/features/feature-2.png" target="_blank"><img src="images/features/feature-2.png" class="thumbnail"></a><a href="images/features/feature-2.png" target="_blank" class="large-link"><img src="images/features/feature-2.png" class="large"></a></div> | Agents can be activated either via background reasoning or by directly mentioning an agent at the beginning of a user message. Mentioning an agent bypasses background reasoning, resulting in lower response latencies.|
-| **Identity-aware actions** | <div class="image-zoom"><a href="images/features/feature-6.png" target="_blank"><img src="images/features/feature-6.png" class="thumbnail"></a><a href="images/features/feature-6.png" target="_blank" class="large-link"><img src="images/features/feature-6.png" class="large"></a></div> | Agents can perform actions on behalf of specific users by executing tools with the requesting user's identity and permissions. Users provide secrets, such as API keys, to authorize agents to securely access private resources. These secrets are encrypted at rest and are never shared across users.|
-| **Action approval** | <div class="image-zoom"><a href="images/features/feature-7.png" target="_blank"><img src="images/features/feature-7.png" class="thumbnail"></a><a href="images/features/feature-7.png" target="_blank" class="large-link"><img src="images/features/feature-7.png" class="large"></a></div> | Tool execution can be approved once, for the duration of a session or permanently on a per-user basis. A permission request is sent to a user via a private channel. In Slack, for example, a permission request is sent as [ephemeral message](https://api.slack.com/surfaces/messages#ephemeral) that is only visible to the user who triggered the execution.|
-| **User preferences** | <div class="image-zoom"><a href="images/features/feature-5.png" target="_blank"><img src="images/features/feature-5.png" class="thumbnail"></a><a href="images/features/feature-5.png" target="_blank" class="large-link"><img src="images/features/feature-5.png" class="large"></a></div> | Users can set preferences in plain English to personalize how agents interact with them. Agents respect these settings for every user in a session, tailoring their behavior and response style to each person's preferences.|
-| **Task handoff** | <div class="image-zoom"><a href="images/features/feature-8.png" target="_blank"><img src="images/features/feature-8.png" class="thumbnail"></a><a href="images/features/feature-8.png" target="_blank" class="large-link"><img src="images/features/feature-8.png" class="large"></a></div> | Agents can be configured to handoff tasks to other, more specialized agents in the registry. User context is preserved during a handoff, or even a chain of handoffs. For example, in a handoff chain `User 1 -> Agent A -> Agent B -> Agent C`, `Agent C` still acts on behalf of the `User 1`.|
-| **Agent builder** | <div class="image-zoom"><a href="images/features/feature-10.png" target="_blank"><img src="images/features/feature-10.png" class="thumbnail"></a><a href="images/features/feature-10.png" target="_blank" class="large-link"><img src="images/features/feature-10.png" class="large"></a></div> | The Slack app includes a simple [agent builder](agent-builder.md) to create and edit agents from the app's home view. Users can build custom agents by defining their system prompt, model, tools, and criteria for for being activated by background reasoning. For integrating more advanced agents or agentic systems, use the *Hybrid Groups* Python SDK.|
-| **Python SDK**| | The Slack and GitHub integrations are built on our Python SDK, which provides the building blocks for developing custom multi-user, multi-agent applications. For interacting with agents, it defines an `Agent` abstraction that we currently implement with [Pydantic AI](https://ai.pydantic.dev/) but it can be replaced with other implementations if desired.|
-| **Session persistence**| | Group sessions are saved, so they can be resumed after a server restart. This includes all messages and the states of agents and background reasoners. Messages added by users in Slack or GitHub while the server is down are synchronized when sessions are resumed.|

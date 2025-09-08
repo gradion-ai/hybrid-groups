@@ -28,7 +28,7 @@ async def main(args):
 
     agent_registries = AgentRegistries()
     preference_store = DefaultPreferenceStore()
-    permission_store = DefaultPermissionStore(allowed_tools=[])
+    permission_store = DefaultPermissionStore()
     command_store = DefaultCommandStore()
     user_registry = DefaultUserRegistry(args.user_registry)
     await user_registry.unlock(args.user_registry_password)

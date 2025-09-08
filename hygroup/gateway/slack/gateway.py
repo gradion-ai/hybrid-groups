@@ -1,4 +1,5 @@
 import asyncio
+import html
 import logging
 import os
 import re
@@ -127,6 +128,7 @@ class SlackGateway(Gateway, RequestHandler):
 
         # maps from slack user id to system user id
         self._slack_user_mapping = user_mapping
+        self._slack_user_mapping[os.environ["SLACK_APP_USER_ID"]] = "system"
         # maps from system user id to slack user id
         self._system_user_mapping = {v: k for k, v in user_mapping.items()}
 
@@ -247,7 +249,7 @@ class SlackGateway(Gateway, RequestHandler):
             else:
                 command_name, command_content = parts
                 command_content = command_content.strip()
-                await command_store.save_command(command_content, command_name, user)
+                await command_store.save_command(html.unescape(command_content), command_name, user)
                 response_text = f":white_check_mark: Command `{command_name}` saved successfully."
         elif text.startswith("view "):
             command_name = text[5:].strip()
