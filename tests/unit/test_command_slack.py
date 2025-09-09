@@ -76,7 +76,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": "list"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.command_names.assert_called_once_with("alice")
@@ -94,7 +94,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": "list"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.command_names.assert_called_once_with("alice")
@@ -115,7 +115,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U456", "text": "save test-cmd echo hello world"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.save_command.assert_called_once_with("echo hello world", "test-cmd", "bob")
@@ -132,7 +132,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": "save test-cmd"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.save_command.assert_not_called()
@@ -150,7 +150,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": "view test-cmd"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.load_command.assert_called_once_with("test-cmd", "alice")
@@ -170,7 +170,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": "view nonexistent"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.load_command.assert_called_once_with("nonexistent", "alice")
@@ -188,7 +188,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U456", "text": "delete test-cmd"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.delete_command.assert_called_once_with("test-cmd", "bob")
@@ -207,7 +207,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": ""}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.command_names.assert_called_once_with("alice")
@@ -227,7 +227,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": ""}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.command_names.assert_called_once_with("alice")
@@ -243,7 +243,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": "help"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         command_store.command_names.assert_not_called()
@@ -265,7 +265,7 @@ class TestSlackCommandHandling:
         body = {"user_id": "U123", "text": "unknown operation"}
         respond = AsyncMock()
 
-        await slack_gateway.handle_command(ack, body, respond)
+        await slack_gateway.command_handler.handle_command(ack, body, respond)
 
         ack.assert_called_once()
         respond.assert_called_once()

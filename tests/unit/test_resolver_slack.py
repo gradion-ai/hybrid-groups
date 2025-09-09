@@ -147,8 +147,8 @@ class TestSlackResolverMentions:
     def test_slack_userid_with_special_chars(self, slack_gateway):
         """Test that user IDs with slashes and hyphens are handled correctly."""
         # Add a user with special characters in the ID
-        slack_gateway._slack_user_mapping["U-TEST/123"] = "testuser"
-        slack_gateway._system_user_mapping["testuser"] = "U-TEST/123"
+        slack_gateway.context.slack_user_mapping["U-TEST/123"] = "testuser"
+        slack_gateway.context.system_user_mapping["testuser"] = "U-TEST/123"
 
         assert slack_gateway._resolve_mentions("<@U-TEST/123>") == "@testuser"
         assert slack_gateway._resolve_mentions("Hello <@U-TEST/123>!") == "Hello @testuser!"
