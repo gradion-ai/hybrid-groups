@@ -28,4 +28,4 @@ Agents can also proactively support team discussions by contributing relevant in
   </div>
 </div>
 
-Users and agents collaborate in group sessions. A group session corresponds to a thread in Slack or an issue in GitHub. The system analyzes group messages to determine if an agent should be activated, but users may also invoke agents directly. All agents have full group session context, including messages and membersß.
+Users and agents collaborate in group sessions. A group session corresponds to a thread in Slack or an issue in GitHub. The system analyzes group messages to determine if an agent should be activated, but users may also invoke agents directly. All agents have full group session context, including messages and members.

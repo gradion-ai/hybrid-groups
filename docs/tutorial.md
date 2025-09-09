@@ -33,7 +33,7 @@ SLACK_APP_USER_ID=...
 
 ### Slack channel
 
-Go the the Slack workspace where you installed the app and create a channel. In the channel's menu, `Open channel details` -> `Integrations` -> `Add apps`, and select the `Hybrid Groups` app. 
+Go to the Slack workspace where you installed the app and create a channel. In the channel's menu, `Open channel details` -> `Integrations` -> `Add apps`, and select the `Hybrid Groups` app. 
 
 ### API keys
 
@@ -131,7 +131,7 @@ Click on the link and follow the instructions on the OAuth consent screen. After
 
     Users can only access their own Gmail account, never those of other users. Users **never** have access to service accounts of other users.
 
-The following example, the system agent uses an `office` subagent to get email statistics from the inboxes of two users.
+In the following example, the system agent uses an `office` subagent to get email statistics from the inboxes of two users.
 
 ![Access Gmail on behalf of individual users](images/tutorial/connectors.png)
 
