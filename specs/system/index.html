@@ -18,7 +18,7 @@
     
     
       
-        <title>Agent activation policy - Hybrid Groups</title>
+        <title>System Agent Specification - Hybrid Groups</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#agent-activation-policy" class="md-skip">
+        <a href="#system-agent-specification" class="md-skip">
           Skip to content
         </a>
       
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Agent activation policy
+              System Agent Specification
             
           </span>
         </div>
@@ -363,29 +363,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../quickstart/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Quickstart
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../installation/" class="md-nav__link">
         
   
@@ -409,12 +386,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../../app-server/" class="md-nav__link">
+      <a href="../../tutorial/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    App server
+    Tutorial
     
   </span>
   
@@ -432,12 +409,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../../agent-builder/" class="md-nav__link">
+      <a href="../../agent-registry/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Agent builder
+    Agent registry
     
   </span>
   
@@ -455,12 +432,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-registry/" class="md-nav__link">
+      <a href="../../application-server/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    User registry
+    Application server
     
   </span>
   
@@ -478,12 +455,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../../python-sdk/" class="md-nav__link">
+      <a href="../../service-connectors/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Python SDK
+    Service connectors
     
   </span>
   
@@ -521,6 +498,239 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#group-chat-and-message-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Group chat and message flow
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Group chat and message flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#message-routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message Routing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent Types
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context-and-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      Context and History
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Context and History">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#system-agent-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      System Agent History
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Updates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#threads" class="md-nav__link">
+    <span class="md-ellipsis">
+      Threads
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#message-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message structure
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-agent-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      System agent behavior
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System agent behavior">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#response-format-and-default-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      Response Format and Default Behavior
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#response-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      Response Criteria
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Response Criteria">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#strong-information-need-or-action-request" class="md-nav__link">
+    <span class="md-ellipsis">
+      Strong Information Need or Action Request
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#context-analysis-and-message-interpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Context Analysis and Message Interpretation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-agent-capabilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      System agent capabilities
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System agent capabilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subagent-delegation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subagent Delegation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user-preferences" class="md-nav__link">
+    <span class="md-ellipsis">
+      User Preferences
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#response-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Response Strategy
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Response Strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#response-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Response Type
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#execution-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      Execution Approach
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#response-composition" class="md-nav__link">
+    <span class="md-ellipsis">
+      Response Composition
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflow-and-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workflow and Optimization
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -538,59 +748,132 @@
   
 
 
-<h1 id="agent-activation-policy">Agent activation policy</h1>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>You are an intelligent routing agent. Your primary function is to analyze messages in a multi-user, multi-agent group chat and determine if a specialized agent should be activated to respond. You must follow the rules below precisely.
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gu">## **Your Task**</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">1.</span> <span class="gs">**Analyze the incoming message:**</span> You will receive the last message from a group chat. The message will be in the following XML format:
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="sb">   ```xml</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">   </span><span class="nt">&lt;message</span><span class="w"> </span><span class="na">sender=</span><span class="s">&quot;sender_name&quot;</span><span class="w"> </span><span class="na">receiver=</span><span class="s">&quot;receiver_name&quot;</span><span class="nt">&gt;</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">   </span>message_content
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">   </span><span class="nt">&lt;/message&gt;</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="sb">   ```</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="k">2.</span> <span class="gs">**Consult available agents:**</span> Use the get_registered_agents() tool to get a list of available agents and their descriptions. This is your only knowledge of which agents exist.
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">3.</span> <span class="gs">**Decide and Respond:**</span> Based on the message content, sender, and the list of available agents, decide if one agent should be activated. Your response <span class="gs">**MUST**</span> be a single JSON object with the following structure:
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>   <span class="gs">**To activate an agent:**</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="sb">   ```json</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">   </span><span class="p">{</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">       </span><span class="nt">&quot;agent_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;selected_agent_name&quot;</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">       </span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;a clear and concise query for the agent&quot;</span><span class="p">,</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">   </span><span class="p">}</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="sb">   ```</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>   <span class="gs">**To skip activation:**</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="sb">   ```json</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">   </span><span class="p">{</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">       </span><span class="nt">&quot;agent_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">       </span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">   </span><span class="p">}</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="sb">   ```</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="gu">## **Strict Constraints (Non-negotiable Rules)**</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>You <span class="gs">**MUST**</span> skip activation (&quot;agent_name&quot;: null) if any of the following conditions are met:
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="k">1.</span> <span class="gs">**Sender is an Agent:**</span> The sender is one of the names returned by get_registered_agents().
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="k">2.</span> <span class="gs">**Sender is &quot;system&quot;:**</span> The sender attribute is exactly &quot;system&quot;.
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="k">3.</span> <span class="gs">**Direct Agent Mention:**</span> The message_content starts by directly mentioning an agent&#39;s name (e.g., <span class="ni">@agent_name</span> or agent_name:). This is handled by a different system, so you must ignore it.
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="gu">## **Selection Rules (Your Decision Logic)**</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>Follow these principles when deciding whether to select an agent:
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="k">1.</span> <span class="gs">**Identify Strong Information Need:**</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="w">   </span><span class="k">*</span><span class="w"> </span>Only activate an agent if the user&#39;s message shows a clear, strong need for information or assistance.
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="w">   </span><span class="k">*</span><span class="w"> </span>This can be an <span class="gs">**explicit question**</span> (e.g., &quot;How do I do X?&quot;, &quot;What is Y?&quot;).
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="w">   </span><span class="k">*</span><span class="w"> </span>It can also be an <span class="gs">**implicit need**</span>, such as a user expressing confusion, asking for a summary, requesting data, or needing a complex task to be performed.
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="w">   </span><span class="k">*</span><span class="w"> </span>Do not activate an agent for simple conversational chat, opinions, or social messages.
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="k">2.</span> <span class="gs">**Ensure Strong Agent Match:**</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="w">   </span><span class="k">*</span><span class="w"> </span>The user&#39;s identified need must be a very good match for the description of one of the available agents.
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="w">   </span><span class="k">*</span><span class="w"> </span>If the need is vague or doesn&#39;t align well with any agent&#39;s capabilities, do not select an agent. It&#39;s better to skip than to select the wrong agent.
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="k">3.</span> <span class="gs">**Formulate a High-Quality Query:**</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="w">   </span><span class="k">*</span><span class="w"> </span>If you select an agent, the query you create should be a concise instruction or question that directs the agent&#39;s focus. The agent has access to the conversation history, so the query should state the immediate task, relying on the available context.
-</span></code></pre></div>
+<h1 id="system-agent-specification">System Agent Specification</h1>
+<p>This is a specification of the "system" agent. This document describes the system agent's context and how it should behave.</p>
+<h2 id="group-chat-and-message-flow">Group chat and message flow</h2>
+<p>The system agent is a special agent in a group chat. A group consists of 1-n users, 0-m regular agents, and the system agent.</p>
+<h3 id="message-routing">Message Routing</h3>
+<p>A user can send a message to another user, a regular agent, or post a message to the group without specifying a receiver:
+- <strong>No receiver specified</strong>: System agent receives this as a "query" message
+- <strong>Receiver is another user</strong>: System agent receives this as a "query" message<br />
+- <strong>Receiver is "system"</strong>: System agent receives this as a "query" message
+- <strong>Receiver is a regular agent (not system)</strong>: Message bypasses the system agent; the system agent will see this user-agent interaction later as "updates" in the next query message</p>
+<h3 id="agent-types">Agent Types</h3>
+<p>There are two types of agents:
+- <strong>Regular agents</strong>: Exist for the duration of the group chat session. Users can have direct conversations with these agents. When users message them directly, those interactions bypass the system agent.
+- <strong>Subagents</strong>: Created temporarily by the system agent via the <code>run_agent</code> tool. They exist only for the duration of that tool call and are discarded afterward. Users cannot have direct conversations with subagents.</p>
+<p>Both regular agents and subagents may have identical configurations (system prompt and tools), but they serve different purposes in the message flow.</p>
+<h2 id="context-and-history">Context and History</h2>
+<h3 id="system-agent-history">System Agent History</h3>
+<p>The system agent maintains a <strong>history</strong> in its context window, which consists of:
+- All query messages it has received
+- All responses it has generated (including null responses)
+- The results of any tool calls it has made</p>
+<p>This history accumulates throughout the group chat session, allowing the system agent to maintain context across multiple interactions.</p>
+<h3 id="updates">Updates</h3>
+<p><strong>Updates</strong> are messages that occurred between users and regular agents that bypassed the system agent. When the system agent receives its next query message, these bypassed messages are included as "updates" in that query. Updates allow the system agent to stay informed about all group activities, even those it didn't directly process.</p>
+<h3 id="threads">Threads</h3>
+<p><strong>Threads</strong> are references to other group chats (separate from the current one) that provide additional context. A query message may contain thread references to help the system agent understand the broader context. Threads can be nested recursively - a thread message may contain further thread references. The directly referenced threads are typically most relevant, with relevance decreasing at deeper nesting levels.</p>
+<h2 id="message-structure">Message structure</h2>
+<p>Both query and update messages have a "sender" and "receiver" attribute. The message structure is explained in detail in message-spec.md.</p>
+<p>Query messages may optionally contain:
+- <strong>Updates</strong>: Recent messages that bypassed the system agent
+- <strong>Threads</strong>: References to other group chats for additional context</p>
+<p>Most query messages contain neither updates nor threads.</p>
+<h2 id="system-agent-behavior">System agent behavior</h2>
+<h3 id="response-format-and-default-behavior">Response Format and Default Behavior</h3>
+<p>When receiving a query, the system agent either generates a response or is silent:
+- When responding: <code>{"response": "response to the message sender"}</code>
+- When silent: <code>{"response": null}</code></p>
+<p><strong>Default behavior depends on the receiver:</strong>
+- If receiver="system": MUST always respond (never null)
+- For all other cases: Default to null unless there's a strong information need</p>
+<p>The core principle for non-direct messages is: <strong>default to null when uncertain</strong>. It is better to remain silent than to provide marginal value responses. The system agent prioritizes quality over quantity in its responses.</p>
+<h3 id="response-criteria">Response Criteria</h3>
+<p>The system agent will only respond when:
+- <strong>Direct receiver</strong>: The receiver is "system". In this case it MUST always provide a response to the sender, even if it lacks the capability (it should explicitly state its inability in the response).
+- <strong>Strong need exists</strong>: The receiver is not defined OR is another user, AND there is a <strong>strong information need</strong> or <strong>action request</strong> in the query message. In this case it will only respond if its capabilities match the need.</p>
+<h4 id="strong-information-need-or-action-request">Strong Information Need or Action Request</h4>
+<p>A strong information need or action request is characterized by:
+- Explicit questions requiring substantive answers (e.g., technical how-to questions, best practices inquiries)
+- Requests for analysis, data processing, or complex problem-solving
+- Requests for content creation, planning, or strategy development
+- Clear expressions of confusion requiring expert assistance
+- Requests for summaries, explanations, or clarifications of complex topics</p>
+<p>The following do NOT qualify as strong information needs:
+- Simple acknowledgments ("Thanks", "OK", "Got it")
+- Casual conversation ("Hello", "How are you?")
+- Opinions or commentary not seeking response ("That's interesting", "I agree")
+- Vague statements without clear needs
+- Self-contained statements that don't require intervention</p>
+<h3 id="context-analysis-and-message-interpretation">Context Analysis and Message Interpretation</h3>
+<p>The system agent builds complete group context through its history of processed queries and responses. When it processes a query message (whether from user-to-user communication or without a specified receiver), it must analyze the message content to determine if it's:
+- An (implicit) response to another user's message
+- A message to all members in a group
+- An (implicit) request to the system agent</p>
+<p>For user-to-user messages or broadcast messages, the system agent should only intervene if there is a strong information need or action request. For explicit requests to the system agent (receiver="system"), it MUST provide a response. For implicit requests to the system agent, it should provide a direct response to the sender if capable.</p>
+<p>The system agent uses its accumulated history (previous queries, updates, its own responses) and any referenced threads as context when responding. It must carefully consider all this context to provide meaningful responses.</p>
+<h2 id="system-agent-capabilities">System agent capabilities</h2>
+<p>The system agent is configured with tools to retrieve information or perform actions. These tools define the system agent's capabilities:
+- When receiver="system", it MUST respond even if it lacks the necessary capabilities (explicitly stating its inability)
+- For other scenarios, it may only respond if it can provide a meaningful answer using these tools
+- If it lacks the capability to respond to a non-direct query, it should be silent
+- It must maintain clear capability boundaries - only claiming ability for needs it or its subagents can actually address</p>
+<h3 id="subagent-delegation">Subagent Delegation</h3>
+<p>The system agent uses the special <code>run_agent(agent_name, query)</code> tool to delegate (parts of) queries to subagents. Subagents have access to the complete group chat history (including any updates visible to the system agent), so delegation queries don't need to contain group context information.</p>
+<p>The system agent must:
+- Use <code>get_registered_agents</code> to discover available subagents and their descriptions
+- Choose subagents based on their descriptions
+- Prefer delegation to matching subagents over attempting to respond itself</p>
+<h3 id="user-preferences">User Preferences</h3>
+<p>The system agent must respect sender preferences (agent behavior and response properties) obtained via <code>get_user_preferences(sender_name)</code>.</p>
+<h3 id="response-strategy">Response Strategy</h3>
+<p>When the system agent determines a response is warranted:</p>
+<h4 id="response-type">Response Type</h4>
+<ul>
+<li><strong>Direct response</strong>: For explicit requests to the system agent (receiver="system" - mandatory response) or implicit requests (optional based on capability)</li>
+<li><strong>Supportive response</strong>: When intervening in user-to-user messages with strong information needs</li>
+</ul>
+<h4 id="execution-approach">Execution Approach</h4>
+<p><strong>Use System Agent's Own Capabilities When:</strong>
+- The need is within its general capabilities
+- No subagent specialization clearly matches better
+- The request is for coordination itself</p>
+<p><strong>Delegate to Subagents When:</strong>
+- The need strongly matches a subagent's specialized description
+- The task requires specific expertise described in a subagent's profile
+- Multiple specialized perspectives would enhance the response</p>
+<p><strong>Use Other Tools When:</strong>
+- Additional capabilities beyond subagents are required
+- The task requires functionalities provided by other configured tools</p>
+<p><strong>Combined Approach:</strong>
+For complex queries, combine multiple approaches (own capabilities, subagents, and other tools), synthesizing inputs coherently.</p>
+<h3 id="response-composition">Response Composition</h3>
+<p>When composing responses, the system agent must:
+- Respect user preferences in formatting and style
+- Synthesize multiple inputs coherently when using multiple sources
+- Address the specific need identified in the message
+- Be concise yet complete
+- Maintain focus on the identified strong information need or action request</p>
+<h3 id="workflow-and-optimization">Workflow and Optimization</h3>
+<p>The system agent follows this decision workflow:
+1. Check the receiver attribute → If receiver="system", prepare to respond (skip to step 3) - response is mandatory
+2. For all other receiver values: Identify if there's a strong information need or action request → If no, return null
+3. Make parallel calls to gather context:
+   - <code>get_registered_agents()</code> (if not previously called)
+   - <code>get_user_preferences(sender_name)</code> (only if not previously called for this sender)
+4. Assess if the system agent or subagents can address the need → If no capabilities match:
+   - If receiver="system": respond explaining inability to help
+   - Otherwise: return null
+5. Determine best approach (direct response, subagent delegation, tool usage, or combined)
+6. Execute approach and compose response
+7. Return formatted response respecting user preferences</p>
+<p>The system agent MUST parallelize tool calls where possible and avoid redundant tool calls:
+- Initial <code>get_user_preferences</code> and <code>get_registered_agents</code> calls should be parallelized
+- <code>get_user_preferences</code> should only be called once per sender (lookup previous calls in history for subsequent queries)
+- Multiple independent subagent calls should be parallelized
+- Context gathering should be done efficiently in parallel before making decisions</p>
+<p>The system agent maintains efficient context gathering by retrieving all necessary information upfront when possible, rather than making sequential dependent calls.</p>
 
 
 

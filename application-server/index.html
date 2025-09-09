@@ -11,10 +11,10 @@
       
       
       
-        <link rel="prev" href="../agent-builder/">
+        <link rel="prev" href="../agent-registry/">
       
       
-        <link rel="next" href="../python-sdk/">
+        <link rel="next" href="../service-connectors/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>User registry - Hybrid Groups</title>
+        <title>Application server - Hybrid Groups</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#user-registry" class="md-skip">
+        <a href="#application-server" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              User registry
+              Application server
             
           </span>
         </div>
@@ -374,29 +374,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Quickstart
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../installation/" class="md-nav__link">
         
   
@@ -420,12 +397,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../app-server/" class="md-nav__link">
+      <a href="../tutorial/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    App server
+    Tutorial
     
   </span>
   
@@ -443,12 +420,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../agent-builder/" class="md-nav__link">
+      <a href="../agent-registry/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Agent builder
+    Agent registry
     
   </span>
   
@@ -475,17 +452,67 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Application server
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
-    User registry
+    Application server
     
   </span>
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slack" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -499,12 +526,12 @@
   
   
     <li class="md-nav__item">
-      <a href="../python-sdk/" class="md-nav__link">
+      <a href="../service-connectors/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Python SDK
+    Service connectors
     
   </span>
   
@@ -542,6 +569,32 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slack" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github" class="md-nav__link">
+    <span class="md-ellipsis">
+      GitHub
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -559,21 +612,22 @@
   
 
 
-<h1 id="user-registry">User registry</h1>
-<p>The <a href="../app-server/">app server</a> automatically maintains a user registry for storing user secrets. Manual registration of users is optional but can be useful in the following cases:</p>
-<ul>
-<li>Mapping a Slack and GitHub username to a common <em>Hybrid Groups</em> username. The backend then uses this common username for message sender and receiver identification.</li>
-<li>Secure login with a common username and a user pasword into a terminal-based <a href="../app-server/#separate-user-channel">user channel</a> or <a href="../app-server/#terminal">chat client</a>.</li>
-</ul>
-<p>To start user registration, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.register
+<h1 id="application-server">Application server</h1>
+<h2 id="slack">Slack</h2>
+<p>To serve the Slack app, run:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
 </span></code></pre></div>
-<p>Then follow the instructions for providing</p>
-<ul>
-<li>a common username and an optional user password</li>
-<li>user secrets in the format <code>KEY=VALUE</code> (optional)</li>
-<li>Slack and GitHub usernames (for user mapping)</li>
-</ul>
+<p>To enable manual approval of agent actions via <a href="https://api.slack.com/surfaces/messages#ephemeral">ephemeral messages</a>, use the <code>--user-channel slack</code> option:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack<span class="w"> </span>--user-channel<span class="w"> </span>slack
+</span></code></pre></div>
+<h2 id="github">GitHub</h2>
+<p>To serve the GitHub app, run:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>github
+</span></code></pre></div>
+<p>The GitHub app server additionally requires a <a href="https://smee.io/">smee.io</a> channel for webhook payload delivery to the local server. A channel is generated during the <a href="../installation/#github-app">GitHub app setup</a>  and stored in the <code>.env</code> file as <code>GITHUB_APP_WEBHOOK_URL</code>. To connect to the channel, install the <a href="https://github.com/probot/smee-client">smee client</a> and run:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">source</span><span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="o">&amp;&amp;</span><span class="w"> </span>smee<span class="w"> </span>-u<span class="w"> </span><span class="nv">$GITHUB_APP_WEBHOOK_URL</span><span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
+</span></code></pre></div>
 
 
 

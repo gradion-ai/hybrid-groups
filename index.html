@@ -12,7 +12,7 @@
       
       
       
-        <link rel="next" href="quickstart/">
+        <link rel="next" href="installation/">
       
       
       <link rel="icon" href="assets/images/favicon.png">
@@ -358,19 +358,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Introduction
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="." class="md-nav__link md-nav__link--active">
         
   
@@ -383,66 +370,6 @@
 
       </a>
       
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      Overview
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    <span class="md-ellipsis">
-      Features
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="quickstart/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Quickstart
-    
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -478,12 +405,12 @@
   
   
     <li class="md-nav__item">
-      <a href="app-server/" class="md-nav__link">
+      <a href="tutorial/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    App server
+    Tutorial
     
   </span>
   
@@ -501,12 +428,12 @@
   
   
     <li class="md-nav__item">
-      <a href="agent-builder/" class="md-nav__link">
+      <a href="agent-registry/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Agent builder
+    Agent registry
     
   </span>
   
@@ -524,12 +451,12 @@
   
   
     <li class="md-nav__item">
-      <a href="user-registry/" class="md-nav__link">
+      <a href="application-server/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    User registry
+    Application server
     
   </span>
   
@@ -547,12 +474,12 @@
   
   
     <li class="md-nav__item">
-      <a href="python-sdk/" class="md-nav__link">
+      <a href="service-connectors/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Python SDK
+    Service connectors
     
   </span>
   
@@ -590,32 +517,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      Overview
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    <span class="md-ellipsis">
-      Features
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -634,12 +535,16 @@
 
 
 <h1 id="introduction">Introduction</h1>
+<p><em>Hybrid Groups</em> integrates human team collaboration with AI agents. Unlike typical AI applications built for single-user interaction, <em>Hybrid Groups</em> enables AI agents to have conversations with multiple users simultaneously, recognizing each user’s identity and respecting their unique preferences and permissions. </p>
 <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
     <iframe src="https://www.youtube.com/embed/OxOmRsNin4o" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
 </div>
 
-<h2 id="overview">Overview</h2>
-<p><em>Hybrid Groups</em> is a multi-user, multi-agent collaboration platform that enables users to interact with both agents and other users in group chats on Slack and GitHub. Agents act and respond according to each user's identity, preferences and privileges, enabling secure access to a user's private resources while collaborating in a team. Agents can also contribute proactively based on context and ongoing conversations.</p>
+<p>Agents can also proactively support team discussions by contributing relevant information or initiating helpful actions. <em>Hybrid Groups</em> currently supports Slack and GitHub as team collaboration platforms, and is extensible to other platforms. </p>
+<div class="admonition tip">
+<p class="admonition-title">Tutorial</p>
+<p>Check the <a href="tutorial/">tutorial</a> for a feature overview with examples.</p>
+</div>
 <div class="image-row">
   <div class="image-item">
     <div class="image-zoom">
@@ -650,82 +555,12 @@
   </div>
   <div class="image-item">
     <div class="image-zoom">
-      <a href="images/overview/overview-2.png" target="_blank"><img src="images/overview/overview-2.png" class="thumbnail"></a>
-      <a href="images/overview/overview-2.png" target="_blank" class="large-link"><img src="images/overview/overview-2.png" class="large"></a>
-    </div>
-    <p class="caption"><b>Figure 2:</b> The <i>Hybrid Groups</i> Slack app home view.</p>
-  </div>
-  <div class="image-item">
-    <div class="image-zoom">
       <a href="images/overview/overview-3.png" target="_blank"><img src="images/overview/overview-3-crop.png" class="thumbnail"></a>
       <a href="images/overview/overview-3.png" target="_blank" class="large-link"><img src="images/overview/overview-3.png" class="large"></a>
     </div>
-    <p class="caption"><b>Figure 3:</b> A <i>Hybrid Groups</i> thread in GitHub.</p>
+    <p class="caption"><b>Figure 2:</b> A <i>Hybrid Groups</i> thread in GitHub.</p>
   </div>
 </div>
-
-<h2 id="features">Features</h2>
-<table>
-<thead>
-<tr>
-<th>Feature</th>
-<th>Example</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Group sessions</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-4.png" target="_blank"><img src="images/features/feature-4.png" class="thumbnail"></a><a href="images/features/feature-4.png" target="_blank" class="large-link"><img src="images/features/feature-4.png" class="large"></a></div></td>
-<td>In <em>Hybrid Groups</em>, users and agents collaborate in <em>group sessions</em>. A group session corresponds to a <a href="https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions">thread</a> in Slack or an issue in GitHub. Agents have the full context of their session, seeing all messages, senders, and receivers. Each session runs their own instances of agents and background reasoners to isolate them from other sessions. To include context from other sessions, <em>Hybrid Groups</em> supports session references, e.g. via issue references in GitHub issues.</td>
-</tr>
-<tr>
-<td><strong>Background reasoning</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-1.png" target="_blank"><img src="images/features/feature-1.png" class="thumbnail"></a><a href="images/features/feature-1.png" target="_blank" class="large-link"><img src="images/features/feature-1.png" class="large"></a></div></td>
-<td>The system analyzes messages to determine if an agent could contribute to a conversation without being mentioned, allowing for proactive assistance. For example, if two users discuss a topic, a search agent may proactively provide context information. This process is guided by an <em>agent activation policy</em> (<a href="prompts/policy/">example</a>) and its status is indicated with emoji reactions on user messages: <img alt="👀" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f440.svg" title=":eyes:" /> reasoning started, <img alt="🤖" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f916.svg" title=":robot:" /> agent activated, and <img alt="☑" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/2611.svg" title=":ballot_box_with_check:" /> no further action. On GitHub, the corresponding emojis are <img alt="👀" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f440.svg" title=":eyes:" />, <img alt="🚀" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f680.svg" title=":rocket:" />, and <img alt="👍" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f44d.svg" title=":thumbs_up:" />.</td>
-</tr>
-<tr>
-<td><strong>Agent activation</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-2.png" target="_blank"><img src="images/features/feature-2.png" class="thumbnail"></a><a href="images/features/feature-2.png" target="_blank" class="large-link"><img src="images/features/feature-2.png" class="large"></a></div></td>
-<td>Agents can be activated either via background reasoning or by directly mentioning an agent at the beginning of a user message. Mentioning an agent bypasses background reasoning, resulting in lower response latencies.</td>
-</tr>
-<tr>
-<td><strong>Identity-aware actions</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-6.png" target="_blank"><img src="images/features/feature-6.png" class="thumbnail"></a><a href="images/features/feature-6.png" target="_blank" class="large-link"><img src="images/features/feature-6.png" class="large"></a></div></td>
-<td>Agents can perform actions on behalf of specific users by executing tools with the requesting user's identity and permissions. Users provide secrets, such as API keys, to authorize agents to securely access private resources. These secrets are encrypted at rest and are never shared across users.</td>
-</tr>
-<tr>
-<td><strong>Action approval</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-7.png" target="_blank"><img src="images/features/feature-7.png" class="thumbnail"></a><a href="images/features/feature-7.png" target="_blank" class="large-link"><img src="images/features/feature-7.png" class="large"></a></div></td>
-<td>Tool execution can be approved once, for the duration of a session or permanently on a per-user basis. A permission request is sent to a user via a private channel. In Slack, for example, a permission request is sent as <a href="https://api.slack.com/surfaces/messages#ephemeral">ephemeral message</a> that is only visible to the user who triggered the execution.</td>
-</tr>
-<tr>
-<td><strong>User preferences</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-5.png" target="_blank"><img src="images/features/feature-5.png" class="thumbnail"></a><a href="images/features/feature-5.png" target="_blank" class="large-link"><img src="images/features/feature-5.png" class="large"></a></div></td>
-<td>Users can set preferences in plain English to personalize how agents interact with them. Agents respect these settings for every user in a session, tailoring their behavior and response style to each person's preferences.</td>
-</tr>
-<tr>
-<td><strong>Task handoff</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-8.png" target="_blank"><img src="images/features/feature-8.png" class="thumbnail"></a><a href="images/features/feature-8.png" target="_blank" class="large-link"><img src="images/features/feature-8.png" class="large"></a></div></td>
-<td>Agents can be configured to handoff tasks to other, more specialized agents in the registry. User context is preserved during a handoff, or even a chain of handoffs. For example, in a handoff chain <code>User 1 -&gt; Agent A -&gt; Agent B -&gt; Agent C</code>, <code>Agent C</code> still acts on behalf of the <code>User 1</code>.</td>
-</tr>
-<tr>
-<td><strong>Agent builder</strong></td>
-<td><div class="image-zoom"><a href="images/features/feature-10.png" target="_blank"><img src="images/features/feature-10.png" class="thumbnail"></a><a href="images/features/feature-10.png" target="_blank" class="large-link"><img src="images/features/feature-10.png" class="large"></a></div></td>
-<td>The Slack app includes a simple <a href="agent-builder/">agent builder</a> to create and edit agents from the app's home view. Users can build custom agents by defining their system prompt, model, tools, and criteria for for being activated by background reasoning. For integrating more advanced agents or agentic systems, use the <em>Hybrid Groups</em> Python SDK.</td>
-</tr>
-<tr>
-<td><strong>Python SDK</strong></td>
-<td></td>
-<td>The Slack and GitHub integrations are built on our Python SDK, which provides the building blocks for developing custom multi-user, multi-agent applications. For interacting with agents, it defines an <code>Agent</code> abstraction that we currently implement with <a href="https://ai.pydantic.dev/">Pydantic AI</a> but it can be replaced with other implementations if desired.</td>
-</tr>
-<tr>
-<td><strong>Session persistence</strong></td>
-<td></td>
-<td>Group sessions are saved, so they can be resumed after a server restart. This includes all messages and the states of agents and background reasoners. Messages added by users in Slack or GitHub while the server is down are synchronized when sessions are resumed.</td>
-</tr>
-</tbody>
-</table>
 
 
 
