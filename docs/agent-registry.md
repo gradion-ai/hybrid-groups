@@ -1,6 +1,6 @@
 # Agent registry
 
-Agents in *Hybrid Groups* are configured and registered programmatically. An agent configuration includes system instructions, model settings, MCP servers and other tools. 
+Currently, agents are configured and registered programmatically in *Hybrid Groups*. An agent configuration includes system instructions, model settings, MCP servers and other tools. 
 
 !!! Example
 
@@ -14,17 +14,17 @@ A common setup is to have a [system agent](#system-agent) and zero or more speci
 A system agent monitors all messages in a [group session](tutorial.md#group-sessions). It may decide to stay silent or respond to a message, depending on message content, context and system instructions. [Default instructions](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/agent/system/prompt.md) for a system agent can be loaded with `system_agent_instructions()`.
 
 ```python
-from pydantic_ai.models.google import GoogleModelSettings
 from hygroup.agent.default import AgentSettings, MCPSettings
-from hygroup.agent.system.agent import system_agent_instructions
+from hygroup.agent.system import system_agent_instructions
+from pydantic_ai.models.google import GoogleModelSettings
 
 
 --8<-- "hygroup/examples/agents.py:system-agent"
 ```
 
-The `model` name in `AgentSettings` is a Pydantic AI [model name](https://ai.pydantic.dev/api/models/base/), `model_settings` are general Pydantic AI [ModelSettings](https://ai.pydantic.dev/api/settings/) or those of a specific model provider, like [GoogleModelSettings](https://ai.pydantic.dev/models/google/#model-settings).
+The `model` in `AgentSettings` is a Pydantic AI [model name](https://ai.pydantic.dev/api/models/base/), `model_settings` are general Pydantic AI [ModelSettings](https://ai.pydantic.dev/api/settings/) or those of a specific model provider, like [GoogleModelSettings](https://ai.pydantic.dev/models/google/#model-settings).
 
-The configuration returned from `system_agent_config()` is added to the `AgentRegistry` with the `add_config()` method. The registry is persisted to `registry_path` with the `save()` method.
+The configuration returned from `system_agent_config()` is added to the `AgentRegistry` with the `add_config()` method. The registry is persisted to `registry_path` with  `save()`.
 
 ```python
 import asyncio
@@ -53,11 +53,11 @@ Remote MCP servers of Composio [service connectors](service-connectors.md) must 
 --8<-- "hygroup/examples/agents.py:office-agent"
 ```
 
-Values for toolkit-specific variables are generated during [Composio MCP server setup](service-connectors.md#setup-mcp-servers). `COMPOSIO_USER_ID`s are generated during [connector authorization](service-connectors.md#authorize-access), and then stored as [user secrets](tutorial.md#personal-settings). 
+Values for toolkit-specific variables are generated during [Composio MCP server setup](service-connectors.md#setup-mcp-servers). `COMPOSIO_USER_ID`s are generated during [access authorization](service-connectors.md#authorize-access), and then stored as [user secrets](tutorial.md#personal-settings). 
 
 ## Scoped registries
 
-The `AgentRegistries` class supports multiple registries scoped to specific Slack channels. For example, with `.data/agents` as the `root_path`:
+The `AgentRegistries` class supports multiple registries scoped to specific Slack channels. For example, with `.data/agents` as the `root_path`
 
 ```python
 from hygroup.agent.registry import AgentRegistries
@@ -66,7 +66,7 @@ from hygroup.agent.registry import AgentRegistries
 agent_registries = AgentRegistries(root_path=".data/agents")
 ```
 
-and this registry hierarchy:
+and this registry hierarchy
 
 ```
 .data/agents/
@@ -77,7 +77,7 @@ and this registry hierarchy:
 │   └── registry.json
 ```
 
-*Hybrid Groups* will load the registries as follows:
+*Hybrid Groups* loads the registries as follows:
 
 - `.data/agents/my-channel-1/registry.json` for Slack channel `my-channel-1`
 - `.data/agents/my-channel-2/registry.json` for Slack channel `my-channel-2`

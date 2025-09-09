@@ -1,6 +1,6 @@
 # Service connectors
 
-*Hybrid Groups* connects to popular services like Gmail, Notion, Figma, etc. through [Composio](https://composio.dev/), which provides access to 250+ services called [toolkits](https://docs.composio.dev/toolkits/introduction). Users authorize access to their service accounts via OAuth or API keys. *Hybrid Groups* agents access these services on behalf of individual users through [Composio MCP servers](https://docs.composio.dev/docs/mcp-overview).
+*Hybrid Groups* connects to popular services like Gmail, Notion, Figma, etc. through [Composio](https://composio.dev/), which provides access to 250+ services called [toolkits](https://docs.composio.dev/toolkits/introduction). Users authorize access to their service accounts via OAuth or API keys. *Hybrid Groups* agents use [Composio MCP servers](https://docs.composio.dev/docs/mcp-overview) to access these services on behalf of individual users.
 
 ## Composio API key
 
@@ -68,7 +68,7 @@ Create Composio MCP servers with:
 python -m hygroup.scripts.composio setup --toolkit-config-path toolkits.json
 ```
 
-You should now see a Composio configuration at `.data/composio/config.json`. When running the `/hygroup-connect` slash command in Slack
+You should now see a Composio configuration at `.data/composio/config.json`. When running the `/hygroup-connect` command in Slack
 
 ![Connect command](images/tutorial/commands/cmd-connect.png)
 
@@ -78,7 +78,7 @@ you should see the following output:
 
 ## Authorize access
 
-Run the `/hygroup-connect <toolkit>` command in Slack to initiate the authorization procedure for a service identified by `<toolkit>`. For example, running `/hygroup-connect gmail` returns a link to initiate the OAuth flow for Gmail:
+Run the `/hygroup-connect <toolkit>` command in Slack to initiate the authorization flow for a service identified by `<toolkit>`. For example, running `/hygroup-connect gmail` returns a link to initiate the OAuth flow for Gmail:
 
 ![Composio toolkits](images/tutorial/commands/cmd-connect-result-2.png)
 

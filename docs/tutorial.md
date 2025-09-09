@@ -60,10 +60,10 @@ This creates an agent registry at `.data/agents/registry.json` with the followin
   
     !!! Info "Subagents"
 
-        The `system` agent can also invoke other agents as subagents. See section [group sessions](#group-sessions) for an example.
+        The `system` agent can also invoke other agents as subagents. See [group sessions](#group-sessions) and [service connectors](#service-connectors) for examples.
 
 - A `math` agent that can execute Python code for calculations, data analysis, and visualizations. It is configured with an [ipybox MCP server](https://gradion-ai.github.io/ipybox/mcp-server/) for secure code execution in a sandbox.
-- An `office` agent that can manage a user's Gmail, Google Calendar, and Google Drive. It uses [service connectors](service-connectors.md) to access these services on behalf of individual users. The `office` agent requires an `OPENAI_API_KEY` in `.env` as it uses `openai:gpt-5-mini` as model.
+- An `office` agent that can manage a user's Gmail, Google Calendar, and Google Drive. It uses [service connectors](#service-connectors) to access these services on behalf of individual users. The `office` agent requires an `OPENAI_API_KEY` in `.env` as it uses `openai:gpt-5-mini` as model.
 
     ```env title=".env"
     OPENAI_API_KEY=...
@@ -89,7 +89,7 @@ uv run python -m hygroup.scripts.server --gateway slack
 
 ## Personal settings
 
-Click on the `Hybrid Groups` app in Slack, then the `Home` tab to see your personal settings. These are your preferences (agent response style, ...) and your secrets (API keys, ...). In the following example, the user provides his own `BRAVE_API_KEY` which takes precedence over the default `BRAVE_API_KEY` in the `.env` file.
+Click on the `Hybrid Groups` app in Slack, then the `Home` tab to see your personal settings. These are your preferences (agent response style, ...) and your secrets (API keys, ...). In this example, the user provides his own `BRAVE_API_KEY` which takes precedence over the default `BRAVE_API_KEY` in the `.env` file.
 
 ![Personal settings](images/tutorial/home-view.png)
 
@@ -119,7 +119,7 @@ To enable the `office` agent to access Gmail on behalf of individual users, they
 
 ![Connect command](images/tutorial/commands/cmd-connect.png)
 
-The system responds to this command with a link to initiate the OAuth flow for Gmail:
+The system responds with a link to initiate the OAuth flow for Gmail:
 
 ![Composio toolkits](images/tutorial/commands/cmd-connect-result-2.png)
 
@@ -131,7 +131,7 @@ Click on the link and follow the instructions on the OAuth consent screen. After
 
     Users can only access their own Gmail account, never those of other users. Users **never** have access to service accounts of other users.
 
-The following example uses `office` subagents to get email statistics from the inboxes of two users.
+The following example, the system agent uses an `office` subagent to get email statistics from the inboxes of two users.
 
 ![Access Gmail on behalf of individual users](images/tutorial/connectors.png)
 
@@ -149,13 +149,13 @@ Users can be requested to approve actions that are executed on their behalf by s
 uv run python -m hygroup.scripts.server --gateway slack --user-channel slack
 ```
 
-Approval requests are sent to the initiating user as [ephemeral messages](https://docs.slack.dev/messaging/#ephemeral) i.e. visible only to that user. Users can choose to approve an action once, for this session, always, or deny execution. Relevant for an action is the tool name only, not the arguments.
+Approval requests are sent to the initiating user as [ephemeral messages](https://docs.slack.dev/messaging/#ephemeral), visible only to that user. Users can choose to approve an action once, for the current session, always, or deny execution. Relevant for an action is the tool name only, not the arguments.
 
 ![Action approval](images/tutorial/approval.png)
 
 ## Magic commands
 
-Magic commands are frequently used prompts saved under a custom name. Magic commands are managed with the `/hygroup-command` slash command.
+Magic commands are frequently used prompts saved under a custom name. Magic commands are managed with the `/hygroup-command` slash command in Slack.
 
 ![Magic commands](images/tutorial/commands/cmd-command.png)
 

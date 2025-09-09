@@ -4,7 +4,7 @@ from pydantic_ai.models.google import GoogleModelSettings
 
 from hygroup.agent.default import AgentSettings, MCPSettings
 from hygroup.agent.registry import AgentRegistry
-from hygroup.agent.system.agent import system_agent_instructions
+from hygroup.agent.system import system_agent_instructions
 from hygroup.examples.template import InstructionsTemplate
 from hygroup.examples.weather import get_weather_forecast
 
