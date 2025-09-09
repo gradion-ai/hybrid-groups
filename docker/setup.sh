@@ -25,7 +25,7 @@ if [ -f .env ]; then
 
     CONFIG_EXISTS=false
     if [ "$GATEWAY" = "slack" ]; then
-        if [ -n "$SLACK_APP_ID" ]; then
+        if [ -n "$SLACK_APP_USER_ID" ]; then
             CONFIG_EXISTS=true
         fi
     elif [ "$GATEWAY" = "github" ]; then

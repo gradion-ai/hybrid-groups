@@ -15,7 +15,7 @@ validate_config() {
 
     CONFIG_FOUND=false
     if [ "$GATEWAY" = "slack" ]; then
-        if [ -n "$SLACK_APP_ID" ]; then
+        if [ -n "$SLACK_APP_USER_ID" ]; then
             CONFIG_FOUND=true
         fi
     elif [ "$GATEWAY" = "github" ]; then
@@ -95,7 +95,7 @@ register_agents() {
         echo ""
         echo "Registering demo agents in agent registry..."
         echo ""
-        python demo/register_agents.py
+        python hygroup/examples/agents.py
     fi
 }
 
