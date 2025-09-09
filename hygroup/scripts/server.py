@@ -24,7 +24,7 @@ from hygroup.user.default.command import DefaultCommandStore
 
 async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
-        raise ValueError("The 'slack' user channel is only available with the 'slack' gateway.")
+        raise ValueError("Invalid configuration: --user-channel=slack requires --gateway=slack")
 
     agent_registries = AgentRegistries()
     preference_store = DefaultPreferenceStore()
