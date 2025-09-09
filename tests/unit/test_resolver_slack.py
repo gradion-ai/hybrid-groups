@@ -36,6 +36,7 @@ def slack_gateway(session_manager, composio_connector, command_store, monkeypatc
     # Set required environment variables
     monkeypatch.setenv("SLACK_BOT_TOKEN", "test-bot-token")
     monkeypatch.setenv("SLACK_APP_TOKEN", "test-app-token")
+    monkeypatch.setenv("SLACK_APP_USER_ID", "test-app-user-id")
 
     user_mapping = {
         "U04P0E9BQ73": "martin",
