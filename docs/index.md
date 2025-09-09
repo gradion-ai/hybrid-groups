@@ -11,6 +11,7 @@ Agents can also proactively support team discussions by contributing relevant in
 !!! Tip "Tutorial"
 
     Check the [tutorial](tutorial.md) for a feature overview with examples.
+
 <div class="image-row">
   <div class="image-item">
     <div class="image-zoom">
@@ -27,5 +28,3 @@ Agents can also proactively support team discussions by contributing relevant in
     <p class="caption"><b>Figure 2:</b> A <i>Hybrid Groups</i> thread in GitHub.</p>
   </div>
 </div>
-
-Users and agents collaborate in group sessions. A group session corresponds to a thread in Slack or an issue in GitHub. The system analyzes group messages to determine if an agent should be activated, but users may also invoke agents directly. All agents have full group session context, including messages and members.
