@@ -1,5 +1,4 @@
 import logging
-from functools import lru_cache
 from typing import Annotated, Awaitable, Callable
 
 from fastapi import Depends
@@ -17,9 +16,8 @@ def settings_provider() -> AppSettings:  # type: ignore
 SettingsDependency = Annotated[AppSettings, Depends(settings_provider)]
 
 
-@lru_cache(maxsize=1)
 def github_webhook_secret_provider(settings: SettingsDependency) -> bytes:  # type: ignore
-    return settings.github_app_webhook_secret.encode("utf-8")
+    return settings.webhook_secret.encode("utf-8")
 
 
 GithubWebhookSecretDependency = Annotated[bytes, Depends(github_webhook_secret_provider)]

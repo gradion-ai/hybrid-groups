@@ -25,8 +25,6 @@ class DefaultPermissionStore(PermissionStore):
 
         if allowed_tools is None:
             self.allowed_tools = [
-                "get_user_preferences",
-                "get_registered_agents",
                 "run_agent",
                 "ask_user",
                 "final_result",

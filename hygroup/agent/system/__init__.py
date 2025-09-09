@@ -1,1 +1,1 @@
-from hygroup.agent.system.agent import SystemAgent
+from hygroup.agent.system.agent import SystemAgent, system_agent_instructions

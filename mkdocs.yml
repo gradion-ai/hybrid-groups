@@ -84,12 +84,11 @@ markdown_extensions:
 nav:
   - User Guide:
     - Introduction: index.md
-    - Quickstart: quickstart.md
     - Installation: installation.md
-    - App server: app-server.md
-    - Agent builder: agent-builder.md
-    - User registry: user-registry.md
-    - Python SDK: python-sdk.md
+    - Tutorial: tutorial.md
+    - Agent registry: agent-registry.md
+    - Application server: application-server.md
+    - Service connectors: service-connectors.md
 
 extra_css:
   - css/custom.css

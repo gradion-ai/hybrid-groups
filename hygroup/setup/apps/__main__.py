@@ -7,7 +7,6 @@ from threading import Timer
 
 import uvicorn
 
-from hygroup import PROJECT_ROOT_PATH
 from hygroup.setup.apps.app import create_app
 from hygroup.setup.apps.credentials import CredentialManager
 
@@ -33,20 +32,18 @@ def main(
     app_type: str,
     host: str,
     port: int,
-    key_folder: str,
+    key_folder: Path,
+    env_file: Path,
     open_browser_flag: bool = True,
 ):
-    private_key_folder = Path(key_folder)
+    if not key_folder.exists():
+        key_folder.mkdir(parents=True, exist_ok=True)
 
-    if not private_key_folder.exists():
-        private_key_folder.mkdir(parents=True, exist_ok=True)
-
-    env_file = PROJECT_ROOT_PATH.parent / ".env"
     if not env_file.exists():
         env_file.touch()
 
     credential_manager = CredentialManager(
-        key_folder=private_key_folder,
+        key_folder=key_folder,
         env_file=env_file,
     )
     app = create_app(
@@ -111,8 +108,14 @@ if __name__ == "__main__":
         help="Server port (default: random available port)",
     )
     parser.add_argument(
+        "--env-file",
+        type=Path,
+        default=".env",
+        help="Path to the .env file (default: '.env')",
+    )
+    parser.add_argument(
         "--key-folder",
-        type=str,
+        type=Path,
         default=".data/secrets/github-apps",
         help="Relative path to the folder to store GitHub App private keys (default: '.data/secrets/github-apps')",
     )
@@ -129,5 +132,6 @@ if __name__ == "__main__":
         host=args.host,
         port=args.port or find_available_port(),
         key_folder=args.key_folder,
+        env_file=args.env_file,
         open_browser_flag=not args.no_browser,
     )

@@ -39,8 +39,9 @@ def github_gateway(session_manager):
         gateway = GithubGateway(
             session_manager=session_manager,
             github_app_id=12345,
-            github_installation_id=67890,
-            github_private_key="test-private-key",
+            github_app_installation_id=67890,
+            github_app_private_key="test-private-key",
+            github_app_webhook_secret="test-webhook-secret",
             github_app_username="test-bot",
             user_mapping=user_mapping,
         )

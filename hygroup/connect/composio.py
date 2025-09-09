@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import aiofiles
-from composio_client import Composio
+from composio_client import AsyncComposio
 
 from hygroup.user import User, UserRegistry
 
@@ -58,12 +58,13 @@ class ComposioConnector:
         user_registry: UserRegistry,
         config_path: Path = Path(".data", "composio", "config.json"),
         toolkits_path: Path | None = None,
+        api_key: str | None = None,
     ):
         self.user_registry = user_registry
         self.config_path = config_path
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self.toolkits_path = toolkits_path if toolkits_path is not None else Path(__file__).parent / "toolkits.json"
-        self.client = Composio(api_key=os.getenv("COMPOSIO_API_KEY"))
+        self.client = AsyncComposio(api_key=api_key or os.getenv("COMPOSIO_API_KEY"))
 
     async def save_config(self, config: ComposioConfig):
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -73,10 +74,14 @@ class ComposioConnector:
 
     async def load_config(self) -> ComposioConfig:
         if not self.config_path.exists():
-            raise FileNotFoundError(f"Config file not found at {self.config_path}. Please run `setup` first.")
+            return ComposioConfig()
 
         async with aiofiles.open(self.config_path, "r") as f:
             return ComposioConfig(json.loads(await f.read()))
+
+    async def tools(self, toolkit: str, include_deprecated: bool = False) -> dict[str, str]:
+        tools = await self.client.tools.list(toolkit_slug=toolkit, limit=1000, include_deprecated=include_deprecated)
+        return {item.slug: item.description for item in tools.items}
 
     async def setup(self):
         if self.config_path.exists():
@@ -90,7 +95,7 @@ class ComposioConnector:
 
         for name, value in toolkits.items():
             if name not in data:
-                data[name] = self._setup_toolkit(name, value)
+                data[name] = await self._setup_toolkit(name, value)
 
         await self.save_config(ComposioConfig(data))
 
@@ -98,10 +103,12 @@ class ComposioConnector:
         _config = await self.load_config()
 
         for mcp_config_id in _config.mcp_config_ids():
-            self.client.mcp.delete(id=mcp_config_id)
+            await self.client.mcp.delete(id=mcp_config_id)
 
         for auth_config_id in _config.auth_config_ids():
-            self.client.auth_configs.delete(nanoid=auth_config_id)
+            await self.client.auth_configs.delete(nanoid=auth_config_id)
+
+        await self.save_config(ComposioConfig())
 
     async def connection_status(self, system_user_id: str, config: ComposioConfig | None = None) -> dict[str, bool]:
         # -----------------------------------------------------
@@ -133,8 +140,8 @@ class ComposioConnector:
 
         return await self._connect_toolkit(composio_user_id, toolkit_name)
 
-    def _setup_toolkit(self, name: str, value: dict[str, Any]) -> dict[str, str]:
-        ac_response = self.client.auth_configs.create(
+    async def _setup_toolkit(self, name: str, value: dict[str, Any]) -> dict[str, str]:
+        ac_response = await self.client.auth_configs.create(
             toolkit={"slug": name},
             auth_config={
                 "name": f"hygroup-{name}",
@@ -143,7 +150,7 @@ class ComposioConnector:
             },
         )
 
-        mcp_response = self.client.mcp.create(
+        mcp_response = await self.client.mcp.create(
             auth_config_ids=[ac_response.auth_config.id],
             name=f"hygroup-{name}",
             allowed_tools=value["tools"],
@@ -159,7 +166,7 @@ class ComposioConnector:
     async def _active_connections(self, composio_user_id: str, config: ComposioConfig) -> list[str]:
         """Return a list of toolkit names for which the given user has an active connection."""
 
-        accounts = self.client.connected_accounts.list(
+        accounts = await self.client.connected_accounts.list(
             limit=100,
             user_ids=[composio_user_id],
             auth_config_ids=config.auth_config_ids(),
@@ -184,16 +191,16 @@ class ComposioConnector:
 
         auth_config_id = config.auth_config_id(toolkit_name)
 
-        accounts = self.client.connected_accounts.list(
+        accounts = await self.client.connected_accounts.list(
             limit=100,
             user_ids=[composio_user_id],
             auth_config_ids=[auth_config_id],
             toolkit_slugs=[toolkit_name],
         )
         for account in accounts.items:
-            self.client.connected_accounts.delete(account.id)
+            await self.client.connected_accounts.delete(account.id)
 
-        response = self.client.connected_accounts.create(
+        response = await self.client.connected_accounts.create(
             auth_config={"id": auth_config_id},
             connection={"user_id": composio_user_id},
         )

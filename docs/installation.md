@@ -1,49 +1,45 @@
 # Installation
 
+*Hybrid Groups* requires an installation of
+
+- the `hybrid-groups` [Python package](#python-package),
+- the [Slack app](#slack-app) in a Slack workspace, or
+- the [GitHub app](#github-app) in a GitHub repository
+
 ## Python package
 
 ```bash
 pip install hybrid-groups
 ```
 
-## Development environment
-
-```bash
-git clone https://github.com/gradion-ai/hybrid-groups.git
-cd hybrid-groups
-uv sync
-source .venv/bin/activate
-```
-
-Find more details in [DEVELOPMENT.md](https://github.com/gradion-ai/hybrid-groups/blob/main/DEVELOPMENT.md).
-
 ## Slack app
 
-To set up and install the *Hybrid Groups* Slack app to your workspace, run:
+For installing the *Hybrid Groups* Slack app in a Slack workspace, launch the setup wizard and follow the instructions on the screen:
 
 ```shell
 python -m hygroup.setup.apps slack
 ```
 
-This will add the following variables to your `.env` file:
+After installation, you should see the following variables in a `.env` file in the current working directory:
 
 ```env title=".env"
 SLACK_BOT_TOKEN=...
+SLACK_BOT_ID=...
 SLACK_APP_TOKEN=...
-SLACK_APP_ID=...
+SLACK_APP_USER_ID=...
 ```
 
-After setup, you must manually add the app to any Slack channels you want it to be active in. You can do this from the channel's menu under `Open channel details` -> `Integrations` -> `Add apps`.
+For using the app, add it to a channel in Slack. In the channel's menu, `Open channel details` -> `Integrations` -> `Add apps`, and select the `Hybrid Groups` app.
 
 ## GitHub app
 
-To set up and install the *Hybrid Groups* GitHub app in one or more repositories, run:
+For installing the *Hybrid Groups* GitHub app in a GitHub repository, launch the setup wizard and follow the instructions on the screen:
 
 ```shell
 python -m hygroup.setup.apps github
 ```
 
-This will add the following variables to your `.env` file:
+After installation, you should see the following variables in a `.env` file in the current working directory:
 
 ```env title=".env"
 GITHUB_APP_ID=...
@@ -51,6 +47,12 @@ GITHUB_APP_USERNAME=...
 GITHUB_APP_CLIENT_SECRET=...
 GITHUB_APP_WEBHOOK_SECRET=...
 GITHUB_APP_PRIVATE_KEY_PATH=...
+GITHUB_APP_WEBHOOK_URL=...
 GITHUB_APP_INSTALLATION_ID=...
-GITHUB_APP_WEBHOOK_URL...
+```
+
+For serving the GitHub app locally, you additionally need to install the [smee client](https://github.com/probot/smee-client):
+
+```bash
+npm install -g smee-client
 ```
