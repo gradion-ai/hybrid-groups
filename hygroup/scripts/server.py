@@ -15,12 +15,12 @@ from hygroup.user import RequestHandler
 from hygroup.user.default import (
     DefaultPermissionStore,
     DefaultPreferenceStore,
-    DefaultUserRegistry,
     RequestServer,
     RichConsoleHandler,
     UserMapping,
 )
 from hygroup.user.default.command import DefaultCommandStore
+from hygroup.user.secrets import SecretsStore
 
 
 async def main(args):
@@ -31,17 +31,18 @@ async def main(args):
     preference_store = DefaultPreferenceStore()
     permission_store = DefaultPermissionStore()
     command_store = DefaultCommandStore()
-    user_registry = DefaultUserRegistry(args.user_registry)
     user_mapping = UserMapping()
-    await user_registry.unlock(args.user_registry_password)
 
-    composio_connector = ComposioConnector(user_registry=user_registry)
+    secrets_store = SecretsStore(args.secrets_store)
+    await secrets_store.unlock(args.secrets_store_password)
+
+    composio_connector = ComposioConnector(secrets_store=secrets_store)
     composio_config = await composio_connector.load_config()
 
     request_handler: RequestHandler
     match args.user_channel:
         case "terminal":
-            request_handler = RequestServer(user_registry)
+            request_handler = RequestServer(secrets_store)
             await request_handler.start(join=False)
         case _:
             request_handler = RichConsoleHandler(
@@ -51,7 +52,7 @@ async def main(args):
 
     manager = SessionManager(
         agent_registries=agent_registries,
-        user_registry=user_registry,
+        secrets_store=secrets_store,
         permission_store=permission_store,
         preferences_store=preference_store,
         request_handler=request_handler,
@@ -74,7 +75,7 @@ async def main(args):
             handlers = SlackHomeHandlers(
                 client=gateway.client,
                 app=gateway.app,
-                user_registry=user_registry,
+                secrets_store=secrets_store,
                 preference_store=preference_store,
                 user_mapping=mapping,
             )
@@ -105,16 +106,16 @@ if __name__ == "__main__":
         help="The communication platform to use.",
     )
     parser.add_argument(
-        "--user-registry",
+        "--secrets-store",
         type=Path,
-        default=Path(".data", "users", "registry.bin"),
-        help="Path to the user registry file.",
+        default=Path(".data", "users"),
+        help="Path to the secrets store directory.",
     )
     parser.add_argument(
-        "--user-registry-password",
+        "--secrets-store-password",
         type=str,
         default="admin",
-        help="Admin password for creating or unlocking the user registry.",
+        help="Admin password for creating or unlocking the secrets store.",
     )
     parser.add_argument(
         "--user-channel",

@@ -24,8 +24,9 @@ from hygroup.agent import (
 from hygroup.agent.registry import AgentRegistries
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
-from hygroup.user import CommandStore, PermissionStore, RequestHandler, UserRegistry
+from hygroup.user import CommandStore, PermissionStore, RequestHandler
 from hygroup.user.default import DefaultPreferenceStore
+from hygroup.user.secrets import SecretsStore
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +175,7 @@ class Session:
         self.manager = manager
 
         self.agent_registries: AgentRegistries = self.manager.agent_registries
-        self.user_registry: UserRegistry = self.manager.user_registry
+        self.secrets_store: SecretsStore = self.manager.secrets_store
         self.permission_store: PermissionStore = self.manager.permission_store
         self.preference_store: DefaultPreferenceStore = self.manager.preference_store
         self.composio_config: ComposioConfig = self.manager.composio_config
@@ -369,8 +370,8 @@ class Session:
         )
         await self._gateway_queue.put(coro)
 
-        # get secrets of authenticated sender
-        user_secrets = self.user_registry.get_secrets(request.sender) or {}
+        # get secrets of sender
+        user_secrets = self.secrets_store.get_secrets(request.sender) or {}
         mcp_vars = self.composio_config.mcp_config_vars()
 
         # invoke receiver agent with request
@@ -449,7 +450,7 @@ class SessionManager:
     def __init__(
         self,
         agent_registries: AgentRegistries,
-        user_registry: UserRegistry,
+        secrets_store: SecretsStore,
         permission_store: PermissionStore,
         preferences_store: DefaultPreferenceStore,
         request_handler: RequestHandler,
@@ -458,7 +459,7 @@ class SessionManager:
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registries = agent_registries
-        self.user_registry = user_registry
+        self.secrets_store = secrets_store
         self.permission_store = permission_store
         self.preference_store = preferences_store
         self.request_handler = request_handler

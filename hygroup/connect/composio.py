@@ -7,7 +7,7 @@ from typing import Any
 import aiofiles
 from composio_client import AsyncComposio
 
-from hygroup.user import User, UserRegistry
+from hygroup.user.secrets import SecretsStore
 
 
 class ComposioConfig:
@@ -55,12 +55,12 @@ class ComposioConfig:
 class ComposioConnector:
     def __init__(
         self,
-        user_registry: UserRegistry,
+        secrets_store: SecretsStore,
         config_path: Path = Path(".data", "composio", "config.json"),
         toolkits_path: Path | None = None,
         api_key: str | None = None,
     ):
-        self.user_registry = user_registry
+        self.secrets_store = secrets_store
         self.config_path = config_path
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self.toolkits_path = toolkits_path if toolkits_path is not None else Path(__file__).parent / "toolkits.json"
@@ -207,15 +207,10 @@ class ComposioConnector:
         return response.connection_data.val.redirect_url
 
     async def _get_composio_user_id(self, system_user_id: str) -> str | None:
-        if self.user_registry.get_user(system_user_id):
-            if secrets := self.user_registry.get_secrets(system_user_id):
-                if composio_user_id := secrets.get("COMPOSIO_USER_ID"):
-                    return composio_user_id
+        if secrets := self.secrets_store.get_secrets(system_user_id):
+            if composio_user_id := secrets.get("COMPOSIO_USER_ID"):
+                return composio_user_id
         return None
 
     async def _set_composio_user_id(self, system_user_id: str, composio_user_id: str):
-        if self.user_registry.get_user(system_user_id):
-            await self.user_registry.set_secret(system_user_id, "COMPOSIO_USER_ID", composio_user_id)
-        else:
-            user = User(name=system_user_id, secrets={"COMPOSIO_USER_ID": composio_user_id})
-            await self.user_registry.register(user)
+        await self.secrets_store.set_secret(system_user_id, "COMPOSIO_USER_ID", composio_user_id)

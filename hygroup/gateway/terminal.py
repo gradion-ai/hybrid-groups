@@ -78,19 +78,12 @@ class TerminalGateway(Gateway):
         await websocket.accept()
 
         try:
-            # Wait for login message
+            # Wait for connection message
             data = await websocket.receive_json()
 
-            if data.get("type") != "login":
+            if data.get("type") != "connect":
                 await websocket.send_json(
-                    {"type": "login_response", "success": False, "message": "First message must be login"}
-                )
-                await websocket.close()
-                return
-
-            if not self._session.user_registry.authenticate(username, password=data.get("password", "")):
-                await websocket.send_json(
-                    {"type": "login_response", "success": False, "message": "Authentication failed"}
+                    {"type": "connect_response", "success": False, "message": "First message must be connect"}
                 )
                 await websocket.close()
                 return
@@ -108,7 +101,7 @@ class TerminalGateway(Gateway):
 
             # Send success response
             await websocket.send_json(
-                {"type": "login_response", "success": True, "message": "Authenticated successfully"}
+                {"type": "connect_response", "success": True, "message": "Connected successfully"}
             )
 
             # Handle incoming messages
@@ -184,29 +177,29 @@ class TerminalClient:
     @property
     def username(self) -> str:
         if self._username is None:
-            raise UserNotAuthenticatedError("Not authenticated")
+            raise UserNotAuthenticatedError("Not connected")
         return self._username
 
     async def join(self):
         if self._terminal_task is None:
-            raise UserNotAuthenticatedError("Not authenticated")
+            raise UserNotAuthenticatedError("Not connected")
         await self._terminal_task
 
-    async def authenticate(self, username: str, password: str):
+    async def connect(self, username: str):
         try:
             # Create WebSocket connection
             self._websocket = await websockets.connect(f"ws://{self.host}:{self.port}/ws/{username}")
 
-            # Send login message
-            await self._websocket.send(json.dumps({"type": "login", "username": username, "password": password}))
+            # Send connect message
+            await self._websocket.send(json.dumps({"type": "connect", "username": username}))
 
-            # Wait for login response
+            # Wait for connect response
             response = await self._websocket.recv()
             data = json.loads(response)
 
-            if data.get("type") == "login_response" and data.get("success"):
+            if data.get("type") == "connect_response" and data.get("success"):
                 self._username = username
-                print(f"User {username} authenticated.")
+                print(f"User {username} connected.")
 
                 # Start terminal
                 self._terminal_task = asyncio.create_task(self._start_interface())
@@ -217,7 +210,7 @@ class TerminalClient:
                 return True
             else:
                 await self._websocket.close()
-                print(f"Login failed: {data.get('message', 'Unknown error')}")
+                print(f"Connection failed: {data.get('message', 'Unknown error')}")
                 return False
 
         except Exception as e:

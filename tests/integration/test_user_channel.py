@@ -70,9 +70,9 @@ async def request_server(mock_user_registry):
 async def request_client(request_server: RequestServer, mock_request_handler):
     """Create a RequestClient instance."""
     client = RequestClient(handler=mock_request_handler, host=request_server.host, port=request_server.port)
-    await client.authenticate("martin", "password")
+    await client.connect("martin")
     yield client, mock_request_handler
-    await client.deauthenticate()
+    await client.disconnect()
 
 
 @pytest.mark.asyncio

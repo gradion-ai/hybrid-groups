@@ -14,7 +14,7 @@ from rich.prompt import Prompt
 from rich.syntax import Syntax
 
 from hygroup.agent import FeedbackRequest, PermissionRequest
-from hygroup.user import RequestHandler, UserNotAuthenticatedError, UserRegistry
+from hygroup.user import RequestHandler, UserNotAuthenticatedError
 from hygroup.utils import arun
 
 
@@ -139,8 +139,9 @@ class RichConsoleHandler(RequestHandler):
 
 
 class RequestServer(RequestHandler):
-    def __init__(self, user_registry: UserRegistry, host: str = "0.0.0.0", port: int = 8623):
-        self.user_registry = user_registry
+    def __init__(self, secrets_store=None, host: str = "0.0.0.0", port: int = 8623):
+        # No longer need secrets_store for authentication
+        pass
         self.host = host
         self.port = port
 
@@ -173,19 +174,12 @@ class RequestServer(RequestHandler):
         await websocket.accept()
 
         try:
-            # Wait for login message
+            # Wait for connect message
             data = await websocket.receive_json()
 
-            if data.get("type") != "login":
+            if data.get("type") != "connect":
                 await websocket.send_json(
-                    {"type": "login_response", "success": False, "message": "First message must be login"}
-                )
-                await websocket.close()
-                return
-
-            if not self.user_registry.authenticate(username, password=data.get("password", "")):
-                await websocket.send_json(
-                    {"type": "login_response", "success": False, "message": "Authentication failed"}
+                    {"type": "connect_response", "success": False, "message": "First message must be connect"}
                 )
                 await websocket.close()
                 return
@@ -193,7 +187,7 @@ class RequestServer(RequestHandler):
             # Check if user already has a connection
             if username in self._connections:
                 await websocket.send_json(
-                    {"type": "login_response", "success": False, "message": "User already connected"}
+                    {"type": "connect_response", "success": False, "message": "User already connected"}
                 )
                 await websocket.close()
                 return
@@ -203,7 +197,7 @@ class RequestServer(RequestHandler):
 
             # Send success response
             await websocket.send_json(
-                {"type": "login_response", "success": True, "message": "Authenticated successfully"}
+                {"type": "connect_response", "success": True, "message": "Connected successfully"}
             )
 
             # Handle incoming messages
@@ -215,14 +209,10 @@ class RequestServer(RequestHandler):
             # Clean up on disconnect
             if username in self._connections:
                 del self._connections[username]
-                if self.user_registry:
-                    self.user_registry.deauthenticate(username)
         except Exception:
             # Clean up on any error
             if username in self._connections:
                 del self._connections[username]
-                if self.user_registry:
-                    self.user_registry.deauthenticate(username)
             raise
 
     async def _handle_response(self, data: dict, username: str):
@@ -313,33 +303,33 @@ class RequestClient:
 
     async def join(self):
         if self._receiver_task is None:
-            raise UserNotAuthenticatedError("Not authenticated")
+            raise UserNotAuthenticatedError("Not connected")
         await self._receiver_task
 
-    async def authenticate(self, username: str, password: str) -> bool:
-        """Establish a websocket connection with the server and authenticate the user."""
+    async def connect(self, username: str) -> bool:
+        """Establish a websocket connection with the server."""
         try:
             from websockets import connect
 
             url = f"{self._server_url}/ws/{username}"
             self._websocket = await connect(url)
 
-            # Send login message
-            await self._send_message({"type": "login", "username": username, "password": password})
+            # Send connect message
+            await self._send_message({"type": "connect", "username": username})
 
-            # Wait for login response
+            # Wait for connect response
             response = await self._websocket.recv()
             data = json.loads(response)
 
             if data.get("success"):
                 self._username = username
-                print(f"User {username} authenticated.")
+                print(f"User {username} connected.")
                 # Start worker and receiver loops
                 self._worker_task = asyncio.create_task(self._worker())
                 self._receiver_task = asyncio.create_task(self._receiver())
                 return True
             else:
-                print(f"Login failed: {data.get('message', 'Unknown error')}")
+                print(f"Connection failed: {data.get('message', 'Unknown error')}")
                 await self._websocket.close()
                 self._websocket = None
                 return False
@@ -350,7 +340,7 @@ class RequestClient:
                 self._websocket = None
             raise
 
-    async def deauthenticate(self):
+    async def disconnect(self):
         """Close the websocket connection with the server."""
         if self._websocket:
             await self._websocket.close()

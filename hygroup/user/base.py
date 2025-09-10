@@ -1,44 +1,11 @@
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 
 from hygroup.agent import FeedbackRequest, PermissionRequest
 
 
 class UserNotAuthenticatedError(Exception):
     """Raised when accessing a resource that requires an authenticated user."""
-
-
-@dataclass
-class User:
-    name: str
-    """The username."""
-
-    secrets: dict[str, str] = field(default_factory=dict)
-    """The secrets for the user. The key is the secret name, the value is the secret value."""
-
-
-class UserRegistry(ABC):
-    @abstractmethod
-    async def register(self, user: User, password: str | None = None): ...
-
-    @abstractmethod
-    async def set_secret(self, username: str, key: str, value: str): ...
-
-    @abstractmethod
-    def authenticate(self, username: str, password: str) -> bool: ...
-
-    @abstractmethod
-    def deauthenticate(self, username: str) -> bool: ...
-
-    @abstractmethod
-    def authenticated(self, username: str) -> bool: ...
-
-    @abstractmethod
-    def get_user(self, username: str) -> User | None: ...
-
-    @abstractmethod
-    def get_secrets(self, username: str) -> dict[str, str] | None: ...
 
 
 class RequestHandler(ABC):
