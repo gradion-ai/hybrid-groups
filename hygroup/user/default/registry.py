@@ -81,7 +81,7 @@ class DefaultUserRegistry(UserRegistry):
         if user.name in data:
             raise UserAlreadyRegisteredError(f"User '{user.name}' already exists.")
 
-        user_doc = {"name": user.name, "secrets": user.secrets.copy(), "mappings": user.mappings.copy()}
+        user_doc = {"name": user.name, "secrets": user.secrets.copy()}
 
         if password:
             hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
@@ -96,18 +96,7 @@ class DefaultUserRegistry(UserRegistry):
             return None
 
         user_doc = data[username]
-        return User(name=user_doc["name"], secrets=user_doc["secrets"], mappings=user_doc.get("mappings", {}))
-
-    def get_mappings(self, gateway: str) -> dict[str, str]:
-        data = self._check_unlocked()
-        if gateway not in ["slack", "github", "terminal"]:
-            raise ValueError(f"Invalid gateway: {gateway}. Must be 'slack' or 'github'.")
-
-        mappings = {}
-        for username, user_doc in data.items():
-            if gateway_username := user_doc["mappings"].get(gateway):
-                mappings[gateway_username] = username
-        return mappings
+        return User(name=user_doc["name"], secrets=user_doc["secrets"])
 
     def get_secrets(self, username: str) -> dict[str, str] | None:
         data = self._check_unlocked()

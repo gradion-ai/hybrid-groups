@@ -18,6 +18,7 @@ from hygroup.user.default import (
     DefaultUserRegistry,
     RequestServer,
     RichConsoleHandler,
+    UserMapping,
 )
 from hygroup.user.default.command import DefaultCommandStore
 
@@ -31,6 +32,7 @@ async def main(args):
     permission_store = DefaultPermissionStore()
     command_store = DefaultCommandStore()
     user_registry = DefaultUserRegistry(args.user_registry)
+    user_mapping = UserMapping()
     await user_registry.unlock(args.user_registry_password)
 
     composio_connector = ComposioConnector(user_registry=user_registry)
@@ -61,10 +63,11 @@ async def main(args):
 
     match args.gateway:
         case "slack":
+            mapping = await user_mapping.load("slack")
             gateway = SlackGateway(
                 session_manager=manager,
                 composio_connector=composio_connector,
-                user_mapping=user_registry.get_mappings("slack"),
+                user_mapping=mapping,
                 handle_permission_requests=args.user_channel == "slack",
                 wip_update=False,
             )
@@ -73,12 +76,14 @@ async def main(args):
                 app=gateway.app,
                 user_registry=user_registry,
                 preference_store=preference_store,
+                user_mapping=mapping,
             )
             handlers.register()
         case "github":
+            mapping = await user_mapping.load("github")
             gateway = GithubGateway(
                 session_manager=manager,
-                user_mapping=user_registry.get_mappings("github"),
+                user_mapping=mapping,
             )
         case "terminal":
             gateway = TerminalGateway(

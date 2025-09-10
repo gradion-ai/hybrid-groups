@@ -184,34 +184,3 @@ async def test_unlock_with_wrong_password(registry: DefaultUserRegistry):
 
     with pytest.raises(ValueError, match="Failed to decrypt database"):
         await registry2.unlock("wrong_admin_password")
-
-
-@pytest.mark.asyncio
-async def test_get_mappings(registry: DefaultUserRegistry):
-    """Test retrieving gateway-to-user mappings."""
-    # Test on empty registry should return empty dict
-    assert registry.get_mappings("github") == {}
-    assert registry.get_mappings("slack") == {}
-
-    # Register users with different mapping configurations
-    user1 = User(name="user1", mappings={"github": "gh-user1", "slack": "slack-user1"})
-    user2 = User(name="user2", mappings={"github": "gh-user2"})
-    user3 = User(name="user3")  # no mappings
-    user4 = User(name="user4", mappings={"slack": "slack-user4"})
-
-    await registry.register(user1)
-    await registry.register(user2)
-    await registry.register(user3)
-    await registry.register(user4)
-
-    # Test for 'github' gateway
-    github_mappings = registry.get_mappings("github")
-    assert github_mappings == {"gh-user1": "user1", "gh-user2": "user2"}
-
-    # Test for 'slack' gateway
-    slack_mappings = registry.get_mappings("slack")
-    assert slack_mappings == {"slack-user1": "user1", "slack-user4": "user4"}
-
-    # Test with invalid gateway
-    with pytest.raises(ValueError, match="Invalid gateway: invalid_gateway"):
-        registry.get_mappings("invalid_gateway")

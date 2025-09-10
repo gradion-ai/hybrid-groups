@@ -17,9 +17,6 @@ class User:
     secrets: dict[str, str] = field(default_factory=dict)
     """The secrets for the user. The key is the secret name, the value is the secret value."""
 
-    mappings: dict[str, str] = field(default_factory=dict)
-    """The gateway mappings for the user. The key is the gateway name, the value is the gateway username."""
-
 
 class UserRegistry(ABC):
     @abstractmethod
@@ -42,9 +39,6 @@ class UserRegistry(ABC):
 
     @abstractmethod
     def get_secrets(self, username: str) -> dict[str, str] | None: ...
-
-    @abstractmethod
-    def get_mappings(self, gateway: str) -> dict[str, str]: ...
 
 
 class RequestHandler(ABC):
