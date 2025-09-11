@@ -5,6 +5,7 @@ from markdown_to_mrkdwn import SlackMarkdownConverter
 
 from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway.slack.context import SlackContext
+from hygroup.user.settings import CommandNotFoundError
 
 
 class SlackCommandHandler:
@@ -70,8 +71,8 @@ class SlackCommandHandler:
 
         try:
             response_text = await self._handle_command(text, user)
-        except KeyError:
-            response_text = ":x: Command not found."
+        except CommandNotFoundError as e:
+            response_text = f":x: Command '{e.command_name}' not found."
         except ValueError as e:
             response_text = f":x: Error: {str(e)}"
         except Exception as e:
@@ -81,10 +82,10 @@ class SlackCommandHandler:
         await respond(blocks=[block])
 
     async def _handle_command(self, text: str, user: str) -> str:
-        command_store = self.context.session_manager.command_store
+        settings_store = self.context.session_manager.settings_store
 
         if not text or text == "list":
-            command_names = await command_store.command_names(user)
+            command_names = await settings_store.get_command_names(user)
             if command_names:
                 command_list = "\n".join(f"• `{name}`" for name in sorted(command_names))
                 response_text = f"**Saved commands:**\n{command_list}"
@@ -97,34 +98,34 @@ class SlackCommandHandler:
             else:
                 command_name, command_content = parts
                 command_content = command_content.strip()
-                await command_store.save_command(html.unescape(command_content), command_name, user)
+                await settings_store.set_command(user, command_name, html.unescape(command_content))
                 response_text = f":white_check_mark: Command `{command_name}` saved successfully."
-        elif text.startswith("view "):
+        elif text.startswith("load "):
             command_name = text[5:].strip()
             if not command_name:
                 response_text = ":x: Error: Please provide a command name."
             else:
-                command_content = await command_store.load_command(command_name, user)
+                command_content = await settings_store.get_command(user, command_name)
                 response_text = f"**Command `{command_name}`:**\n```\n{command_content}\n```"
         elif text.startswith("delete "):
             command_name = text[7:].strip()
             if not command_name:
                 response_text = ":x: Error: Please provide a command name."
             else:
-                await command_store.delete_command(command_name, user)
+                await settings_store.delete_command(user, command_name)
                 response_text = f":white_check_mark: Command `{command_name}` deleted successfully."
         elif text == "help":
             lines = [
                 "**Usage:**",
                 "- `/hygroup-command` or `/hygroup-command list` - List all saved commands",
                 "- `/hygroup-command save <name> <command>` - Save a command",
-                "- `/hygroup-command view <name>` - View a command",
+                "- `/hygroup-command load <name>` - Load a command",
                 "- `/hygroup-command delete <name>` - Delete a command",
                 "- `/hygroup-command help` - Show this help message",
             ]
             response_text = "\n".join(lines)
         else:
-            response_text = ":x: Unknown operation. Use `/hygroup-command` without arguments to see usage."
+            response_text = ":x: Unknown operation. Use `/hygroup-command help` to see usage."
 
         return response_text
 

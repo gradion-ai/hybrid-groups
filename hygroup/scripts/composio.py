@@ -5,12 +5,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from hygroup.connect.composio import ComposioConnector
-from hygroup.user.default.registry import DefaultUserRegistry
+from hygroup.user.secrets import SecretsStore
 
 
 async def main(args):
+    # Create SecretsStore but don't unlock since this is just for toolkit management
+    secrets_store = SecretsStore()
     connector = ComposioConnector(
-        user_registry=DefaultUserRegistry(),
+        secrets_store=secrets_store,
         config_path=args.connector_config_path,
         toolkits_path=args.toolkit_config_path,
     )

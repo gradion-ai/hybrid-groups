@@ -11,13 +11,11 @@ def session_manager():
     """Create a SessionManager with mocked dependencies."""
     manager = SessionManager(
         agent_registries=MagicMock(),
-        user_registry=MagicMock(),
-        permission_store=MagicMock(),
-        preferences_store=MagicMock(),
+        secrets_store=MagicMock(),
+        settings_store=MagicMock(),
         request_handler=MagicMock(),
         composio_config=MagicMock(),
-        command_store=MagicMock(),
-        root_dir=MagicMock(),
+        root_path=MagicMock(),
     )
     return manager
 
