@@ -23,7 +23,6 @@ class SlackGateway(Gateway, RequestHandler):
         self,
         session_manager: SessionManager,
         composio_connector: ComposioConnector,
-        user_mapping: dict[str, str] = {},
         handle_permission_requests: bool = False,
         wip_emoji: str = "beer",
         wip_update: bool | None = None,
@@ -37,7 +36,7 @@ class SlackGateway(Gateway, RequestHandler):
             # this gateway handles permission requests
             session_manager.request_handler = self
 
-        slack_user_mapping = user_mapping.copy()
+        slack_user_mapping = session_manager.settings_store.get_mapping("slack").copy()
         slack_user_mapping[os.environ["SLACK_APP_USER_ID"]] = "system"
         system_user_mapping = {v: k for k, v in slack_user_mapping.items()}
 

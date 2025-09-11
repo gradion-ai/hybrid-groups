@@ -12,6 +12,19 @@ def session_manager():
     """Create a mock session manager for testing."""
     manager = MagicMock(spec=SessionManager)
     manager.request_handler = MagicMock()
+
+    # Mock settings_store and get_mapping
+    settings_store = MagicMock()
+    user_mapping = {
+        "U04P0E9BQ73": "martin",
+        "U123": "alice",
+        "U456": "bob",
+        "UBOT": "bot",
+        "UASSIST": "assistant",
+    }
+    settings_store.get_mapping.return_value = user_mapping
+    manager.settings_store = settings_store
+
     return manager
 
 
@@ -30,14 +43,6 @@ def slack_gateway(session_manager, composio_connector, monkeypatch):
     monkeypatch.setenv("SLACK_APP_TOKEN", "test-app-token")
     monkeypatch.setenv("SLACK_APP_USER_ID", "test-app-user-id")
 
-    user_mapping = {
-        "U04P0E9BQ73": "martin",
-        "U123": "alice",
-        "U456": "bob",
-        "UBOT": "bot",
-        "UASSIST": "assistant",
-    }
-
     # Mock the AsyncApp and AsyncSocketModeHandler to avoid real Slack connections
     with (
         patch("hygroup.gateway.slack.gateway.AsyncApp"),
@@ -47,7 +52,6 @@ def slack_gateway(session_manager, composio_connector, monkeypatch):
         gateway = SlackGateway(
             session_manager=session_manager,
             composio_connector=composio_connector,
-            user_mapping=user_mapping,
             handle_permission_requests=False,
         )
         return gateway

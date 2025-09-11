@@ -18,15 +18,14 @@ class SettingsStore:
         ]
         self._permissions: dict[str, Any] = {}  # write-through cache
         self._preferences: dict[str, str | None] = {}  # write-through cache
+        self._mappings: dict[str, dict[str, str]] = self._load_mappings()
 
-    async def get_mapping(self, gateway: str) -> dict[str, str]:
+    def _load_mappings(self) -> dict[str, dict[str, str]]:
         mapping_file = self.root_path / "mapping.json"
-        if not await aiofiles.os.path.exists(mapping_file):
-            return {}
+        return {} if not mapping_file.exists() else json.loads(mapping_file.read_text())
 
-        async with aiofiles.open(mapping_file, "r", encoding="utf-8") as f:
-            mapping = json.loads(await f.read())
-            return mapping.get(gateway, {})
+    def get_mapping(self, gateway: str) -> dict[str, str]:
+        return self._mappings.get(gateway, {})
 
     async def get_command_names(self, username: str) -> list[str]:
         commands_dir = self.root_path / username / "commands"

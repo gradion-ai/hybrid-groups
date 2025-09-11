@@ -55,11 +55,9 @@ async def main(args):
 
     match args.gateway:
         case "slack":
-            mapping = await settings_store.get_mapping("slack")
             gateway = SlackGateway(
                 session_manager=manager,
                 composio_connector=composio_connector,
-                user_mapping=mapping,
                 handle_permission_requests=args.user_channel == "slack",
                 wip_update=False,
             )
@@ -68,19 +66,12 @@ async def main(args):
                 app=gateway.app,
                 secrets_store=secrets_store,
                 settings_store=settings_store,
-                user_mapping=mapping,
             )
             handlers.register()
         case "github":
-            mapping = await settings_store.get_mapping("github")
-            gateway = GithubGateway(
-                session_manager=manager,
-                user_mapping=mapping,
-            )
+            gateway = GithubGateway(session_manager=manager)
         case "terminal":
-            gateway = TerminalGateway(
-                session_manager=manager,
-            )
+            gateway = TerminalGateway(session_manager=manager)
 
     await gateway.start(join=True)
 

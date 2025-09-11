@@ -32,6 +32,12 @@ def composio_connector():
 def command_store():
     """Create a mock command store for testing."""
     store = AsyncMock(spec=SettingsStore)
+    # Mock get_mapping to return test user mapping
+    user_mapping = {
+        "U123": "alice",
+        "U456": "bob",
+    }
+    store.get_mapping.return_value = user_mapping
     return store
 
 
@@ -43,11 +49,6 @@ def slack_gateway(session_manager, composio_connector, monkeypatch):
     monkeypatch.setenv("SLACK_APP_TOKEN", "test-app-token")
     monkeypatch.setenv("SLACK_APP_USER_ID", "test-app-user-id")
 
-    user_mapping = {
-        "U123": "alice",
-        "U456": "bob",
-    }
-
     # Mock the AsyncApp and AsyncSocketModeHandler to avoid real Slack connections
     with (
         patch("hygroup.gateway.slack.gateway.AsyncApp"),
@@ -57,7 +58,6 @@ def slack_gateway(session_manager, composio_connector, monkeypatch):
         gateway = SlackGateway(
             session_manager=session_manager,
             composio_connector=composio_connector,
-            user_mapping=user_mapping,
             handle_permission_requests=False,
         )
         return gateway

@@ -27,13 +27,12 @@ class SlackHomeHandlers:
         app: AsyncApp,
         secrets_store: SecretsStore,
         settings_store: SettingsStore,
-        user_mapping: dict[str, str],
         system_editor_ids: list[str] | None = None,
     ):
         self._client = client
         self._app = app
         self._system_editor_ids = system_editor_ids
-        self._slack_user_mapping = user_mapping
+        self._slack_user_mapping = settings_store.get_mapping("slack")
 
         self._secret_config_handlers = SecretConfigHandlers(client, secrets_store, self._resolve_system_user_id)
         self._user_preference_config_handlers = UserPreferenceConfigHandlers(

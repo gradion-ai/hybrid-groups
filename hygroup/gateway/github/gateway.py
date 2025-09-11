@@ -65,7 +65,6 @@ class GithubGateway(Gateway):
         github_app_webhook_port: int | None = None,
         github_app_private_key: str | None = None,
         github_app_username: str | None = None,
-        user_mapping: dict[str, str] = {},
     ):
         github_app_id = github_app_id or int(os.environ["GITHUB_APP_ID"])
         github_app_installation_id = github_app_installation_id or int(os.environ["GITHUB_APP_INSTALLATION_ID"])
@@ -75,8 +74,8 @@ class GithubGateway(Gateway):
         github_app_webhook_port = github_app_webhook_port or 8000
 
         self._session_manager = session_manager
-        self._github_user_mapping = user_mapping
-        self._system_user_mapping = {v: k for k, v in user_mapping.items()}
+        self._github_user_mapping = session_manager.settings_store.get_mapping("github")
+        self._system_user_mapping = {v: k for k, v in self._github_user_mapping.items()}
 
         self._github_app_username = github_app_username
         self._github_app_fullname = f"{github_app_username}[bot]"

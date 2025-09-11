@@ -10,12 +10,9 @@ from hygroup.session import SessionManager
 def session_manager():
     """Create a mock session manager for testing."""
     manager = MagicMock(spec=SessionManager)
-    return manager
 
-
-@pytest.fixture
-def github_gateway(session_manager):
-    """Create a GithubGateway instance with test user mappings."""
+    # Mock settings_store and get_mapping
+    settings_store = MagicMock()
     user_mapping = {
         "bot": "bot",
         "user": "john",
@@ -25,7 +22,15 @@ def github_gateway(session_manager):
         "admin": "administrator",
         "assistant": "assistant",
     }
+    settings_store.get_mapping.return_value = user_mapping
+    manager.settings_store = settings_store
 
+    return manager
+
+
+@pytest.fixture
+def github_gateway(session_manager):
+    """Create a GithubGateway instance with test user mappings."""
     # Mock GitHub integration components to avoid real GitHub connections
     with (
         patch("hygroup.gateway.github.gateway.Auth"),
@@ -43,7 +48,6 @@ def github_gateway(session_manager):
             github_app_private_key="test-private-key",
             github_app_webhook_secret="test-webhook-secret",
             github_app_username="test-bot",
-            user_mapping=user_mapping,
         )
         return gateway
 
