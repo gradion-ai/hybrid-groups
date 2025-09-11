@@ -43,7 +43,7 @@ uv sync
 - `uv run pytest -xsv tests/integration/test_[name].py::[test-name]` for running a single integration test.
 
 All invoke test commands use `-xsv` flags by default for verbose output and stopping on first failure.
-Coverage reports are displayed in the terminal and cover the `ipybox` package.
+Coverage reports are displayed in the terminal and cover the `hygroup` package.
 
 ### Code Quality
 
@@ -93,91 +93,69 @@ If you see any errors, fix them and then repeat the process.
 
 ## Architecture Overview
 
-The `hygroup` package implements a multi-user, multi-agent collaboration platform that enables users to interact with agents and other users in group chats on Slack and GitHub.
+The `hygroup` package implements a multi-user AI collaboration system that enables AI agents to interact with human teams on platforms like Slack and GitHub. The architecture supports multiple users with individual permissions, preferences, and service integrations.
 
 ### Core Package Structure
 
 - **`hygroup/`**: Main package containing all core functionality
-  - **`session.py`**: Central session management orchestrating all components
-  - **`agent/`**: Agent implementations and abstractions
-  - **`gateway/`**: Platform integrations (Slack, GitHub, Terminal)
-  - **`user/`**: User management, permissions, and preferences
-  - **`setup/`**: Web-based setup application for configuring platform integrations
-  - **`scripts/`**: Entry points for running servers and utilities
+  - **`session.py`**: Manages conversation sessions between users and agents, handling message routing, agent lifecycle, and state persistence
+  - **`agent/`**: Agent framework with base abstractions, registry system, and implementations
+  - **`gateway/`**: Platform integrations for Slack and GitHub, handling message delivery and user interactions
+  - **`user/`**: User data management including settings, preferences, secrets, and custom commands
+  - **`setup/`**: Web application for initial Slack/GitHub app configuration and OAuth setup
+  - **`scripts/`**: Entry points for running the application server and managing Composio integrations
+  - **`connect/`**: Composio connector enabling access to 250+ external services via MCP servers
+  - **`channel.py`**: Request handlers for permission and feedback requests with different UI implementations
 
-### Session Management
+### `session` module
 
-The `Session` class in `hygroup/session.py` is the central orchestrator that:
-- Manages the lifecycle of multi-user, multi-agent conversations (group sessions)
-- Maintains conversation history and state persistence
-- Coordinates between gateways, agents, and users
-- Handles message routing and agent activation
+Orchestrates agent-user interactions within conversation sessions. Key responsibilities:
+- Creates and manages `SessionAgent` instances that wrap agents with session context
+- Handles message queuing and sequential processing
+- Manages agent state persistence and restoration
+- Coordinates between gateways, agents, and request handlers
+- Supports command expansion for user-defined shortcuts
 
-Key interactions:
-- Each session corresponds to a Slack thread or GitHub issue
-- Sessions instantiate and manage `SessionAgent` instances that wrap agents with session context
-- Sessions communicate with gateways to send/receive messages from platforms
-- Sessions persist state to disk for resumption after restarts
+### `agent` package
 
-### Gateway Abstraction
+Provides the agent framework and implementations:
+- **`base.py`**: Core abstractions (`Agent`, `Message`, `AgentRequest`, `AgentResponse`, permissions)
+- **`registry.py`**: `AgentRegistry` for managing agent configurations and `AgentRegistries` for channel-scoped registries
+- **`default/`**: Default agent implementation using Pydantic AI with MCP server support
+- **`system/`**: System agent that monitors all messages and can delegate to specialized agents
+- **`utils.py`**: Helper functions for agent operations
 
-The gateway layer (`hygroup/gateway/`) provides platform-agnostic interfaces:
+### `gateway` package
 
-- **`base.py`**: Defines the `Gateway` abstract base class
-- **`slack/gateway.py`**: Slack implementation handling threads, reactions, and app home
-- **`github/gateway.py`**: GitHub implementation for issues and comments
-- **`terminal.py`**: Terminal interface for local testing
+Abstracts platform-specific communication:
+- **`base.py`**: `Gateway` abstract base class defining the interface
+- **`slack/`**: Slack integration using Socket Mode
+  - Handles messages, threads, commands, and ephemeral interactions
+  - Manages App Home for user preferences and secrets
+  - Supports permission requests via ephemeral messages
+- **`github/`**: GitHub App integration via webhooks
+  - Processes issues, pull requests, and review comments
+  - Maps GitHub events to agent requests
+  - Uses smee.io for local development webhook delivery
 
-Gateways handle:
-- Platform-specific message formatting and threading
-- User authentication and identity mapping
-- Emoji reactions for agent activation feedback
-- Bidirectional communication between sessions and platforms
+### `user` package
 
-### Agent Architecture
+Manages user-specific data:
+- **`settings.py`**: `SettingsStore` for preferences, permissions, custom commands, and user mappings
+- **`secrets.py`**: `SecretsStore` for encrypted storage of API keys and tokens using PBKDF2 encryption
 
-The agent system (`hygroup/agent/`) provides flexible agent implementations:
+### `setup` package
 
-- **`base.py`**: Core abstractions (`Agent`, `Message`, `AgentRequest`, `AgentResponse`)
-- **`system/`**: System agent that orchestrates subagents via tools
-  - `agent.py`: SystemAgent implementation using Pydantic AI
-  - `prompt.py`: System agent instructions for analyzing messages and routing to subagents
-- **`default/`**: Default agent implementations
-  - `agent.py`: Base Pydantic AI agent implementation
-  - `registry.py`: Agent registry for managing available agents
+Web application for initial configuration:
+- **`apps/`**: FastAPI application for Slack and GitHub app setup
+  - Guides users through OAuth flows
+  - Generates app manifests and configurations
+  - Stores credentials securely
 
-The **SystemAgent** is special:
-- Analyzes incoming messages to determine if assistance is needed
-- Can invoke registered subagents as tools based on their capabilities
-- Manages user preferences and permission checks
-- Routes requests to appropriate specialized agents
+### `channel` module
 
-### User Management
-
-The user system (`hygroup/user/`) handles identity and permissions:
-
-- **`base.py`**: Core user abstractions (`User`, `UserRegistry`, `PermissionStore`)
-- **`default/`**: Default implementations
-  - `registry.py`: User registry with identity mapping across platforms
-  - `permission.py`: Permission store for tool approval workflows
-  - `preferences.py`: User preference management
-  - `channel.py`: User communication channels for permission requests
-
-Key features:
-- Users can set preferences that agents respect
-- Tool executions require user approval (once, session, or always)
-- Secrets are encrypted and isolated per user
-
-### Platform-Specific Features
-
-**Slack Integration** (`hygroup/gateway/slack/`):
-- App home interface for agent builder and user settings
-- Ephemeral messages for permission requests
-- Thread-based session management
-- Socket mode for real-time communication
-
-**GitHub Integration** (`hygroup/gateway/github/`):
-- Webhook-based event handling
-- Issue and comment management
-- GitHub App authentication
-- Emoji reactions for agent feedback
+Defines request handlers for user interactions:
+- **`RequestHandler`**: Abstract base for handling permission and feedback requests
+- **`RichConsoleHandler`**: Terminal UI implementation using Rich library
+- **`SlackChannelHandler`**: Slack-specific ephemeral message handler
+- **`WebSocketHandler`**: WebSocket-based handler for web interfaces

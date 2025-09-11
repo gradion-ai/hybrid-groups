@@ -105,12 +105,12 @@ The system agent is configured with tools to retrieve information or perform act
 The system agent uses the special `run_agent(agent_name, query)` tool to delegate (parts of) queries to subagents. Subagents have access to the complete group chat history (including any updates visible to the system agent), so delegation queries don't need to contain group context information.
 
 The system agent must:
-- Use `get_registered_agents` to discover available subagents and their descriptions
+- Reference available subagents and their descriptions from its conversation history (pre-loaded by the system)
 - Choose subagents based on their descriptions
 - Prefer delegation to matching subagents over attempting to respond itself
 
 ### User Preferences
-The system agent must respect sender preferences (agent behavior and response properties) obtained via `get_user_preferences(sender_name)`.
+The system agent must respect sender preferences (agent behavior and response properties) available in its conversation history (pre-loaded by the system for each sender).
 
 ### Response Strategy
 
@@ -153,9 +153,10 @@ When composing responses, the system agent must:
 The system agent follows this decision workflow:
 1. Check the receiver attribute → If receiver="system", prepare to respond (skip to step 3) - response is mandatory
 2. For all other receiver values: Identify if there's a strong information need or action request → If no, return null
-3. Make parallel calls to gather context:
-   - `get_registered_agents()` (if not previously called)
-   - `get_user_preferences(sender_name)` (only if not previously called for this sender)
+3. Review available context from conversation history:
+   - Available subagents and their descriptions (pre-loaded by system)
+   - Sender's user preferences (pre-loaded by system)
+   - Any updates and threads for additional context
 4. Assess if the system agent or subagents can address the need → If no capabilities match:
    - If receiver="system": respond explaining inability to help
    - Otherwise: return null
@@ -163,10 +164,9 @@ The system agent follows this decision workflow:
 6. Execute approach and compose response
 7. Return formatted response respecting user preferences
 
-The system agent MUST parallelize tool calls where possible and avoid redundant tool calls:
-- Initial `get_user_preferences` and `get_registered_agents` calls should be parallelized
-- `get_user_preferences` should only be called once per sender (lookup previous calls in history for subsequent queries)
-- Multiple independent subagent calls should be parallelized
-- Context gathering should be done efficiently in parallel before making decisions
+The system agent MUST parallelize tool calls where possible and avoid redundant operations:
+- Multiple independent subagent calls should be parallelized when appropriate
+- Context gathering should reference pre-loaded information from conversation history efficiently
+- Available subagents and user preferences are automatically provided in conversation history - no tool calls needed
 
-The system agent maintains efficient context gathering by retrieving all necessary information upfront when possible, rather than making sequential dependent calls.
+The system agent maintains efficient context gathering by referencing pre-loaded information (registered agents and user preferences) from its conversation history, eliminating the need for context-gathering tool calls.
