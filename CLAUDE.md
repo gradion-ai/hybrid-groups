@@ -154,8 +154,8 @@ Web application for initial configuration:
 
 ### `channel` module
 
-Defines request handlers for user interactions:
-- **`RequestHandler`**: Abstract base for handling permission and feedback requests
-- **`RichConsoleHandler`**: Terminal UI implementation using Rich library
-- **`SlackChannelHandler`**: Slack-specific ephemeral message handler
-- **`WebSocketHandler`**: WebSocket-based handler for web interfaces
+Handles user permission and feedback requests from agents through multiple deployment modes:
+- **`RequestHandler`**: Abstract interface for processing agent permission and feedback requests
+- **Direct console mode**: `RichConsoleHandler` configured for auto-approval with console output for development
+- **Slack integration mode**: `SlackGateway` serves as request handler, delivering permission requests via ephemeral messages
+- **Remote terminal mode**: `RequestServer` → `RequestClient` → `RichConsoleHandler` chain enables interactive approval in separate terminal sessions
