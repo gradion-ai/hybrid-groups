@@ -24,9 +24,9 @@ async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
         raise ValueError("Invalid configuration: --user-channel=slack requires --gateway=slack")
 
-    agent_registries = AgentRegistries()
-    settings_store = SettingsStore()
-    secrets_store = SecretsStore(args.secrets_store)
+    agent_registries = AgentRegistries(root_path=args.agent_registries)
+    settings_store = SettingsStore(root_path=args.settings_store)
+    secrets_store = SecretsStore(root_path=args.secrets_store)
     await secrets_store.unlock(args.secrets_store_password)
 
     composio_connector = ComposioConnector(secrets_store=secrets_store)
@@ -86,6 +86,18 @@ if __name__ == "__main__":
         default="slack",
         choices=["github", "slack", "terminal"],
         help="The communication platform to use.",
+    )
+    parser.add_argument(
+        "--agent-registries",
+        type=Path,
+        default=Path(".data", "agents"),
+        help="Path to the agent registries directory.",
+    )
+    parser.add_argument(
+        "--settings-store",
+        type=Path,
+        default=Path(".data", "users"),
+        help="Path to the settings store directory.",
     )
     parser.add_argument(
         "--secrets-store",
