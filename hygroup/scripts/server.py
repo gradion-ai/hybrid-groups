@@ -35,7 +35,7 @@ async def main(args):
     request_handler: RequestHandler
     match args.user_channel:
         case "terminal":
-            request_handler = RequestServer(secrets_store)
+            request_handler = RequestServer()
             await request_handler.start(join=False)
         case _:
             request_handler = RichConsoleHandler(

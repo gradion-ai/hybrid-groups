@@ -159,9 +159,7 @@ class RichConsoleHandler(RequestHandler):
 
 
 class RequestServer(RequestHandler):
-    def __init__(self, secrets_store=None, host: str = "0.0.0.0", port: int = 8623):
-        # No longer need secrets_store for authentication
-        pass
+    def __init__(self, host: str = "0.0.0.0", port: int = 8623):
         self.host = host
         self.port = port
 

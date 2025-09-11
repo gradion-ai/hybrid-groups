@@ -1,6 +1,5 @@
 import asyncio
 from asyncio import Future
-from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
@@ -41,24 +40,15 @@ class MockRequestHandler(RequestHandler):
 
 
 @pytest.fixture
-def mock_user_registry():
-    """Create a mock UserRegistry."""
-    registry = AsyncMock()
-    registry.authenticate = Mock(return_value=True)
-    registry.deauthenticate = Mock(return_value=True)
-    return registry
-
-
-@pytest.fixture
 def mock_request_handler():
     """Create a mock RequestHandler."""
     return MockRequestHandler()
 
 
 @pytest_asyncio.fixture
-async def request_server(mock_user_registry):
+async def request_server():
     """Create a RequestServer instance."""
-    server = RequestServer(mock_user_registry, host="127.0.0.1", port=8627)
+    server = RequestServer(host="127.0.0.1", port=8627)
     await server.start(join=False)
     await asyncio.sleep(0.2)
     yield server
@@ -232,7 +222,7 @@ async def test_multiple_permission_requests(request_server: RequestServer, reque
 
 
 @pytest.mark.asyncio
-async def test_request_when_user_not_connected(request_server: RequestServer, mock_user_registry):
+async def test_request_when_user_not_connected(request_server: RequestServer):
     """Test handling requests when user is not connected."""
     # Create permission request for non-connected user
     future: Future = Future()
