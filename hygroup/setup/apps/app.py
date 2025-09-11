@@ -24,9 +24,7 @@ from hygroup.setup.apps.models import (
     SlackCompleteRequest,
     SlackCompleteResponse,
 )
-from hygroup.setup.apps.slack import (
-    SlackAppSetupService,
-)
+from hygroup.setup.apps.slack import SlackAppSetupService
 
 logger = logging.getLogger(__name__)
 

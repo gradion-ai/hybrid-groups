@@ -243,7 +243,6 @@ class Session:
         return SessionAgent(registry.create_agent(name, tools=tools), session=self)
 
     def _load_agent(self, agent_name: str):
-        # tools: list[Callable] = [self.get_user_preferences]
         tools: list[Callable] = []
         if agent_name == "system":
             tools.append(self.run_agent)
@@ -377,7 +376,7 @@ class Session:
         user_secrets = self.secrets_store.get_secrets(request.sender) or {}
         mcp_vars = self.composio_config.mcp_config_vars()
 
-        # invoke receiver agent with request
+        # invoke agent with request
         await self._agents[agent_name].invoke(request, mcp_vars | user_secrets)
 
     # -------------------------------------
