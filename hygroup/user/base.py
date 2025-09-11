@@ -4,10 +4,6 @@ from abc import ABC, abstractmethod
 from hygroup.agent import FeedbackRequest, PermissionRequest
 
 
-class UserNotAuthenticatedError(Exception):
-    """Raised when accessing a resource that requires an authenticated user."""
-
-
 class RequestHandler(ABC):
     @abstractmethod
     async def handle_permission_request(

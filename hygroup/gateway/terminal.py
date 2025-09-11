@@ -19,7 +19,6 @@ from rich.text import Text
 from hygroup.agent import AgentActivation, AgentResponse
 from hygroup.gateway import Gateway
 from hygroup.session import Session, SessionManager
-from hygroup.user import UserNotAuthenticatedError
 
 
 class TerminalGateway(Gateway):
@@ -177,12 +176,12 @@ class TerminalClient:
     @property
     def username(self) -> str:
         if self._username is None:
-            raise UserNotAuthenticatedError("Not connected")
+            raise RuntimeError("Not connected")
         return self._username
 
     async def join(self):
         if self._terminal_task is None:
-            raise UserNotAuthenticatedError("Not connected")
+            raise RuntimeError("Not connected")
         await self._terminal_task
 
     async def connect(self, username: str):

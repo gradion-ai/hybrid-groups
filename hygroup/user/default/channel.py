@@ -14,7 +14,7 @@ from rich.prompt import Prompt
 from rich.syntax import Syntax
 
 from hygroup.agent import FeedbackRequest, PermissionRequest
-from hygroup.user import RequestHandler, UserNotAuthenticatedError
+from hygroup.user import RequestHandler
 from hygroup.utils import arun
 
 
@@ -303,7 +303,7 @@ class RequestClient:
 
     async def join(self):
         if self._receiver_task is None:
-            raise UserNotAuthenticatedError("Not connected")
+            raise RuntimeError("Not connected")
         await self._receiver_task
 
     async def connect(self, username: str) -> bool:
