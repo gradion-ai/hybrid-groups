@@ -7,6 +7,12 @@ import aiofiles
 import aiofiles.os
 
 
+class CommandNotFoundError(Exception):
+    def __init__(self, command_name: str):
+        super().__init__(f"Command '{command_name}' not found")
+        self.command_name = command_name
+
+
 class SettingsStore:
     def __init__(self, root_path: Path = Path(".data", "users"), allowed_tools: list[str] | None = None):
         self.root_path = root_path
@@ -43,7 +49,7 @@ class SettingsStore:
         command_file = self._command_file(username, command_name)
 
         if not await aiofiles.os.path.exists(command_file):
-            raise FileNotFoundError(f"Command '{command_name}' not found for user '{username}'")
+            raise CommandNotFoundError(command_name)
 
         async with aiofiles.open(command_file, "r", encoding="utf-8") as f:
             return await f.read()

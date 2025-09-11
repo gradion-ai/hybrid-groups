@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 
-from hygroup.user.settings import SettingsStore
+from hygroup.user.settings import CommandNotFoundError, SettingsStore
 
 
 @pytest_asyncio.fixture
@@ -44,7 +44,7 @@ async def test_set_and_get_command(settings_store: SettingsStore):
 @pytest.mark.asyncio
 async def test_get_nonexistent_command(settings_store: SettingsStore):
     """Test getting a command that doesn't exist raises FileNotFoundError."""
-    with pytest.raises(FileNotFoundError, match="Command 'nonexistent' not found for user 'alice'"):
+    with pytest.raises(CommandNotFoundError, match="Command 'nonexistent' not found"):
         await settings_store.get_command("alice", "nonexistent")
 
 

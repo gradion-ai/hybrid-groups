@@ -9,7 +9,7 @@ import pytest_asyncio
 from hygroup.connect import ComposioConnector
 from hygroup.gateway.slack import SlackGateway
 from hygroup.session import SessionManager
-from hygroup.user.settings import SettingsStore
+from hygroup.user.settings import CommandNotFoundError, SettingsStore
 
 
 @pytest.fixture
@@ -141,12 +141,12 @@ class TestSlackCommandHandling:
         assert "Error" in blocks[0]["text"]["text"]
 
     @pytest.mark.asyncio
-    async def test_handle_command_view(self, slack_gateway, command_store):
-        """Test viewing a command."""
+    async def test_handle_command_load(self, slack_gateway, command_store):
+        """Test loading a command."""
         command_store.get_command.return_value = "echo hello world"
 
         ack = AsyncMock()
-        body = {"user_id": "U123", "text": "view test-cmd"}
+        body = {"user_id": "U123", "text": "load test-cmd"}
         respond = AsyncMock()
 
         await slack_gateway.command_handler.handle_command(ack, body, respond)
@@ -161,12 +161,12 @@ class TestSlackCommandHandling:
         assert "echo hello world" in text
 
     @pytest.mark.asyncio
-    async def test_handle_command_view_not_found(self, slack_gateway, command_store):
-        """Test viewing a non-existent command."""
-        command_store.get_command.side_effect = FileNotFoundError()
+    async def test_handle_command_load_not_found(self, slack_gateway, command_store):
+        """Test loading a non-existent command."""
+        command_store.get_command.side_effect = CommandNotFoundError("nonexistent")
 
         ack = AsyncMock()
-        body = {"user_id": "U123", "text": "view nonexistent"}
+        body = {"user_id": "U123", "text": "load nonexistent"}
         respond = AsyncMock()
 
         await slack_gateway.command_handler.handle_command(ack, body, respond)
@@ -252,7 +252,7 @@ class TestSlackCommandHandling:
         text = blocks[0]["text"]["text"]
         assert "Usage" in text
         assert "save" in text
-        assert "view" in text
+        assert "load" in text
         assert "delete" in text
         assert "list" in text
         assert "help" in text
@@ -301,7 +301,7 @@ class TestSettingsStoreCommands:
     @pytest.mark.asyncio
     async def test_load_nonexistent_command(self, temp_command_store):
         """Test loading a command that doesn't exist."""
-        with pytest.raises(FileNotFoundError) as exc_info:
+        with pytest.raises(CommandNotFoundError) as exc_info:
             await temp_command_store.get_command("alice", "nonexistent")
         assert "not found" in str(exc_info.value)
 
@@ -315,7 +315,7 @@ class TestSettingsStoreCommands:
         await temp_command_store.set_command(username, command_name, command)
         await temp_command_store.delete_command(username, command_name)
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(CommandNotFoundError):
             await temp_command_store.get_command(username, command_name)
 
     @pytest.mark.asyncio
@@ -356,7 +356,7 @@ class TestSettingsStoreCommands:
         await temp_command_store.set_command("alice", command_name, command)
 
         # Bob shouldn't have access to Alice's command
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(CommandNotFoundError):
             await temp_command_store.get_command("bob", command_name)
 
         # Bob's command list should be empty

@@ -26,7 +26,7 @@ from hygroup.channel import RequestHandler
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
 from hygroup.user.secrets import SecretsStore
-from hygroup.user.settings import SettingsStore
+from hygroup.user.settings import CommandNotFoundError, SettingsStore
 
 logger = logging.getLogger(__name__)
 
@@ -111,11 +111,10 @@ class SessionAgent:
                     self.session._run_context.set(
                         {"sender": sender, "secrets": secrets, "attachments": request.attachments}
                     )
-
                     try:
                         query = await self._expand_command(query, sender)
                         response = await self.run(replace(request, query=query), secrets)
-                    except KeyError as e:
+                    except CommandNotFoundError as e:
                         response = AgentResponse(
                             text=e.args[0],
                             request_id=request_id,
@@ -153,18 +152,21 @@ class SessionAgent:
         arguments = parts[1] if len(parts) > 1 else ""
 
         # Check if it matches the command name pattern
+        # TODO: can be removed
         if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
             return query
 
-        # Try to load the command - let KeyError bubble up
         command_content = await self.session.settings_store.get_command(sender, command_name)
+
+        if command_content is None:
+            raise CommandNotFoundError(command_name)
 
         # Handle {ARGUMENTS} placeholder
         if "{ARGUMENTS}" in command_content:
             return command_content.replace("{ARGUMENTS}", arguments)
         elif arguments:
-            # Append arguments after a newline if no placeholder
-            return f"{command_content}\n{arguments}"
+            # Append arguments after a space if no placeholder
+            return f"{command_content} {arguments}"
         else:
             return command_content
 
