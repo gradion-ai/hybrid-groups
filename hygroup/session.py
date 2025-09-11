@@ -455,7 +455,7 @@ class SessionManager:
         settings_store: SettingsStore,
         request_handler: RequestHandler,
         composio_config: ComposioConfig,
-        root_dir: Path = Path(".data", "sessions"),
+        root_path: Path = Path(".data", "sessions"),
     ):
         self.agent_registries = agent_registries
         self.secrets_store = secrets_store
@@ -463,8 +463,8 @@ class SessionManager:
         self.request_handler = request_handler
         self.composio_config = composio_config
 
-        self.root_dir = root_dir
-        self.root_dir.mkdir(parents=True, exist_ok=True)
+        self.root_path = root_path
+        self.root_path.mkdir(parents=True, exist_ok=True)
 
     def create_session(self, id: str) -> Session:
         return Session(id=id, manager=self)
@@ -477,7 +477,7 @@ class SessionManager:
         return session
 
     def session_dir(self, id: str) -> Path:
-        return self.root_dir / id
+        return self.root_path / id
 
     def session_path(self, id: str) -> Path:
         return self.session_dir(id) / "state.json"
