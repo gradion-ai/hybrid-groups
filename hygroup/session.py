@@ -22,9 +22,9 @@ from hygroup.agent import (
     Thread,
 )
 from hygroup.agent.registry import AgentRegistries
+from hygroup.channel import RequestHandler
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
-from hygroup.user import RequestHandler
 from hygroup.user.secrets import SecretsStore
 from hygroup.user.settings import SettingsStore
 

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import uuid
+from abc import ABC, abstractmethod
 from asyncio import Future
 from typing import Any, Dict
 
@@ -14,8 +15,27 @@ from rich.prompt import Prompt
 from rich.syntax import Syntax
 
 from hygroup.agent import FeedbackRequest, PermissionRequest
-from hygroup.user import RequestHandler
 from hygroup.utils import arun
+
+
+class RequestHandler(ABC):
+    @abstractmethod
+    async def handle_permission_request(
+        self,
+        request: PermissionRequest,
+        sender: str,
+        receiver: str,
+        session_id: str,
+    ): ...
+
+    @abstractmethod
+    async def handle_feedback_request(
+        self,
+        request: FeedbackRequest,
+        sender: str,
+        receiver: str,
+        session_id: str,
+    ): ...
 
 
 class RichConsoleHandler(RequestHandler):

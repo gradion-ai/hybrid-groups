@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 
-from hygroup.user.default import RequestClient
+from hygroup.channel import RequestClient
 from hygroup.utils import arun
 
 

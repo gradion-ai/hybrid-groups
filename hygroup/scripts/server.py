@@ -5,17 +5,17 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from hygroup.agent.registry import AgentRegistries
+from hygroup.channel import (
+    RequestHandler,
+    RequestServer,
+    RichConsoleHandler,
+)
 from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
 from hygroup.gateway.terminal import TerminalGateway
 from hygroup.session import SessionManager
-from hygroup.user import RequestHandler
-from hygroup.user.default import (
-    RequestServer,
-    RichConsoleHandler,
-)
 from hygroup.user.secrets import SecretsStore
 from hygroup.user.settings import SettingsStore
 
@@ -58,7 +58,7 @@ async def main(args):
             gateway = SlackGateway(
                 session_manager=manager,
                 composio_connector=composio_connector,
-                handle_permission_requests=args.user_channel == "slack",
+                handle_permission_requests=args.user_channel == args.gateway,
                 wip_update=False,
             )
             handlers = SlackHomeHandlers(

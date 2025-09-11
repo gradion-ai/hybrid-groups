@@ -7,6 +7,7 @@ from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
 from hygroup.agent import AgentActivation, AgentResponse, PermissionRequest
+from hygroup.channel import RequestHandler
 from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway.base import Gateway
 from hygroup.gateway.slack.commands import SlackCommandHandler
@@ -15,7 +16,6 @@ from hygroup.gateway.slack.permissions import SlackPermissionHandler
 from hygroup.gateway.slack.responses import SlackResponseHandler
 from hygroup.gateway.slack.thread import SlackThread
 from hygroup.session import Session, SessionManager
-from hygroup.user import RequestHandler
 
 
 class SlackGateway(Gateway, RequestHandler):

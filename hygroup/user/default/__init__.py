@@ -1,1 +1,1 @@
-from hygroup.user.default.channel import RequestClient, RequestServer, RichConsoleHandler
+from hygroup.channel import RequestClient, RequestServer, RichConsoleHandler

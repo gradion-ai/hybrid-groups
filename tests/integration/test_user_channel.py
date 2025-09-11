@@ -6,8 +6,7 @@ import pytest
 import pytest_asyncio
 
 from hygroup.agent import FeedbackRequest, PermissionRequest
-from hygroup.user.base import RequestHandler
-from hygroup.user.default.channel import RequestClient, RequestServer
+from hygroup.channel import RequestClient, RequestHandler, RequestServer
 
 
 class MockRequestHandler(RequestHandler):

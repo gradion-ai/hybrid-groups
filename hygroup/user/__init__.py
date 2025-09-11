@@ -1,1 +1,1 @@
-from hygroup.user.base import RequestHandler
+from hygroup.channel import RequestHandler
