@@ -12,11 +12,9 @@ def session_manager():
     manager = SessionManager(
         agent_registries=MagicMock(),
         secrets_store=MagicMock(),
-        permission_store=MagicMock(),
-        preferences_store=MagicMock(),
+        settings_store=MagicMock(),
         request_handler=MagicMock(),
         composio_config=MagicMock(),
-        command_store=MagicMock(),
         root_dir=MagicMock(),
     )
     return manager

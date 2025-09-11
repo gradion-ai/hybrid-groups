@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,15 @@ class SettingsStore:
         ]
         self._permissions: dict[str, Any] = {}  # write-through cache
         self._preferences: dict[str, str | None] = {}  # write-through cache
+
+    async def get_mapping(self, gateway: str) -> dict[str, str]:
+        mapping_file = self.root_path / "mapping.json"
+        if not await aiofiles.os.path.exists(mapping_file):
+            return {}
+
+        async with aiofiles.open(mapping_file, "r", encoding="utf-8") as f:
+            mapping = json.loads(await f.read())
+            return mapping.get(gateway, {})
 
     async def get_command_names(self, username: str) -> list[str]:
         commands_dir = self.root_path / username / "commands"
@@ -40,6 +50,12 @@ class SettingsStore:
             return await f.read()
 
     async def set_command(self, username: str, command_name: str, command: str):
+        # Validate command name - only alphanumeric, underscore, and hyphen
+        if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
+            raise ValueError(
+                f"Invalid command name: {command_name}. Only alphanumeric characters, underscores, and hyphens are allowed."
+            )
+
         command_file = self._command_file(username, command_name)
         await aiofiles.os.makedirs(command_file.parent, exist_ok=True)
 
@@ -94,6 +110,9 @@ class SettingsStore:
             await aiofiles.os.remove(preferences_file)
 
     async def get_permission(self, username: str, tool_name: str, session_id: str) -> bool:
+        if tool_name in self.allowed_tools:
+            return True
+
         if username not in self._permissions:
             await self._load_permissions(username)
 

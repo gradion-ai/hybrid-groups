@@ -24,9 +24,9 @@ from hygroup.agent import (
 from hygroup.agent.registry import AgentRegistries
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
-from hygroup.user import CommandStore, PermissionStore, RequestHandler
-from hygroup.user.default import DefaultPreferenceStore
+from hygroup.user import RequestHandler
 from hygroup.user.secrets import SecretsStore
+from hygroup.user.settings import SettingsStore
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +157,7 @@ class SessionAgent:
             return query
 
         # Try to load the command - let KeyError bubble up
-        command_content = await self.session.command_store.load_command(command_name, sender)
+        command_content = await self.session.settings_store.get_command(sender, command_name)
 
         # Handle {ARGUMENTS} placeholder
         if "{ARGUMENTS}" in command_content:
@@ -176,10 +176,9 @@ class Session:
 
         self.agent_registries: AgentRegistries = self.manager.agent_registries
         self.secrets_store: SecretsStore = self.manager.secrets_store
-        self.permission_store: PermissionStore = self.manager.permission_store
-        self.preference_store: DefaultPreferenceStore = self.manager.preference_store
+        self.settings_store: SettingsStore = self.manager.settings_store
+
         self.composio_config: ComposioConfig = self.manager.composio_config
-        self.command_store: CommandStore = self.manager.command_store
 
         self._agents: dict[str, SessionAgent] = {}
         self._messages: list[Message] = []
@@ -271,8 +270,8 @@ class Session:
         return None, text
 
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str):
-        if permission := await self.permission_store.get_permission(request.tool_name, receiver, self.id):
-            request.respond(permission)
+        if await self.settings_store.get_permission(receiver, request.tool_name, self.id):
+            request.respond(True)
             return
 
         coro = self._request_handler.handle_permission_request(request, sender, receiver, session_id=self.id)
@@ -280,8 +279,10 @@ class Session:
 
         permission = await request.response()
 
-        if permission in [2, 3]:
-            await self.permission_store.set_permission(request.tool_name, receiver, self.id, permission)
+        if permission == 2:
+            await self.settings_store.set_permission(receiver, request.tool_name, self.id)
+        elif permission == 3:
+            await self.settings_store.set_permission(receiver, request.tool_name, None)
 
     async def handle_feedback_request(self, request: FeedbackRequest, sender: str, receiver: str):
         coro = self._request_handler.handle_feedback_request(request, sender, receiver, session_id=self.id)
@@ -403,7 +404,7 @@ class Session:
         return response.text
 
     async def get_user_preferences(self, username: str) -> str | None:
-        if preferences := await self.preference_store.get_preferences(username):
+        if preferences := await self.settings_store.get_preferences(username):
             return f"User preferences for {username}:\n{preferences}"
         return None
 
@@ -451,20 +452,16 @@ class SessionManager:
         self,
         agent_registries: AgentRegistries,
         secrets_store: SecretsStore,
-        permission_store: PermissionStore,
-        preferences_store: DefaultPreferenceStore,
+        settings_store: SettingsStore,
         request_handler: RequestHandler,
         composio_config: ComposioConfig,
-        command_store: CommandStore,
         root_dir: Path = Path(".data", "sessions"),
     ):
         self.agent_registries = agent_registries
         self.secrets_store = secrets_store
-        self.permission_store = permission_store
-        self.preference_store = preferences_store
+        self.settings_store = settings_store
         self.request_handler = request_handler
         self.composio_config = composio_config
-        self.command_store = command_store
 
         self.root_dir = root_dir
         self.root_dir.mkdir(parents=True, exist_ok=True)

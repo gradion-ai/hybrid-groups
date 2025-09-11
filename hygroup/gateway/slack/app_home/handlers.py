@@ -7,8 +7,8 @@ from slack_sdk.web.async_client import AsyncWebClient
 from hygroup.gateway.slack.app_home.preferences.handlers import UserPreferenceConfigHandlers
 from hygroup.gateway.slack.app_home.secrets.handlers import SecretConfigHandlers
 from hygroup.gateway.slack.app_home.views import HomeViewBuilder
-from hygroup.user.default.preferences import DefaultPreferenceStore
 from hygroup.user.secrets import SecretsStore
+from hygroup.user.settings import SettingsStore
 
 
 class SlackHomeHandlers:
@@ -26,7 +26,7 @@ class SlackHomeHandlers:
         client: AsyncWebClient,
         app: AsyncApp,
         secrets_store: SecretsStore,
-        preference_store: DefaultPreferenceStore,
+        settings_store: SettingsStore,
         user_mapping: dict[str, str],
         system_editor_ids: list[str] | None = None,
     ):
@@ -37,7 +37,7 @@ class SlackHomeHandlers:
 
         self._secret_config_handlers = SecretConfigHandlers(client, secrets_store, self._resolve_system_user_id)
         self._user_preference_config_handlers = UserPreferenceConfigHandlers(
-            client, preference_store, self._resolve_system_user_id
+            client, settings_store, self._resolve_system_user_id
         )
 
         self._app_name: str | None = None

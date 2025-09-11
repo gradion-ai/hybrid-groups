@@ -49,6 +49,32 @@ async def test_get_nonexistent_command(settings_store: SettingsStore):
 
 
 @pytest.mark.asyncio
+async def test_set_command_invalid_name(settings_store: SettingsStore):
+    """Test that invalid command names raise ValueError."""
+    invalid_names = ["test@cmd", "test.cmd", "test cmd", "test/cmd", "test!", "test$", ""]
+
+    for invalid_name in invalid_names:
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.set_command("alice", invalid_name, "test content")
+        assert "Invalid command name" in str(exc_info.value)
+        assert "Only alphanumeric characters, underscores, and hyphens are allowed" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_set_command_valid_names(settings_store: SettingsStore):
+    """Test that valid command names work correctly."""
+    valid_names = ["test", "test_cmd", "test-cmd", "test123", "Test", "CMD_TEST", "cmd-123"]
+
+    for valid_name in valid_names:
+        # Should not raise
+        await settings_store.set_command("alice", valid_name, "test content")
+
+        # Should be able to retrieve it
+        content = await settings_store.get_command("alice", valid_name)
+        assert content == "test content"
+
+
+@pytest.mark.asyncio
 async def test_multiple_commands_sorted(settings_store: SettingsStore):
     """Test multiple commands are returned sorted."""
     await settings_store.set_command("alice", "zebra", "zebra content")
@@ -175,6 +201,55 @@ async def test_get_permission_no_permissions(settings_store: SettingsStore):
     """Test get_permission returns False when no permissions exist."""
     result = await settings_store.get_permission("alice", "bash", "session123")
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_get_permission_default_allowed_tools(settings_store: SettingsStore):
+    """Test that default allowed tools return True without explicit permissions."""
+    # Default allowed tools should return True even without stored permissions
+    assert await settings_store.get_permission("alice", "run_agent", "session123") is True
+    assert await settings_store.get_permission("alice", "ask_user", "session123") is True
+    assert await settings_store.get_permission("alice", "final_result", "session123") is True
+
+    # Non-allowed tools should still require explicit permissions
+    assert await settings_store.get_permission("alice", "bash", "session123") is False
+
+
+@pytest.mark.asyncio
+async def test_get_permission_custom_allowed_tools():
+    """Test that custom allowed tools work correctly."""
+    import tempfile
+
+    temp_dir = tempfile.mkdtemp()
+    custom_store = SettingsStore(Path(temp_dir), allowed_tools=["custom_tool", "another_tool"])
+
+    try:
+        # Custom allowed tools should return True
+        assert await custom_store.get_permission("alice", "custom_tool", "session123") is True
+        assert await custom_store.get_permission("alice", "another_tool", "session123") is True
+
+        # Default allowed tools should not be allowed anymore
+        assert await custom_store.get_permission("alice", "run_agent", "session123") is False
+        assert await custom_store.get_permission("alice", "ask_user", "session123") is False
+
+        # Non-allowed tools should require explicit permissions
+        assert await custom_store.get_permission("alice", "bash", "session123") is False
+    finally:
+        import shutil
+
+        shutil.rmtree(temp_dir)
+
+
+@pytest.mark.asyncio
+async def test_get_permission_allowed_tools_override_explicit_permissions(settings_store: SettingsStore):
+    """Test that allowed tools return True even if no explicit permission is set."""
+    # Even though we haven't set any permissions for run_agent, it should return True
+    assert await settings_store.get_permission("alice", "run_agent", "session123") is True
+
+    # But if we set explicit permission for a non-allowed tool, that should work too
+    await settings_store.set_permission("alice", "bash", "session123")
+    assert await settings_store.get_permission("alice", "bash", "session123") is True
+    assert await settings_store.get_permission("alice", "bash", "different_session") is False
 
 
 @pytest.mark.asyncio

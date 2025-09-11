@@ -13,14 +13,11 @@ from hygroup.gateway.terminal import TerminalGateway
 from hygroup.session import SessionManager
 from hygroup.user import RequestHandler
 from hygroup.user.default import (
-    DefaultPermissionStore,
-    DefaultPreferenceStore,
     RequestServer,
     RichConsoleHandler,
-    UserMapping,
 )
-from hygroup.user.default.command import DefaultCommandStore
 from hygroup.user.secrets import SecretsStore
+from hygroup.user.settings import SettingsStore
 
 
 async def main(args):
@@ -28,11 +25,7 @@ async def main(args):
         raise ValueError("Invalid configuration: --user-channel=slack requires --gateway=slack")
 
     agent_registries = AgentRegistries()
-    preference_store = DefaultPreferenceStore()
-    permission_store = DefaultPermissionStore()
-    command_store = DefaultCommandStore()
-    user_mapping = UserMapping()
-
+    settings_store = SettingsStore()
     secrets_store = SecretsStore(args.secrets_store)
     await secrets_store.unlock(args.secrets_store_password)
 
@@ -53,18 +46,16 @@ async def main(args):
     manager = SessionManager(
         agent_registries=agent_registries,
         secrets_store=secrets_store,
-        permission_store=permission_store,
-        preferences_store=preference_store,
+        settings_store=settings_store,
         request_handler=request_handler,
         composio_config=composio_config,
-        command_store=command_store,
     )
 
     gateway: Gateway
 
     match args.gateway:
         case "slack":
-            mapping = await user_mapping.load("slack")
+            mapping = await settings_store.get_mapping("slack")
             gateway = SlackGateway(
                 session_manager=manager,
                 composio_connector=composio_connector,
@@ -76,12 +67,12 @@ async def main(args):
                 client=gateway.client,
                 app=gateway.app,
                 secrets_store=secrets_store,
-                preference_store=preference_store,
+                settings_store=settings_store,
                 user_mapping=mapping,
             )
             handlers.register()
         case "github":
-            mapping = await user_mapping.load("github")
+            mapping = await settings_store.get_mapping("github")
             gateway = GithubGateway(
                 session_manager=manager,
                 user_mapping=mapping,
