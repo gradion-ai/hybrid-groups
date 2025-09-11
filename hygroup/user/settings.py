@@ -14,6 +14,8 @@ class CommandNotFoundError(Exception):
 
 
 class SettingsStore:
+    SAFE_NAME_PATTERN = r"^[a-zA-Z0-9_-]+$"
+
     def __init__(self, root_path: Path = Path(".data", "users"), allowed_tools: list[str] | None = None):
         self.root_path = root_path
         self.root_path.mkdir(parents=True, exist_ok=True)
@@ -34,7 +36,7 @@ class SettingsStore:
         return self._mappings.get(gateway, {})
 
     async def get_command_names(self, username: str) -> list[str]:
-        commands_dir = self.root_path / username / "commands"
+        commands_dir = self._command_dir(username)
         if not await aiofiles.os.path.exists(commands_dir):
             return []
 
@@ -56,7 +58,7 @@ class SettingsStore:
 
     async def set_command(self, username: str, command_name: str, command: str):
         # Validate command name - only alphanumeric, underscore, and hyphen
-        if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
+        if not re.match(self.SAFE_NAME_PATTERN, command_name):
             raise ValueError(
                 f"Invalid command name: {command_name}. Only alphanumeric characters, underscores, and hyphens are allowed."
             )
@@ -183,11 +185,22 @@ class SettingsStore:
             await f.write(json.dumps(user_permissions, indent=2))
         await aiofiles.os.replace(temp_file, permissions_file)
 
+    def _command_dir(self, username: str) -> Path:
+        return self.root_path / self._sanitize_username(username) / "commands"
+
     def _command_file(self, username: str, command_name: str) -> Path:
-        return self.root_path / username / "commands" / f"{command_name}.md"
+        return self._command_dir(username) / f"{command_name}.md"
 
     def _preferences_file(self, username: str) -> Path:
-        return self.root_path / username / "preferences.md"
+        return self.root_path / self._sanitize_username(username) / "preferences.md"
 
     def _permissions_file(self, username: str) -> Path:
-        return self.root_path / username / "permissions.json"
+        return self.root_path / self._sanitize_username(username) / "permissions.json"
+
+    def _sanitize_username(self, username: str) -> str:
+        if not username.strip():
+            raise ValueError("Username cannot be empty")
+
+        # Replace any character not in the safe pattern with underscore
+        sanitized = re.sub(r"[^a-zA-Z0-9_-]", "_", username)
+        return sanitized

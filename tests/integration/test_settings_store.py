@@ -414,11 +414,190 @@ async def test_mixed_operations(settings_store: SettingsStore):
 
 
 @pytest.mark.asyncio
+async def test_empty_username_raises_error(settings_store: SettingsStore):
+    """Test that empty username raises ValueError in all operations."""
+    empty_usernames = ["", "   ", "\t", "\n"]  # empty and whitespace-only
+
+    for empty_username in empty_usernames:
+        # Test get_command_names
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.get_command_names(empty_username)
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test set_command
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.set_command(empty_username, "test_cmd", "content")
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test get_command
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.get_command(empty_username, "test_cmd")
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test delete_command
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.delete_command(empty_username, "test_cmd")
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test get_preferences
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.get_preferences(empty_username)
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test set_preferences
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.set_preferences(empty_username, "prefs")
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test delete_preferences
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.delete_preferences(empty_username)
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test get_permission
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.get_permission(empty_username, "bash", "session123")
+        assert "Username cannot be empty" in str(exc_info.value)
+
+        # Test set_permission
+        with pytest.raises(ValueError) as exc_info:
+            await settings_store.set_permission(empty_username, "bash", "session123")
+        assert "Username cannot be empty" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_username_sanitization_works(settings_store: SettingsStore):
+    """Test that usernames get sanitized to safe formats."""
+    sanitization_cases = [
+        ("../evil", "__evil"),
+        ("user@domain.com", "user_domain_com"),
+        ("user/path", "user_path"),
+        ("user.name", "user_name"),
+        ("user name", "user_name"),
+        ("user!", "user_"),
+        ("user$", "user_"),
+        ("user#", "user_"),
+        ("user%", "user_"),
+        ("user&", "user_"),
+        ("user*", "user_"),
+        ("user+", "user_"),
+        ("user=", "user_"),
+        ("user?", "user_"),
+        ("user[", "user_"),
+        ("user]", "user_"),
+        ("user{", "user_"),
+        ("user}", "user_"),
+        ("user|", "user_"),
+        ("user\\", "user_"),
+        ("user:", "user_"),
+        ("user;", "user_"),
+        ('user"', "user_"),
+        ("user'", "user_"),
+        ("user<", "user_"),
+        ("user>", "user_"),
+        ("user,", "user_"),
+    ]
+
+    for original_username, expected_sanitized in sanitization_cases:
+        # Test that operations work with the original (unsafe) username
+        await settings_store.set_command(original_username, "test_cmd", "test content")
+
+        # Verify we can retrieve it
+        content = await settings_store.get_command(original_username, "test_cmd")
+        assert content == "test content"
+
+        # Verify the command names work
+        command_names = await settings_store.get_command_names(original_username)
+        assert "test_cmd" in command_names
+
+        # Clean up for next iteration
+        await settings_store.delete_command(original_username, "test_cmd")
+
+
+@pytest.mark.asyncio
+async def test_valid_usernames_work_correctly(settings_store: SettingsStore):
+    """Test that valid usernames work correctly in all operations."""
+    valid_usernames = [
+        "alice",
+        "bob123",
+        "user_test",
+        "user-test",
+        "Test",
+        "USER_TEST",
+        "user-123",
+        "a",  # single character
+        "user_test_long_name_123",
+        "A1B2C3",
+        "test-user-123_456",
+    ]
+
+    for valid_username in valid_usernames:
+        # Test set_command and get_command
+        await settings_store.set_command(valid_username, "test_cmd", "test content")
+        content = await settings_store.get_command(valid_username, "test_cmd")
+        assert content == "test content"
+
+        # Test get_command_names
+        command_names = await settings_store.get_command_names(valid_username)
+        assert "test_cmd" in command_names
+
+        # Test set_preferences and get_preferences
+        await settings_store.set_preferences(valid_username, "test preferences")
+        prefs = await settings_store.get_preferences(valid_username)
+        assert prefs == "test preferences"
+
+        # Test set_permission and get_permission
+        await settings_store.set_permission(valid_username, "bash", "session123")
+        has_perm = await settings_store.get_permission(valid_username, "bash", "session123")
+        assert has_perm is True
+
+        # Clean up
+        await settings_store.delete_command(valid_username, "test_cmd")
+        await settings_store.delete_preferences(valid_username)
+
+
+@pytest.mark.asyncio
+async def test_username_sanitization_prevents_path_traversal(settings_store: SettingsStore):
+    """Test that username sanitization prevents path traversal attacks."""
+    malicious_usernames = [
+        "../../../etc/passwd",
+        "..\\windows\\system32",
+        "../admin",
+        "../../root",
+        "./../secrets",
+        "user/../other_user",
+        "user/../../system",
+    ]
+
+    for malicious_username in malicious_usernames:
+        # These should now be sanitized and work safely
+        await settings_store.set_command(malicious_username, "test_cmd", "safe content")
+
+        # Verify the content can be retrieved
+        content = await settings_store.get_command(malicious_username, "test_cmd")
+        assert content == "safe content"
+
+        # Verify files are created only within the settings store directory
+        # The sanitized username ensures no path traversal occurs
+        user_dir = settings_store.root_path / settings_store._sanitize_username(malicious_username)
+        assert user_dir.exists()
+        assert (user_dir / "commands" / "test_cmd.md").exists()
+
+        # Clean up
+        await settings_store.delete_command(malicious_username, "test_cmd")
+
+
+@pytest.mark.asyncio
 async def test_edge_cases(settings_store: SettingsStore):
     """Test edge cases with special characters and empty strings."""
-    # Special characters in usernames and command names
+    # Usernames with special characters should now be sanitized and work
     await settings_store.set_command("user@domain.com", "cmd-with-dashes", "content")
-    commands = await settings_store.get_command_names("user@domain.com")
+    content = await settings_store.get_command("user@domain.com", "cmd-with-dashes")
+    assert content == "content"
+
+    # Valid command names with special characters should still work
+    await settings_store.set_command("alice", "cmd-with-dashes", "content")
+    commands = await settings_store.get_command_names("alice")
     assert "cmd-with-dashes" in commands
 
     # Empty session ID for session permissions
