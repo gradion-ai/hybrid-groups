@@ -105,7 +105,7 @@ The `hygroup` package implements a multi-user AI collaboration system that enabl
   - **`setup/`**: Web application for initial Slack/GitHub app configuration and OAuth setup
   - **`scripts/`**: Entry points for running the application server and managing Composio integrations
   - **`connect/`**: Composio connector enabling access to 250+ external services via MCP servers
-  - **`channel.py`**: Request handlers for permission and feedback requests with different UI implementations
+  - **`channel.py`**: Request handlers interface for permission and feedback requests and a terminal UI implementation
 
 ### `session` module
 
@@ -123,6 +123,9 @@ Provides the agent framework and implementations:
 - **`registry.py`**: `AgentRegistry` for managing agent configurations and `AgentRegistries` for channel-scoped registries
 - **`default/`**: Default agent implementation using Pydantic AI with MCP server support
 - **`system/`**: System agent that monitors all messages and can delegate to specialized agents
+  - See [detailed system agent specification](docs/specs/system.md) for behavior and routing logic
+  - See [system agent default prompt](hygroup/agent/system/prompt.md) for the agent's system prompt
+  - See [system agent input specification](docs/specs/system-input.md) for the agent's input format
 - **`utils.py`**: Helper functions for agent operations
 
 ### `gateway` package
