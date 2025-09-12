@@ -21,7 +21,7 @@ from hygroup.agent import (
     PermissionRequest,
     Thread,
 )
-from hygroup.agent.registry import AgentRegistries
+from hygroup.agent.registry import AgentRegistries, AgentRegistry
 from hygroup.channel import RequestHandler
 from hygroup.connect import ComposioConfig
 from hygroup.gateway import Gateway
@@ -56,7 +56,7 @@ class SessionAgent:
         }
 
     def set_state(self, state: dict[str, Any]):
-        self._updates = [Message(**update) for update in state["updates"]]
+        self._updates = [Message.from_dict(update) for update in state["updates"]]
         self.agent.set_state(state["history"])
 
     async def update(self, message: Message):
@@ -224,6 +224,10 @@ class Session:
         return self._channel
 
     @property
+    def registry(self) -> AgentRegistry:
+        return self.agent_registries.get_registry(name=self.channel)
+
+    @property
     def messages(self) -> list[Message]:
         return self._messages
 
@@ -235,11 +239,11 @@ class Session:
 
     def agent_names(self) -> set[str]:
         names = set(self._agents.keys())
-        names |= self.agent_registries.get_registry(name=self.channel).get_registered_names()
+        names |= self.registry.get_registered_names()
         return names
 
     def _create_agent(self, name: str, tools: list | None = None) -> SessionAgent:
-        registry = self.agent_registries.get_registry(name=self.channel)
+        registry = self.registry
         return SessionAgent(registry.create_agent(name, tools=tools), session=self)
 
     def _load_agent(self, agent_name: str):
@@ -344,7 +348,7 @@ class Session:
                 self._load_agent(receiver)
             await self.update_agents(message, exclude=receiver)
             await self.invoke_agent(receiver, request)
-        elif default := self.agent_registries.get_registry(name=self.channel).get_default_agent():
+        elif default := self.registry.get_default_agent():
             if default not in self._agents:
                 self._load_agent(default)
             await self.update_agents(message, exclude=default)
@@ -443,9 +447,12 @@ class Session:
         for name, state in state_dict["agents"].items():
             if name in self._agents:
                 self._agents[name].set_state(state)
+            elif name in self.registry.get_registered_names():
+                self._load_agent(name)
+                self._agents[name].set_state(state)
 
-        # restore thread messages
-        self._messages = [Message(**message) for message in state_dict["messages"]]
+        # restore session messages
+        self._messages = [Message.from_dict(message) for message in state_dict["messages"]]
 
 
 class SessionManager:
