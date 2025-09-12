@@ -18,6 +18,15 @@ class Attachment:
         async with aiofiles.open(self.path, "rb") as f:
             return await f.read()
 
+    @staticmethod
+    def from_dicts(attachment_dicts: list[dict[str, Any]]) -> list["Attachment"]:
+        """Convert a list of attachment dictionaries to Attachment objects."""
+        attachments = []
+        for attachment_dict in attachment_dicts:
+            attachment = Attachment(**attachment_dict)
+            attachments.append(attachment)
+        return attachments
+
 
 @dataclass
 class Thread:
@@ -57,6 +66,8 @@ class Message:
                 nested_thread = Thread(session_id=thread_data.get("session_id", ""), messages=thread_messages)
                 nested_threads.append(nested_thread)
             message_data["threads"] = nested_threads
+        if "attachments" in message_data and message_data["attachments"]:
+            message_data["attachments"] = Attachment.from_dicts(message_data["attachments"])
         return Message(**message_data)
 
 
