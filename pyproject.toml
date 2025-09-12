@@ -28,6 +28,7 @@ dependencies = [
     "rich>=14.0.0,<15",
     "markdown-to-mrkdwn>=0.2.0,<0.3",
     "composio-client>=1.7.0",
+    "pillow>=11.3.0,<12",
 ]
 
 [tool.uv]
