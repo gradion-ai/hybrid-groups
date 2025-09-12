@@ -1,12 +1,8 @@
 import asyncio
-import os
 from dataclasses import dataclass, field
-from uuid import uuid4
 
-import aiofiles
-import aiohttp
-
-from hygroup.agent import Attachment, PermissionRequest
+from hygroup.agent import PermissionRequest
+from hygroup.gateway.slack.utils import download_attachment
 from hygroup.session import Session
 
 
@@ -31,10 +27,10 @@ class SlackThread:
         if self.session.contains(msg["id"]):
             return
 
-        if files := msg.get("files"):
-            attachments = await self._download_attachments(files)
-        else:
-            attachments = None
+        attachments = []
+        for file in msg.get("files") or []:
+            attachment = await download_attachment(file, self.session.root())
+            attachments.append(attachment)
 
         await self.session.handle_gateway_message(
             text=msg["text"],
@@ -42,34 +38,3 @@ class SlackThread:
             message_id=msg["id"],
             attachments=attachments,
         )
-
-    async def _download_attachments(self, files: list) -> list[Attachment] | None:
-        root = self.session.root()
-
-        headers = {"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}"}
-        result = []
-
-        async with aiohttp.ClientSession() as session:
-            for i, file in enumerate(files):
-                mimetype = file.get("mimetype", "application/octet-stream")
-                filetype = file.get("filetype", "bin")
-                name = file.get("name", f"unknown_{i}.{filetype}")
-                url_private_download = file.get("url_private_download")
-
-                if not url_private_download:
-                    continue
-
-                attachment_id = uuid4().hex[:8]
-                filename = f"attachment-{attachment_id}.{filetype}"
-                target_path = root / filename
-
-                async with session.get(url_private_download, headers=headers) as response:
-                    response.raise_for_status()
-                    async with aiofiles.open(target_path, "wb") as f:
-                        async for chunk in response.content.iter_chunked(8192):
-                            await f.write(chunk)
-
-                attachment = Attachment(path=str(target_path), name=name, media_type=mimetype)
-                result.append(attachment)
-
-        return result
