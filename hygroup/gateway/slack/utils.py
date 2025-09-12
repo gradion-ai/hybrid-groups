@@ -34,7 +34,7 @@ async def download_attachment(file, target_dir: Path, max_image_size: int = 1024
                     await arun(img.save, attachment_path)
             else:
                 async with aiofiles.open(attachment_path, "wb") as f:
-                    async for chunk in response.content.iter_chunked(8192):  # TODO use read()
+                    async for chunk in response.content.iter_chunked(8192):
                         await f.write(chunk)
 
         return Attachment(path=str(attachment_path), name=name, media_type=mimetype)
