@@ -47,12 +47,24 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MCPSettings:
     server_config: dict[str, Any]
+    included_tools: list[str] | None = None
+    excluded_tools: list[str] | None = None
 
     def server(self) -> MCPServer:
         if "command" in self.server_config:
-            return MCPServerStdio(**self.server_config)
+            base_server = MCPServerStdio(**self.server_config)
         else:
-            return MCPServerStreamableHTTP(**self.server_config)
+            base_server = MCPServerStreamableHTTP(**self.server_config)
+
+        if self.included_tools is not None or self.excluded_tools is not None:
+            return base_server.filtered(
+                lambda ctx, tool_def: (
+                    (self.included_tools is None or tool_def.name in self.included_tools)
+                    and (self.excluded_tools is None or tool_def.name not in self.excluded_tools)
+                )
+            )
+
+        return base_server
 
 
 @dataclass
