@@ -79,11 +79,11 @@ class SlackResponseHandler:
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
         text = f"{receiver_resolved_formatted} {response.text}"
-        
+
         # Truncate message if it exceeds Slack's character limit
         if len(text) > 2990:
             text = text[:2990] + "..."
-        
+
         blocks = [
             {
                 "type": "section",
