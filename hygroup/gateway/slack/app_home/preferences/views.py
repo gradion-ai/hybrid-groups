@@ -56,8 +56,8 @@ class UserPreferenceViewBuilder:
 
         if preferences:
             content = preferences
-            if len(content) > 3000:  # Slack has a 3000 character limit for text blocks
-                content = content[:2997] + "..."
+            if len(content) > 2990:  # Slack has a 3000 character limit for text blocks
+                content = content[:2990] + "..."
 
             blocks.append(
                 {
