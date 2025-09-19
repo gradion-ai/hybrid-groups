@@ -5,7 +5,7 @@ import logging
 import os
 from abc import abstractmethod
 from contextlib import asynccontextmanager, contextmanager
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Coroutine, Generic, Sequence, Type, TypeVar
 
@@ -57,12 +57,13 @@ class MCPSettings:
             base_server = MCPServerStreamableHTTP(**self.server_config)
 
         if self.included_tools is not None or self.excluded_tools is not None:
-            return base_server.filtered(
+            filtered_server = base_server.filtered(
                 lambda ctx, tool_def: (
                     (self.included_tools is None or tool_def.name in self.included_tools)
                     and (self.excluded_tools is None or tool_def.name not in self.excluded_tools)
                 )
             )
+            return filtered_server
 
         return base_server
 
@@ -229,7 +230,7 @@ class AgentBase(Generic[D], Agent):
     def _configure_mcp_servers(self, variables: dict[str, str]):
         for settings in self.settings.mcp_settings:
             result = replace_variables(settings.server_config, variables)
-            settings = MCPSettings(result.replaced)
+            settings = replace(settings, server_config=result.replaced)
             if result.missing_variables:
                 logger.warning(
                     f"Variables {result.missing_variables} missing for "
