@@ -5,7 +5,7 @@ import logging
 import os
 from abc import abstractmethod
 from contextlib import asynccontextmanager, contextmanager
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable, Coroutine, Generic, Sequence, Type, TypeVar
 
@@ -229,7 +229,7 @@ class AgentBase(Generic[D], Agent):
     def _configure_mcp_servers(self, variables: dict[str, str]):
         for settings in self.settings.mcp_settings:
             result = replace_variables(settings.server_config, variables)
-            settings = MCPSettings(result.replaced)
+            settings = replace(settings, server_config=result.replaced)
             if result.missing_variables:
                 logger.warning(
                     f"Variables {result.missing_variables} missing for "
