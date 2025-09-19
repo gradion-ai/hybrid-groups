@@ -57,13 +57,12 @@ class MCPSettings:
             base_server = MCPServerStreamableHTTP(**self.server_config)
 
         if self.included_tools is not None or self.excluded_tools is not None:
-            filtered_server = base_server.filtered(
+            return base_server.filtered(
                 lambda ctx, tool_def: (
                     (self.included_tools is None or tool_def.name in self.included_tools)
                     and (self.excluded_tools is None or tool_def.name not in self.excluded_tools)
                 )
             )
-            return filtered_server
 
         return base_server
 
