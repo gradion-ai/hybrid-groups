@@ -85,7 +85,9 @@ class AgentRegistry:
                 descriptions.append(f"- {name}: {description}")
 
         if descriptions:
-            return "\n".join(descriptions)
+            header = "Registered agents:"
+            agents = "\n".join(descriptions)
+            return f"{header}\n{agents}"
 
         return None
 
