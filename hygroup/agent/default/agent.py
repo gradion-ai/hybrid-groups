@@ -302,7 +302,7 @@ class AgentBase(Generic[D], Agent):
         new_messages = result.new_messages()
 
         if request.preferences:
-            # remove user preferences user prompt
+            # remove user preferences from user prompt
             new_messages[0].parts[-1].content.pop(-2)
 
         self._history.extend(new_messages)
