@@ -22,7 +22,6 @@ dependencies = [
     "google-genai>=1.21.1,<2",
     "gitingest>=0.1.4,<0.2",
     "datasets>=3.6.0,<4",
-    "tinydb>=4.8.2,<5",
     "bcrypt>=4.3.0,<5",
     "cryptography>=45.0.3,<46",
     "rich>=14.0.0,<15",

@@ -305,7 +305,7 @@ class AgentBase(Generic[D], Agent):
             # remove user preferences from user prompt
             new_messages[0].parts[-1].content.pop(-2)
 
-        self._history.extend(new_messages)
+        self._history = result.all_messages()
 
     def _prep(self, request: AgentRequest, user_prompt: list):
         """Hook for subclasses to modify user prompt"""

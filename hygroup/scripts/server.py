@@ -11,6 +11,7 @@ from hygroup.channel import (
     RichConsoleHandler,
 )
 from hygroup.connect.composio import ComposioConnector
+from hygroup.connect.notion import NotionAuth
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
@@ -28,6 +29,9 @@ async def main(args):
     settings_store = SettingsStore(root_path=args.settings_store)
     secrets_store = SecretsStore(root_path=args.secrets_store)
     await secrets_store.unlock(args.secrets_store_password)
+
+    notion_auth = NotionAuth(root_path=args.secrets_store)
+    await notion_auth.refresh_task(secrets_store=secrets_store)
 
     composio_connector = ComposioConnector(secrets_store=secrets_store)
     composio_config = await composio_connector.load_config()
