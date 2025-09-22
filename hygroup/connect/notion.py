@@ -150,8 +150,10 @@ class NotionAuth:
             msg = f"Notion access token refresh for client id {auth_data.client_id} failed:"
             res = json.dumps(response_dict, indent=2)
             logger.error(f"{msg}\n{res}")
-        else:
-            logger.info(f"Notion access token refreshed for client id {auth_data.client_id}.")
+            # Keep current tokens and set retry a refresh in 30 seconds from now
+            return replace(auth_data, access_token_expires_at=time.time() + 30)
+
+        logger.info(f"Notion access token refreshed for client id {auth_data.client_id}")
 
         return replace(
             auth_data,
