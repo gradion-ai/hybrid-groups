@@ -7,7 +7,7 @@ from abc import abstractmethod
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Coroutine, Generic, Sequence, Type, TypeVar
+from typing import Any, AsyncIterator, Awaitable, Callable, Generic, Sequence, Type, TypeVar
 
 from pydantic_ai import Agent as AgentImpl
 from pydantic_ai.builtin_tools import AbstractBuiltinTool
@@ -68,8 +68,8 @@ class AgentSettings:
     human_feedback: bool = False
     model_settings: ModelSettings | None = None
     mcp_settings: list[MCPSettings] = field(default_factory=list)
-    builtin_tools: list[Coroutine] = field(default_factory=list)
-    tools: list[AbstractBuiltinTool] = field(default_factory=list)
+    builtin_tools: list[AbstractBuiltinTool] = field(default_factory=list)
+    tools: list[Callable[..., Awaitable[Any]]] = field(default_factory=list)
 
     @staticmethod
     def serialize_builtin_tool(builtin_tool: AbstractBuiltinTool) -> dict[str, str]:
