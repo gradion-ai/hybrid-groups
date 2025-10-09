@@ -1,19 +1,12 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from hygroup.gateway.github import GithubGateway
-from hygroup.session import SessionManager
 
 
 @pytest.fixture
-def session_manager():
-    """Create a mock session manager for testing."""
-    manager = MagicMock(spec=SessionManager)
-
-    # Mock settings_store and get_mapping
-    settings_store = MagicMock()
-    user_mapping = {
+def user_mapping():
+    """Create a user mapping for testing."""
+    return {
         "bot": "bot",
         "user": "john",
         "user1": "alice",
@@ -22,173 +15,146 @@ def session_manager():
         "admin": "administrator",
         "assistant": "assistant",
     }
-    settings_store.get_mapping.return_value = user_mapping
-    manager.settings_store = settings_store
-
-    return manager
 
 
 @pytest.fixture
-def github_gateway(session_manager):
-    """Create a GithubGateway instance with test user mappings."""
-    # Mock GitHub integration components to avoid real GitHub connections
-    with (
-        patch("hygroup.gateway.github.gateway.Auth"),
-        patch("hygroup.gateway.github.gateway.GithubIntegration"),
-        patch("hygroup.gateway.github.gateway.GithubService"),
-        patch("hygroup.gateway.github.gateway.create_app"),
-        patch("hygroup.gateway.github.gateway.uvicorn.Config"),
-        patch("hygroup.gateway.github.gateway.uvicorn.Server"),
-        patch("hygroup.gateway.github.gateway.AppSettings"),
-    ):
-        gateway = GithubGateway(
-            session_manager=session_manager,
-            github_app_id=12345,
-            github_app_installation_id=67890,
-            github_app_private_key="test-private-key",
-            github_app_webhook_secret="test-webhook-secret",
-            github_app_username="test-bot",
-        )
-        return gateway
+def resolver(user_mapping):
+    """Create a resolver function based on user mapping."""
+
+    def resolve(username: str) -> str:
+        return user_mapping.get(username, username)
+
+    return resolve
 
 
 class TestGithubResolveMentions:
-    """Test GithubGateway._resolve_mentions method for GitHub-specific mention formats."""
+    """Test GithubGateway.resolve_mentions static method for GitHub-specific mention formats."""
 
-    def test_basic_username_format(self, github_gateway):
+    def test_basic_username_format(self, resolver):
         """Test basic @username format resolution."""
-        assert github_gateway._resolve_mentions("@user") == "@john"
-        assert github_gateway._resolve_mentions("@user1") == "@alice"
-        assert github_gateway._resolve_mentions("@user2") == "@bob"
+        assert GithubGateway.resolve_mentions("@user", resolver) == "@john"
+        assert GithubGateway.resolve_mentions("@user1", resolver) == "@alice"
+        assert GithubGateway.resolve_mentions("@user2", resolver) == "@bob"
 
-    def test_username_in_context(self, github_gateway):
+    def test_username_in_context(self, resolver):
         """Test @username mentions within text."""
-        assert github_gateway._resolve_mentions("blah @bot blah") == "blah @bot blah"
-        assert github_gateway._resolve_mentions("@user hello") == "@john hello"
-        assert github_gateway._resolve_mentions("hello @user") == "hello @john"
-        assert github_gateway._resolve_mentions("hello @user!") == "hello @john!"
+        assert GithubGateway.resolve_mentions("blah @bot blah", resolver) == "blah @bot blah"
+        assert GithubGateway.resolve_mentions("@user hello", resolver) == "@john hello"
+        assert GithubGateway.resolve_mentions("hello @user", resolver) == "hello @john"
+        assert GithubGateway.resolve_mentions("hello @user!", resolver) == "hello @john!"
 
-    def test_multiple_mentions(self, github_gateway):
+    def test_multiple_mentions(self, resolver):
         """Test multiple @username mentions in one message."""
-        assert github_gateway._resolve_mentions("@user1 and @user2") == "@alice and @bob"
-        assert github_gateway._resolve_mentions("@bot please help @user") == "@bot please help @john"
-        assert github_gateway._resolve_mentions("@user ping @bot") == "@john ping @bot"
+        assert GithubGateway.resolve_mentions("@user1 and @user2", resolver) == "@alice and @bob"
+        assert GithubGateway.resolve_mentions("@bot please help @user", resolver) == "@bot please help @john"
+        assert GithubGateway.resolve_mentions("@user ping @bot", resolver) == "@john ping @bot"
 
-    def test_unknown_users(self, github_gateway):
+    def test_unknown_users(self, resolver):
         """Test @username mentions for users not in mapping."""
-        assert github_gateway._resolve_mentions("hello @unknown") == "hello @unknown"
-        assert github_gateway._resolve_mentions("@unknown user") == "@unknown user"
-        assert github_gateway._resolve_mentions("@user1 hello @unknown") == "@alice hello @unknown"
+        assert GithubGateway.resolve_mentions("hello @unknown", resolver) == "hello @unknown"
+        assert GithubGateway.resolve_mentions("@unknown user", resolver) == "@unknown user"
+        assert GithubGateway.resolve_mentions("@user1 hello @unknown", resolver) == "@alice hello @unknown"
 
-    def test_empty_and_none_cases(self, github_gateway):
-        """Test empty and None inputs."""
-        assert github_gateway._resolve_mentions("") == ""
-        assert github_gateway._resolve_mentions(None) == ""
-        assert github_gateway._resolve_mentions("no mentions here") == "no mentions here"
+    def test_empty_cases(self, resolver):
+        """Test empty inputs."""
+        assert GithubGateway.resolve_mentions("", resolver) == ""
+        assert GithubGateway.resolve_mentions("no mentions here", resolver) == "no mentions here"
 
-    def test_word_boundary_detection(self, github_gateway):
+    def test_word_boundary_detection(self, resolver):
         """Test that @ preceded by word characters is not matched."""
         # Emails should not be matched due to word boundary detection
-        assert github_gateway._resolve_mentions("email@example.com") == "email@example.com"
-        assert github_gateway._resolve_mentions("test@domain.org") == "test@domain.org"
+        assert GithubGateway.resolve_mentions("email@example.com", resolver) == "email@example.com"
+        assert GithubGateway.resolve_mentions("test@domain.org", resolver) == "test@domain.org"
 
         # Double @ - second @ should match as it's not preceded by word char
-        assert github_gateway._resolve_mentions("@@user") == "@@john"
+        assert GithubGateway.resolve_mentions("@@user", resolver) == "@@john"
 
         # @ alone or with non-username chars
-        assert github_gateway._resolve_mentions("@") == "@"
-        assert github_gateway._resolve_mentions("@ ") == "@ "
+        assert GithubGateway.resolve_mentions("@", resolver) == "@"
+        assert GithubGateway.resolve_mentions("@ ", resolver) == "@ "
 
-    def test_emails_remain_intact(self, github_gateway):
+    def test_emails_remain_intact(self, resolver):
         """Test that email addresses are not modified."""
-        assert github_gateway._resolve_mentions("first.last@example.com") == "first.last@example.com"
-        assert github_gateway._resolve_mentions("user+tag@domain.co.uk") == "user+tag@domain.co.uk"
-        assert github_gateway._resolve_mentions("test@sub.domain.org") == "test@sub.domain.org"
-        assert github_gateway._resolve_mentions("admin@company-name.com") == "admin@company-name.com"
-        assert github_gateway._resolve_mentions("123@numbers.net") == "123@numbers.net"
+        assert GithubGateway.resolve_mentions("first.last@example.com", resolver) == "first.last@example.com"
+        assert GithubGateway.resolve_mentions("user+tag@domain.co.uk", resolver) == "user+tag@domain.co.uk"
+        assert GithubGateway.resolve_mentions("test@sub.domain.org", resolver) == "test@sub.domain.org"
+        assert GithubGateway.resolve_mentions("admin@company-name.com", resolver) == "admin@company-name.com"
+        assert GithubGateway.resolve_mentions("123@numbers.net", resolver) == "123@numbers.net"
 
-    def test_mixed_emails_and_mentions(self, github_gateway):
+    def test_mixed_emails_and_mentions(self, resolver):
         """Test text containing both emails and GitHub mentions."""
         assert (
-            github_gateway._resolve_mentions("Contact @support at help@company.com")
+            GithubGateway.resolve_mentions("Contact @support at help@company.com", resolver)
             == "Contact @team at help@company.com"
         )
         assert (
-            github_gateway._resolve_mentions("Email me@company.com or ping @admin")
+            GithubGateway.resolve_mentions("Email me@company.com or ping @admin", resolver)
             == "Email me@company.com or ping @administrator"
         )
         assert (
-            github_gateway._resolve_mentions("@bot please send to user@domain.com")
+            GithubGateway.resolve_mentions("@bot please send to user@domain.com", resolver)
             == "@bot please send to user@domain.com"
         )
 
-    def test_multiple_emails_in_text(self, github_gateway):
+    def test_multiple_emails_in_text(self, resolver):
         """Test multiple emails remain intact."""
         assert (
-            github_gateway._resolve_mentions("Send to admin@company.com and user@domain.org")
+            GithubGateway.resolve_mentions("Send to admin@company.com and user@domain.org", resolver)
             == "Send to admin@company.com and user@domain.org"
         )
 
-    def test_emails_in_various_contexts(self, github_gateway):
+    def test_emails_in_various_contexts(self, resolver):
         """Test emails in different surrounding contexts."""
-        assert github_gateway._resolve_mentions("(user@example.com)") == "(user@example.com)"
-        assert github_gateway._resolve_mentions("[admin@company.com]") == "[admin@company.com]"
-        assert github_gateway._resolve_mentions("'test@domain.org'") == "'test@domain.org'"
-        assert github_gateway._resolve_mentions('"contact@company.com"') == '"contact@company.com"'
+        assert GithubGateway.resolve_mentions("(user@example.com)", resolver) == "(user@example.com)"
+        assert GithubGateway.resolve_mentions("[admin@company.com]", resolver) == "[admin@company.com]"
+        assert GithubGateway.resolve_mentions("'test@domain.org'", resolver) == "'test@domain.org'"
+        assert GithubGateway.resolve_mentions('"contact@company.com"', resolver) == '"contact@company.com"'
 
-    def test_whitespace_preservation(self, github_gateway):
+    def test_whitespace_preservation(self, resolver):
         """Test that whitespace is preserved correctly."""
-        assert github_gateway._resolve_mentions("  @user  ") == "  @john  "
-        assert github_gateway._resolve_mentions("\t@user1\n") == "\t@alice\n"
-        assert github_gateway._resolve_mentions("@user1\n\n@user2") == "@alice\n\n@bob"
+        assert GithubGateway.resolve_mentions("  @user  ", resolver) == "  @john  "
+        assert GithubGateway.resolve_mentions("\t@user1\n", resolver) == "\t@alice\n"
+        assert GithubGateway.resolve_mentions("@user1\n\n@user2", resolver) == "@alice\n\n@bob"
 
-    def test_special_characters_around_mentions(self, github_gateway):
+    def test_special_characters_around_mentions(self, resolver):
         """Test mentions with special characters in surrounding text."""
-        assert github_gateway._resolve_mentions("!@user!") == "!@john!"
-        assert github_gateway._resolve_mentions("#@user1$") == "#@alice$"
-        assert github_gateway._resolve_mentions("(@user)") == "(@john)"
-        assert github_gateway._resolve_mentions("[@user2]") == "[@bob]"
-        assert github_gateway._resolve_mentions("'@bot'") == "'@bot'"
-        assert github_gateway._resolve_mentions('"@admin"') == '"@administrator"'
+        assert GithubGateway.resolve_mentions("!@user!", resolver) == "!@john!"
+        assert GithubGateway.resolve_mentions("#@user1$", resolver) == "#@alice$"
+        assert GithubGateway.resolve_mentions("(@user)", resolver) == "(@john)"
+        assert GithubGateway.resolve_mentions("[@user2]", resolver) == "[@bob]"
+        assert GithubGateway.resolve_mentions("'@bot'", resolver) == "'@bot'"
+        assert GithubGateway.resolve_mentions('"@admin"', resolver) == '"@administrator"'
 
-    def test_complex_message_with_multiple_elements(self, github_gateway):
+    def test_complex_message_with_multiple_elements(self, resolver):
         """Test complex message with multiple mentions and various text elements."""
         text = "Hey @bot, can you help @user1 and @user2 with @unknown?"
         expected = "Hey @bot, can you help @alice and @bob with @unknown?"
-        assert github_gateway._resolve_mentions(text) == expected
+        assert GithubGateway.resolve_mentions(text, resolver) == expected
 
-    def test_username_with_hyphens(self, github_gateway):
+    def test_username_with_hyphens(self, user_mapping, resolver):
         """Test that usernames with hyphens are handled correctly."""
         # Add users with hyphens (common in GitHub usernames)
-        github_gateway._github_user_mapping["user-test"] = "testuser"
-        github_gateway._github_user_mapping["bot-name"] = "botname"
-        github_gateway._system_user_mapping["testuser"] = "user-test"
-        github_gateway._system_user_mapping["botname"] = "bot-name"
+        user_mapping["user-test"] = "testuser"
+        user_mapping["bot-name"] = "botname"
 
-        assert github_gateway._resolve_mentions("@user-test") == "@testuser"
-        assert github_gateway._resolve_mentions("Hello @bot-name!") == "Hello @botname!"
-        assert github_gateway._resolve_mentions("@user-test and @bot-name") == "@testuser and @botname"
+        assert GithubGateway.resolve_mentions("@user-test", resolver) == "@testuser"
+        assert GithubGateway.resolve_mentions("Hello @bot-name!", resolver) == "Hello @botname!"
+        assert GithubGateway.resolve_mentions("@user-test and @bot-name", resolver) == "@testuser and @botname"
 
-    def test_receiver_prefix_removal(self, github_gateway):
-        """Test removal of receiver prefix in mentions with slash notation."""
-        # The _remove_receiver_prefix is called within _resolve_mentions
-        # Set up the gateway with a specific app username
-        github_gateway._github_app_username = "test-bot"
+    def test_slash_notation_in_mentions(self, user_mapping, resolver):
+        """Test mentions with slash notation like @bot/agent."""
+        # Add mappings for slash-notation users
+        user_mapping["bot/subuser"] = "resolved_subuser"
+        user_mapping["bot/agent1"] = "agent_one"
+        user_mapping["bot/helper"] = "helper_bot"
 
-        # Add mapping for sub-users (after prefix removal)
-        github_gateway._github_user_mapping["subuser"] = "resolved_subuser"
-        github_gateway._github_user_mapping["agent1"] = "agent_one"
-        github_gateway._github_user_mapping["helper"] = "helper_bot"
-
-        # Test that test-bot/subuser gets resolved properly
-        # The pattern matches @test-bot/subuser, removes "test-bot/" prefix, resolves "subuser"
-        assert github_gateway._resolve_mentions("@test-bot/subuser") == "@resolved_subuser"
-        assert github_gateway._resolve_mentions("@test-bot/agent1") == "@agent_one"
-        assert github_gateway._resolve_mentions("Hello @test-bot/helper!") == "Hello @helper_bot!"
+        assert GithubGateway.resolve_mentions("@bot/subuser", resolver) == "@resolved_subuser"
+        assert GithubGateway.resolve_mentions("@bot/agent1", resolver) == "@agent_one"
+        assert GithubGateway.resolve_mentions("Hello @bot/helper!", resolver) == "Hello @helper_bot!"
 
         # Regular mentions should still work
-        assert github_gateway._resolve_mentions("@user") == "@john"
-        assert github_gateway._resolve_mentions("@admin") == "@administrator"
+        assert GithubGateway.resolve_mentions("@user", resolver) == "@john"
+        assert GithubGateway.resolve_mentions("@admin", resolver) == "@administrator"
 
-        # Mentions with slash but different prefix should not be affected
-        assert github_gateway._resolve_mentions("@other/user") == "@other/user"
+        # Mentions with slash but not in mapping should remain unchanged
+        assert GithubGateway.resolve_mentions("@other/user", resolver) == "@other/user"

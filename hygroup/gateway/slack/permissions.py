@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from markdown_to_mrkdwn import SlackMarkdownConverter
 
-from hygroup.agent import PermissionRequest
+from hygroup.agent import PermissionRequest  # TODO: add hylabs
 from hygroup.gateway.slack.context import SlackContext
 
 

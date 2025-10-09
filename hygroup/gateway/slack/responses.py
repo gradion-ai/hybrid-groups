@@ -26,10 +26,10 @@ class SlackResponseHandler:
     async def handle_agent_activation(self, activation: AgentActivation, thread_id: str):
         """Handle agent activation with emoji reactions and WIP messages."""
         thread = self.context.threads[thread_id]
-        if activation.message_id:
+        if activation.request_id:
             await self.context.client.reactions_add(
                 channel=thread.channel_id,
-                timestamp=activation.message_id,
+                timestamp=activation.request_id,
                 name="eyes",
             )
 
@@ -50,10 +50,10 @@ class SlackResponseHandler:
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, thread_id: str):
         """Handle agent response messages."""
         thread = self.context.threads[thread_id]
-        if response.message_id:
+        if response.request_id:
             await self.context.client.reactions_add(
                 channel=thread.channel_id,
-                timestamp=response.message_id,
+                timestamp=response.request_id,
                 name="robot_face" if response.text else "ballot_box_with_check",
             )
 

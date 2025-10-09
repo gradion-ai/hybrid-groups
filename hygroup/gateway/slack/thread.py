@@ -1,6 +1,8 @@
 import asyncio
 from dataclasses import dataclass, field
 
+from hylabs.agent.registry import AgentRegistry
+
 from hygroup.agent import PermissionRequest
 from hygroup.gateway.slack.utils import download_attachment
 from hygroup.session import Session
@@ -20,21 +22,23 @@ class SlackThread:
         return self.session.id
 
     @property
-    def channel_name(self) -> str | None:
-        return self.session.channel
+    def agent_registry(self) -> AgentRegistry:
+        return self.session.agent_registry
 
     async def handle_message(self, msg: dict):
-        if self.session.contains(msg["id"]):
-            return
+        sender = msg["sender"]
 
+        attachments_dir = self.session.session_factory.data_store.narrow_path(self.id, sender)
+        attachments_dir.mkdir(parents=True, exist_ok=True)
         attachments = []
+
         for file in msg.get("files") or []:
-            attachment = await download_attachment(file, self.session.root())
+            attachment = await download_attachment(file, target_dir=attachments_dir)
             attachments.append(attachment)
 
-        await self.session.handle_gateway_message(
+        await self.session.handle(
             text=msg["text"],
-            sender=msg["sender"],
-            message_id=msg["id"],
+            sender=sender,
             attachments=attachments,
+            request_id=msg["id"],
         )

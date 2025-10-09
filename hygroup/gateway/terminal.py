@@ -18,18 +18,18 @@ from rich.text import Text
 
 from hygroup.agent import AgentActivation, AgentResponse
 from hygroup.gateway import Gateway
-from hygroup.session import Session, SessionManager
+from hygroup.session import Session, SessionFactory
 
 
 class TerminalGateway(Gateway):
     def __init__(
         self,
-        session_manager: SessionManager,
+        session_factory: SessionFactory,
         session_id: str | None = None,
         host: str = "0.0.0.0",
         port: int = 8723,
     ):
-        self._session_manager = session_manager
+        self._session_factory = session_factory
         self._session_id = session_id or str(uuid.uuid4())
         self._session: Session
 
@@ -45,20 +45,10 @@ class TerminalGateway(Gateway):
         self._app.websocket("/ws/{username}")(self.connect)
 
     async def start(self, join: bool = True):
-        session = None
-
-        if self._session_id:
-            session = await self._session_manager.load_session(id=self._session_id)
-
-        if session is None:
-            session = self._session_manager.create_session(self._session_id)
-
-        self._session = session
-        self._session.set_gateway(self)
-        self._session.sync()
-
+        session = self._session_factory.create_session(id=self._session_id, gateway=self)
         config = uvicorn.Config(self._app, host=self.host, port=self.port)
 
+        self._session = session
         self._server = uvicorn.Server(config)
         self._task = asyncio.create_task(self._server.serve())
         if join:
@@ -124,10 +114,7 @@ class TerminalGateway(Gateway):
             await self.handle_client_message(content, username)
 
     async def handle_client_message(self, content: str, sender: str):
-        await self._session.handle_gateway_message(
-            text=content,
-            sender=sender,
-        )
+        await self._session.handle(text=content, sender=sender)
         await self.send_message(content, sender, agent=False)
 
     async def handle_agent_activation(self, activation: AgentActivation, session_id: str): ...

@@ -1,32 +1,32 @@
 import argparse
 import asyncio
+import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
+from examples.registry import example_registry
+from hylabs.logging import setup_logging, shutdown_logging
 
-from hygroup.agent.registry import AgentRegistries
-from hygroup.channel import (
-    RequestHandler,
-    RequestServer,
-    RichConsoleHandler,
-)
+from hygroup.channel import RequestServer, RichConsoleHandler
 from hygroup.connect.composio import ComposioConnector
 from hygroup.connect.notion import NotionAuth
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
 from hygroup.gateway.terminal import TerminalGateway
-from hygroup.session import SessionManager
+from hygroup.session import SessionFactory
 from hygroup.user.secrets import SecretsStore
 from hygroup.user.settings import SettingsStore
+
+logger = logging.getLogger(__name__)
 
 
 async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
         raise ValueError("Invalid configuration: --user-channel=slack requires --gateway=slack")
 
-    agent_registries = AgentRegistries(root_path=args.agent_registries)
     settings_store = SettingsStore(root_path=args.settings_store)
+
     secrets_store = SecretsStore(root_path=args.secrets_store)
     await secrets_store.unlock(args.secrets_store_password)
 
@@ -35,8 +35,9 @@ async def main(args):
 
     composio_connector = ComposioConnector(secrets_store=secrets_store)
     composio_config = await composio_connector.load_config()
+    composio_config.set_env_vars()
 
-    request_handler: RequestHandler
+    request_handler: RichConsoleHandler | RequestServer
     match args.user_channel:
         case "terminal":
             request_handler = RequestServer()
@@ -47,12 +48,11 @@ async def main(args):
                 default_confirmation_response=True,
             )
 
-    manager = SessionManager(
-        agent_registries=agent_registries,
-        secrets_store=secrets_store,
+    factory = SessionFactory(
         settings_store=settings_store,
+        secrets_store=secrets_store,
         request_handler=request_handler,
-        composio_config=composio_config,
+        agent_registry=example_registry(),
     )
 
     gateway: Gateway
@@ -60,7 +60,7 @@ async def main(args):
     match args.gateway:
         case "slack":
             gateway = SlackGateway(
-                session_manager=manager,
+                session_factory=factory,
                 composio_connector=composio_connector,
                 handle_permission_requests=args.user_channel == args.gateway,
                 wip_update=False,
@@ -73,9 +73,9 @@ async def main(args):
             )
             handlers.register()
         case "github":
-            gateway = GithubGateway(session_manager=manager)
+            gateway = GithubGateway(session_factory=factory)
         case "terminal":
-            gateway = TerminalGateway(session_manager=manager)
+            gateway = TerminalGateway(session_factory=factory)
 
     await gateway.start(join=True)
 
@@ -90,12 +90,6 @@ if __name__ == "__main__":
         default="slack",
         choices=["github", "slack", "terminal"],
         help="The communication platform to use.",
-    )
-    parser.add_argument(
-        "--agent-registries",
-        type=Path,
-        default=Path(".data", "agents"),
-        help="Path to the agent registries directory.",
     )
     parser.add_argument(
         "--settings-store",
@@ -118,10 +112,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--user-channel",
         type=str,
-        default=None,
+        default="slack",
         choices=["slack", "terminal"],
         help="Channel for permission requests. If not provided, requests are auto-approved.",
     )
 
     args = parser.parse_args()
+
+    listener = setup_logging(
+        config={
+            __name__: logging.INFO,
+            "hylabs": logging.INFO,
+            "hygroup": logging.INFO,
+        },
+    )
     asyncio.run(main(args=args))
+    shutdown_logging(listener)

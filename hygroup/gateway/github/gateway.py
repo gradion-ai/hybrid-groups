@@ -4,6 +4,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import uvicorn
 from github import Auth, GithubIntegration
@@ -25,7 +26,7 @@ from hygroup.gateway.github.events import (
 from hygroup.gateway.github.service import GithubService
 from hygroup.gateway.github.webhook.app import create_app
 from hygroup.gateway.github.webhook.config import AppSettings
-from hygroup.session import Session, SessionManager
+from hygroup.session import Session, SessionFactory
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ class GithubConversation:
 class GithubGateway(Gateway):
     def __init__(
         self,
-        session_manager: SessionManager,
+        session_factory: SessionFactory,
         github_app_id: int | None = None,
         github_app_installation_id: int | None = None,
         github_app_webhook_secret: str | None = None,
@@ -73,8 +74,8 @@ class GithubGateway(Gateway):
         github_app_webhook_secret = github_app_webhook_secret or os.environ["GITHUB_APP_WEBHOOK_SECRET"]
         github_app_webhook_port = github_app_webhook_port or 8000
 
-        self._session_manager = session_manager
-        self._github_user_mapping = session_manager.settings_store.get_mapping("github")
+        self._session_factory = session_factory
+        self._github_user_mapping = session_factory.settings_store.get_mapping("github")
         self._system_user_mapping = {v: k for k, v in self._github_user_mapping.items()}
 
         self._github_app_username = github_app_username
@@ -112,16 +113,20 @@ class GithubGateway(Gateway):
         return self._system_user_mapping.get(system_user_id, system_user_id)
 
     def _resolve_mentions(self, text: str | None) -> str:
-        """Finds all mentions in @username format and replace them with the resolved
-        username (with @ preserved).
-        """
         if text is None:
             return ""
 
+        return self.resolve_mentions(text, self._resolve_system_user_id)
+
+    @staticmethod
+    def resolve_mentions(text: str, resolver: Callable[[str], str]) -> str:
+        """Finds all mentions in @username format and replace them with the resolved
+        username (with @ preserved).
+        """
+
         def resolve(match):
             username = match.group(1)
-            username = self._remove_receiver_prefix(username)
-            resolved = self._resolve_system_user_id(username)
+            resolved = resolver(username)
             return "@" + resolved
 
         return re.sub(r"(?<!\w)@([/\w-]+)", resolve, text)
@@ -156,7 +161,7 @@ class GithubGateway(Gateway):
             case IssueOpened() | PullRequestOpened() as opened_event:
                 conversation_id = self._conversation_id(opened_event)
 
-                session = self._session_manager.create_session(id=conversation_id)
+                session = self._session_factory.create_session(id=conversation_id, gateway=self)
 
                 conversation = self._register_conversation(conversation_id, opened_event, session)
 
@@ -173,10 +178,7 @@ class GithubGateway(Gateway):
                     logger.info("Skipping event as it has no comment (event='%s')", type(comment_event).__name__)
                     return
 
-                conversation = await self._lookup_or_load_conversation(comment_event)  # type: ignore
-                if conversation is None:
-                    logger.warning("Conversation for issue not found (issue_number='%d')", comment_event.issue_number)
-                    return
+                conversation = self._lookup_or_load_conversation(comment_event)
 
                 if comment_event.username == self._github_app_fullname:
                     return
@@ -215,17 +217,9 @@ class GithubGateway(Gateway):
             sender_resolved,
             text[:50] + "..." if len(text) > 50 else text,
         )
-
-        await conversation.session.handle_gateway_message(
-            text=text,
-            sender=sender_resolved,
-            message_id=message_id,
-        )
+        await conversation.session.handle(text=text, sender=sender_resolved, request_id=message_id)
 
     def _register_conversation(self, conversation_id: str, event: GithubEvent, session: Session) -> GithubConversation:
-        session.set_gateway(self)
-        session.sync()
-
         self._conversations[conversation_id] = GithubConversation(
             repository=GithubRepository(
                 repository_id=event.repository_id,
@@ -239,16 +233,14 @@ class GithubGateway(Gateway):
         )
         return self._conversations[conversation_id]
 
-    async def _lookup_or_load_conversation(self, event: GithubEvent) -> GithubConversation | None:
+    def _lookup_or_load_conversation(self, event: GithubEvent) -> GithubConversation:
         conversation_id = self._conversation_id(event)
 
         if conversation := self._conversations.get(conversation_id):
             return conversation
 
-        if session := await self._session_manager.load_session(id=conversation_id):
-            return self._register_conversation(conversation_id, event, session)
-        else:
-            return None
+        session = self._session_factory.create_session(id=conversation_id, gateway=self)
+        return self._register_conversation(conversation_id, event, session)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         logger.info(
@@ -265,17 +257,17 @@ class GithubGateway(Gateway):
 
         emoji = "rocket" if response.text else "+1"
 
-        if response.message_id == "issue-description":
+        if response.request_id == "issue-description":
             await self._github_service.add_reaction_to_issue_description(
                 repository_name=conversation.repository.repository_full_name,
                 issue_number=conversation.issue.issue_number,
                 reaction=emoji,
             )
-        elif response.message_id and response.message_id.startswith("issue-comment"):
+        elif response.request_id and response.request_id.startswith("issue-comment"):
             await self._github_service.add_reaction_to_issue_comment(
                 repository_name=conversation.repository.repository_full_name,
                 issue_number=conversation.issue.issue_number,
-                comment_id=int(response.message_id.split("__")[1]),
+                comment_id=int(response.request_id.split("__")[1]),
                 reaction=emoji,
             )
 
@@ -300,21 +292,21 @@ class GithubGateway(Gateway):
             logger.warning("Conversation for session not found (session_id='%s')", session_id)
             return
 
-        if not activation.message_id:
+        if not activation.request_id:
             return
 
         emoji = "eyes"
 
-        if activation.message_id == "issue-description":
+        if activation.request_id == "issue-description":
             await self._github_service.add_reaction_to_issue_description(
                 repository_name=conversation.repository.repository_full_name,
                 issue_number=conversation.issue.issue_number,
                 reaction=emoji,
             )
-        elif activation.message_id.startswith("issue-comment"):
+        elif activation.request_id.startswith("issue-comment"):
             await self._github_service.add_reaction_to_issue_comment(
                 repository_name=conversation.repository.repository_full_name,
                 issue_number=conversation.issue.issue_number,
-                comment_id=int(activation.message_id.split("__")[1]),
+                comment_id=int(activation.request_id.split("__")[1]),
                 reaction=emoji,
             )

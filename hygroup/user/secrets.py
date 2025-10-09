@@ -10,13 +10,14 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from hylabs.secrets import SecretsProvider
 
 
 class SecretsStoreLocked(Exception):
     """Raised when an operation is attempted on locked user secrets."""
 
 
-class SecretsStore:
+class SecretsStore(SecretsProvider):
     def __init__(self, root_path: Path = Path(".data", "users")):
         self.root_path = root_path
         self._secrets: dict[str, dict[str, str]] | None = None

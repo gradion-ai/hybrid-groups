@@ -149,20 +149,21 @@ wheels = [
 
 [[package]]
 name = "anthropic"
-version = "0.64.0"
+version = "0.69.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "distro" },
+    { name = "docstring-parser" },
     { name = "httpx" },
     { name = "jiter" },
     { name = "pydantic" },
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d8/4f/f2b880cba1a76f3acc7d5eb2ae217632eac1b8cef5ed3027493545c59eba/anthropic-0.64.0.tar.gz", hash = "sha256:3d496c91a63dff64f451b3e8e4b238a9640bf87b0c11d0b74ddc372ba5a3fe58", size = 427893, upload-time = "2025-08-13T17:09:49.915Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/9d/9ad1778b95f15c5b04e7d328c1b5f558f1e893857b7c33cd288c19c0057a/anthropic-0.69.0.tar.gz", hash = "sha256:c604d287f4d73640f40bd2c0f3265a2eb6ce034217ead0608f6b07a8bc5ae5f2", size = 480622, upload-time = "2025-09-29T16:53:45.282Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/b2/2d268bcd5d6441df9dc0ebebc67107657edb8b0150d3fda1a5b81d1bec45/anthropic-0.64.0-py3-none-any.whl", hash = "sha256:6f5f7d913a6a95eb7f8e1bda4e75f76670e8acd8d4cd965e02e2a256b0429dd1", size = 297244, upload-time = "2025-08-13T17:09:47.908Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/38/75129688de5637eb5b383e5f2b1570a5cc3aecafa4de422da8eea4b90a6c/anthropic-0.69.0-py3-none-any.whl", hash = "sha256:1f73193040f33f11e27c2cd6ec25f24fe7c3f193dc1c5cde6b7a08b18a16bcc5", size = 337265, upload-time = "2025-09-29T16:53:43.686Z" },
 ]
 
 [[package]]
@@ -651,6 +652,15 @@ wheels = [
 ]
 
 [[package]]
+name = "docstring-parser"
+version = "0.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/9d/c3b43da9515bd270df0f80548d9944e389870713cc1fe2b8fb35fe2bcefd/docstring_parser-0.17.0.tar.gz", hash = "sha256:583de4a309722b3315439bb31d64ba3eebada841f2e2cee23b99df001434c912", size = 27442, upload-time = "2025-07-21T07:35:01.868Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/e2/2537ebcff11c1ee1ff17d8d0b6f4db75873e3b0fb32c2d4a2ee31ecb310a/docstring_parser-0.17.0-py3-none-any.whl", hash = "sha256:cf2569abd23dce8099b300f9b4fa8191e9582dda731fd533daf54c4551658708", size = 36896, upload-time = "2025-07-21T07:35:00.684Z" },
+]
+
+[[package]]
 name = "email-validator"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -890,15 +900,15 @@ http = [
 
 [[package]]
 name = "genai-prices"
-version = "0.0.25"
+version = "0.0.29"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/02/9e/f292acaf69bd209b354ef835cab4ebe845eced05c4db85e3b31585429806/genai_prices-0.0.25.tar.gz", hash = "sha256:caf5fe2fd2248e87f70b2b44bbf8b3b52871abfc078a5e35372c40aca4cc4450", size = 44693, upload-time = "2025-09-01T17:30:42.185Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b8/65/157725dc28e29afd54d26d10b6d5ca3b54e52b34494b6119ed474626cc56/genai_prices-0.0.29.tar.gz", hash = "sha256:efa8ba68e575357e2249b0c7ad53d4c2094e2b22e19c85ccfbf5ae3217335656", size = 45703, upload-time = "2025-09-29T20:42:50.442Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/12/41fcfba4ae0f6b4805f09d11f0e6d6417df2572cea13208c0f439170ee0c/genai_prices-0.0.25-py3-none-any.whl", hash = "sha256:47b412e6927787caa00717a5d99b2e4c0858bed507bb16473b1bcaff48d5aae9", size = 47002, upload-time = "2025-09-01T17:30:41.012Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/e3/2ffded479db7e78f6fb4d338417bbde64534f7608c515e8f8adbef083a36/genai_prices-0.0.29-py3-none-any.whl", hash = "sha256:447d10a3d38fe1b66c062a2678253c153761a3b5807f1bf8a1f2533971296f7d", size = 48324, upload-time = "2025-09-29T20:42:48.381Z" },
 ]
 
 [[package]]
@@ -1137,6 +1147,7 @@ dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "gitingest" },
     { name = "google-genai" },
+    { name = "hybrid-labs" },
     { name = "markdown-to-mrkdwn" },
     { name = "mcp" },
     { name = "pillow" },
@@ -1174,6 +1185,7 @@ requires-dist = [
     { name = "fastapi", extras = ["all"], specifier = ">=0.115.12,<0.116" },
     { name = "gitingest", specifier = ">=0.1.4,<0.2" },
     { name = "google-genai", specifier = ">=1.21.1,<2" },
+    { name = "hybrid-labs", editable = "../hybrid-labs" },
     { name = "markdown-to-mrkdwn", specifier = ">=0.2.0,<0.3" },
     { name = "mcp", specifier = ">=1.13.0,<2" },
     { name = "pillow", specifier = ">=11.3.0,<12" },
@@ -1181,6 +1193,35 @@ requires-dist = [
     { name = "pygithub", specifier = ">=2.6.1,<3" },
     { name = "rich", specifier = ">=14.0.0,<15" },
     { name = "slack-bolt", specifier = ">=1.23.0,<2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "invoke", specifier = "~=2.2" },
+    { name = "pre-commit", specifier = "~=4.0" },
+    { name = "pytest", specifier = "~=8.3" },
+    { name = "pytest-asyncio", specifier = ">=0.25.3,<0.26" },
+    { name = "pytest-cov", specifier = ">=4.1.0,<5" },
+    { name = "types-aiofiles", specifier = ">=24.1.0.20250326,<25" },
+]
+docs = [
+    { name = "mkdocs", specifier = ">=1.6.1,<2" },
+    { name = "mkdocs-material", specifier = ">=9.5.48,<10" },
+    { name = "mkdocstrings-python", specifier = ">=1.12.2,<2" },
+]
+
+[[package]]
+name = "hybrid-labs"
+source = { editable = "../hybrid-labs" }
+dependencies = [
+    { name = "aiofiles" },
+    { name = "pydantic-ai" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiofiles", specifier = ">=24.1.0" },
+    { name = "pydantic-ai", specifier = ">=1.0.10" },
 ]
 
 [package.metadata.requires-dev]
@@ -2368,19 +2409,19 @@ email = [
 
 [[package]]
 name = "pydantic-ai"
-version = "1.0.9"
+version = "1.0.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic-ai-slim", extra = ["ag-ui", "anthropic", "bedrock", "cli", "cohere", "evals", "google", "groq", "huggingface", "logfire", "mcp", "mistral", "openai", "retries", "temporal", "vertexai"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/03/8c30e7269c5a60cee1e9c024aca2cc2bedd902a651353f95ac171776038e/pydantic_ai-1.0.9.tar.gz", hash = "sha256:f202ea7012daafbf22cbebd8fc801ef6fad2c6fb3c458d58b2309bc44280a7ca", size = 44297798, upload-time = "2025-09-18T23:45:40.963Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/5a/52070d140eb3ca3e360bf5bfb5671bab9bef0d89e50f7385ae6a9cca9aa1/pydantic_ai-1.0.14.tar.gz", hash = "sha256:87a6ce5872d045ab97fcf12610a814b0ef6ddc6588229d4cec5b90577521bb3e", size = 44309772, upload-time = "2025-10-03T00:03:31.003Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/f6/250e1213f935840bde63d004438941567ee834508df1adc825b3882e709b/pydantic_ai-1.0.9-py3-none-any.whl", hash = "sha256:e66171a69cb7bd7608750245645c9907a44b94e510ed151d117c5fa914f7154e", size = 11668, upload-time = "2025-09-18T23:45:26.953Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/87/c8f6cd1401ce04b824a519c36edda70681e65c68186ff4cd45e53637ee92/pydantic_ai-1.0.14-py3-none-any.whl", hash = "sha256:b2979679a47ab39000c070179c27a6a7d4bf3ac309081ee6587fae70af3a7ad3", size = 11676, upload-time = "2025-10-03T00:03:21.691Z" },
 ]
 
 [[package]]
 name = "pydantic-ai-slim"
-version = "1.0.9"
+version = "1.0.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "genai-prices" },
@@ -2391,9 +2432,9 @@ dependencies = [
     { name = "pydantic-graph" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/e6/4e0059b6fc106f1ef777f5d4b0e29d56b40b5bf45cddb7a51a42f934a306/pydantic_ai_slim-1.0.9.tar.gz", hash = "sha256:74aed1e2821c9d1d5cb3c967e246a6c1b1fafcde57c5ebe89798346cf8b25b5d", size = 249640, upload-time = "2025-09-18T23:45:45.207Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/eb/f1/2189e07a2b59faa96f295374e538dad52a443b7a7d1ef7d6c6f0662b7269/pydantic_ai_slim-1.0.14.tar.gz", hash = "sha256:d4e5007ddd6543a808bf144dedb592469004de86f209c291e086bc0a9c9017dc", size = 256426, upload-time = "2025-10-03T00:03:35.08Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/64/40b282f0b5d092c3f9f6ff5b0c1f402f2667d3e03aadeada51aa175e2c03/pydantic_ai_slim-1.0.9-py3-none-any.whl", hash = "sha256:4435c6a8a718e1eca920d6a16366dd6c7b3288e9ddbfad3dcf0f9491829ed117", size = 331857, upload-time = "2025-09-18T23:45:30.871Z" },
+    { url = "https://files.pythonhosted.org/packages/85/95/f97c2f531ecb3ef273b40d6271740b1ba81caa7df89c57c9db3321a14a25/pydantic_ai_slim-1.0.14-py3-none-any.whl", hash = "sha256:1ad70a962dc409048e439ddb40fc696f560a6b0bfc4636832a5a4ad0c1c6331d", size = 338964, upload-time = "2025-10-03T00:03:24.633Z" },
 ]
 
 [package.optional-dependencies]
@@ -2518,7 +2559,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-evals"
-version = "1.0.9"
+version = "1.0.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -2528,9 +2569,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c7/4a/d3f253990f40e675c12b9352c0ed61f7133beebfd22b71bde5af5e191fb3/pydantic_evals-1.0.9.tar.gz", hash = "sha256:c9e200a83cb796fb7ea47d53f6066cd7642ff32f7839e1f34054f2e47478464e", size = 45499, upload-time = "2025-09-18T23:45:46.925Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/6a/4ba17b2ecae6607de41fb6fe126efd51db08062aab34b68d8c1a445461a0/pydantic_evals-1.0.14.tar.gz", hash = "sha256:11d483b8f56d52b3010d8e2f5254ebeeea3d030603bb54fc4fc38a44dc80b6a7", size = 45873, upload-time = "2025-10-03T00:03:36.447Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/7f/fd80117b6c903381e40f768467f2a3131f87d12ebc91e7dec853ad8a1a96/pydantic_evals-1.0.9-py3-none-any.whl", hash = "sha256:4c026d9935d446da40af3a0fd9cfbd80ff84ae4eeec3ef182247a62d853620aa", size = 54601, upload-time = "2025-09-18T23:45:33.028Z" },
+    { url = "https://files.pythonhosted.org/packages/93/60/fa7a1ec60b093b86e86f1ee5850e4742ab8ba2db61b3031f2b4ed38b04e0/pydantic_evals-1.0.14-py3-none-any.whl", hash = "sha256:d76ab39c84436a1d51a32469552c08c974a9bb8153510d50b29b40187423ac0e", size = 55023, upload-time = "2025-10-03T00:03:26.098Z" },
 ]
 
 [[package]]
@@ -2548,7 +2589,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-graph"
-version = "1.0.9"
+version = "1.0.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -2556,9 +2597,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/b1/2a05e7e61c42dd5c06233b96fcafc2f10aa9dbcdeb8715a4ab1ae7564a7e/pydantic_graph-1.0.9.tar.gz", hash = "sha256:3b8e9e017112d6bee2aef194c1a802ae220f53020e1f1b3caf193735f0960c37", size = 21904, upload-time = "2025-09-18T23:45:47.922Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0d/8c/97da69ec68d129d0ea57007888da844988211cbb15112a531b91b4f37777/pydantic_graph-1.0.14.tar.gz", hash = "sha256:7709281dfc185ae04eb1b3a6a158e988554c6341643c70abdb364f20059d52d9", size = 21905, upload-time = "2025-10-03T00:03:37.637Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/02/3a2aff66416887d787bb1f06d9654d1f7325c4540d2ba084c60dd925540e/pydantic_graph-1.0.9-py3-none-any.whl", hash = "sha256:112d4ec8c0d3b440bc2d7ff9a308cb01bf6d734cd23d6ddb4313e86b5aaad598", size = 27538, upload-time = "2025-09-18T23:45:37.12Z" },
+    { url = "https://files.pythonhosted.org/packages/26/09/4c773bc79ae55cebcd9133661c633bb2f9c88367ff393c9aa180e8c11a01/pydantic_graph-1.0.14-py3-none-any.whl", hash = "sha256:f09c750ea85cee9f024645a079121d80c3fb18d0ef14509bfdf9062e8d9a6862", size = 27547, upload-time = "2025-10-03T00:03:27.831Z" },
 ]
 
 [[package]]
@@ -3171,7 +3212,7 @@ wheels = [
 
 [[package]]
 name = "temporalio"
-version = "1.17.0"
+version = "1.18.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nexus-rpc" },
@@ -3179,13 +3220,13 @@ dependencies = [
     { name = "types-protobuf" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/a7/622047cb731a104e455687793d724ed143925e9ea14b522ad5ce224e8d7f/temporalio-1.17.0.tar.gz", hash = "sha256:1ac8f1ade36fafe7110b979b6a16d89203e1f4fb9c874f2fe3b5d83c17b13244", size = 1734067, upload-time = "2025-09-03T01:27:05.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/20/b52c96b37bf00ead6e8a4a197075770ebad516db765cc3abca8396de0689/temporalio-1.18.0.tar.gz", hash = "sha256:7ff7f833eb1e7697084b4ed9d86c3167cbff1ec77f1b40df774313a5d0fd5f6d", size = 1781572, upload-time = "2025-09-19T23:40:52.511Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/9a/f6fd68e60afc67c402c0676c12baba3aa04d522c74f4123ed31b544d4159/temporalio-1.17.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:7a86948c74a872b7f5ecb51c5d7e8013fdda4d6a220fe92185629342e94393e7", size = 12905249, upload-time = "2025-09-03T01:26:51.93Z" },
-    { url = "https://files.pythonhosted.org/packages/8c/7e/54cffb6a0ef4853f51bcefe5a74508940bad72a4442e50b3d52379a941c3/temporalio-1.17.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:00b34a986012a355bdadf0e7eb9e57e176f2e0b1d69ea4be9eb73c21672e7fd0", size = 12539749, upload-time = "2025-09-03T01:26:54.854Z" },
-    { url = "https://files.pythonhosted.org/packages/ec/f3/e4c829eb31bdb5eb14411ce7765b4ad8087794231110ff6188497859f0e6/temporalio-1.17.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:36a84e52727e287e13777d86fa0bbda11ba6523f75a616b811cc9d799b37b98c", size = 12969855, upload-time = "2025-09-03T01:26:57.464Z" },
-    { url = "https://files.pythonhosted.org/packages/95/26/fef412e10408e35888815ac06c0c777cff1faa76157d861878d23a17edf0/temporalio-1.17.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:617f37edce3db97cc7d2ff81c145a1b92c100f6e0e42207739271d10c2eea38e", size = 13165153, upload-time = "2025-09-03T01:27:00.285Z" },
-    { url = "https://files.pythonhosted.org/packages/58/2d/01d164b78ea414f1e2554cd9959ffcf95f0c91a6d595f03128a70e433f57/temporalio-1.17.0-cp39-abi3-win_amd64.whl", hash = "sha256:f2724220fda1fd5948d917350ac25069c62624f46e53d4d6c6171baa75681145", size = 13178439, upload-time = "2025-09-03T01:27:02.855Z" },
+    { url = "https://files.pythonhosted.org/packages/2f/28/c5a4ee259748450ac0765837f8c78cbfa36800264158d98bd2cde4496d87/temporalio-1.18.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:ac5d30d8b010c9b042065ea1259da7638db1a0a25e81ee4be0671a393ed329c5", size = 12734753, upload-time = "2025-09-19T23:40:06.575Z" },
+    { url = "https://files.pythonhosted.org/packages/be/94/24bd903b5594420a4d131bfa3de965313f9a409af77b47e9a9a56d85bb9e/temporalio-1.18.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:19315d192247230c9bd7c60a566c2b3a80ad4d9de891c6aa13df63d72d3ec169", size = 12323141, upload-time = "2025-09-19T23:40:16.817Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/76/82415b43c68e2c6bb3a85e8800555d206767815088c8cad0ade9a06bd7ac/temporalio-1.18.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a023b25033e48b2e43f623a78737047a45b8cb553f69f457d09272fce5c723da", size = 12694061, upload-time = "2025-09-19T23:40:26.388Z" },
+    { url = "https://files.pythonhosted.org/packages/41/60/176a3224c2739fee270052dd9224ae36370c4e13d2ab1bb96a2f9bbb513c/temporalio-1.18.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:695211dddbcffc20077d5b3b9a9b41bd09f60393c4ff211bcc7d6d895d607cc1", size = 12879404, upload-time = "2025-09-19T23:40:37.487Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/8d/e3809b356262d1d398d8cbb78df1e19d460c0a89e6ab64ca8d9c05d5fe5a/temporalio-1.18.0-cp39-abi3-win_amd64.whl", hash = "sha256:e3f691bd0a01a22c0fe40e87b6236cc8a292628e3a5a490880d1bf94709249c9", size = 13088041, upload-time = "2025-09-19T23:40:49.469Z" },
 ]
 
 [[package]]
