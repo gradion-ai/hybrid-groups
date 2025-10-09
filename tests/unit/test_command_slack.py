@@ -8,7 +8,7 @@ import pytest_asyncio
 
 from hygroup.connect import ComposioConnector
 from hygroup.gateway.slack import SlackGateway
-from hygroup.session_adapter import SessionFactory
+from hygroup.session import SessionFactory
 from hygroup.user.settings import CommandNotFoundError, SettingsStore
 
 
