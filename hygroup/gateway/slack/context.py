@@ -37,7 +37,7 @@ class SlackContext:
             sender_kwargs = {}
         else:
             sender_stem = sender.split(":")[0]  # strip instance identifier
-            sender_emoji = thread.agent_registry.get_config(sender_stem).emoji or "robot_face"
+            sender_emoji = thread.agent_factory.subagent_info(sender_stem).emoji or "robot_face"
             sender_kwargs = {
                 "username": sender,
                 "icon_emoji": f":{sender_emoji}:",

@@ -3,25 +3,25 @@ import re
 from asyncio import Future, Queue, Task, create_task
 from pathlib import Path
 
-from hylabs.agent import AgentRegistry, Approval, SystemAgentExecution
+from hylabs.agent import AgentFactory, Execution
 from hylabs.datastore import DataStore
-from hylabs.message import Attachment, Message, Thread
+from hylabs.message import Approval, Attachment, Message, Thread
 from hylabs.session import GroupSession
 
 from hygroup.agent import AgentActivation, AgentResponse, PermissionRequest
 from hygroup.channel import RequestHandler
 from hygroup.gateway import Gateway
 from hygroup.user.secrets import SecretsStore
-from hygroup.user.settings import SettingsStore
+from hygroup.user.settings import CommandNotFoundError, SettingsStore
 
 logger = logging.getLogger(__name__)
 
 
 class Session:
-    def __init__(self, id: str, gateway: Gateway, agent_registry: AgentRegistry, session_factory: "SessionFactory"):
-        self.session = GroupSession(id, agent_registry, session_factory.secrets_store, session_factory.data_store)
+    def __init__(self, id: str, gateway: Gateway, agent_factory: AgentFactory, session_factory: "SessionFactory"):
         self.gateway = gateway
         self.session_factory = session_factory
+        self.session = GroupSession(id, agent_factory, session_factory.data_store)
 
         self._handler_queue: Queue = Queue()
         self._handler_task: Task = create_task(self._handler_worker(self._handler_queue))
@@ -35,14 +35,16 @@ class Session:
         return self.session_factory.settings_store
 
     @property
-    def agent_registry(self) -> AgentRegistry:
-        return self.session.agent_registry
+    def agent_factory(self) -> AgentFactory:
+        return self.session.agent_factory
 
     async def request_ids(self) -> set[str]:
         return await self.session.request_ids()
 
     async def handle(self, text: str, sender: str, attachments: list[Attachment] = [], request_id: str | None = None):
         receiver, text = self._initial_mention(text)
+        text = await self._expand_command(text, sender)
+
         thread_refs = self._thread_references(text)
         threads = await self.session_factory.load_threads(thread_refs)
 
@@ -97,7 +99,7 @@ class Session:
         elif permission == 3:
             await self.session_factory.settings_store.set_permission(receiver, request.tool_name, None)
 
-    async def _complete(self, request_id: str, execution: SystemAgentExecution):
+    async def _complete(self, request_id: str, execution: Execution):
         await self.handle_agent_activation(request_id=request_id, session_id=self.session.id)
         async for elem in execution.stream():
             match elem:
@@ -113,6 +115,37 @@ class Session:
                         message=elem,
                         session_id=self.session.id,
                     )
+
+    async def _expand_command(self, query: str, sender: str) -> str:
+        if not query or not query.startswith("%"):
+            return query
+
+        # Extract potential command name and arguments
+        parts = query[1:].split(None, 1)
+        if not parts:
+            return query
+
+        command_name = parts[0]
+        arguments = parts[1] if len(parts) > 1 else ""
+
+        # Check if it matches the command name pattern
+        # TODO: can be removed
+        if not re.match(r"^[a-zA-Z0-9_-]+$", command_name):
+            return query
+
+        command_content = await self.session_factory.settings_store.get_command(sender, command_name)
+
+        if command_content is None:
+            raise CommandNotFoundError(command_name)
+
+        # Handle {ARGUMENTS} placeholder
+        if "{ARGUMENTS}" in command_content:
+            return command_content.replace("{ARGUMENTS}", arguments)
+        elif arguments:
+            # Append arguments after a space if no placeholder
+            return f"{command_content} {arguments}"
+        else:
+            return command_content
 
     @staticmethod
     def _initial_mention(text: str):
@@ -147,15 +180,15 @@ class SessionFactory:
         settings_store: SettingsStore,
         secrets_store: SecretsStore,
         request_handler: RequestHandler,
-        agent_registry: AgentRegistry,
-        agent_registries: dict[str, AgentRegistry] = {},
+        agent_factory: AgentFactory,
+        agent_factories: dict[str, AgentFactory] = {},
         root_path: Path = Path(".data", "sessions"),
     ):
         self.settings_store = settings_store
         self.secrets_store = secrets_store
         self.request_handler = request_handler
-        self.agent_registry = agent_registry
-        self.agent_registries = agent_registries
+        self.agent_factory = agent_factory
+        self.agent_factories = agent_factories
         self.data_store = DataStore(root_path=root_path)
 
     async def load_threads(self, session_ids: list[str]) -> list[Thread]:
@@ -171,11 +204,11 @@ class SessionFactory:
                 return Thread(id=session_id, messages=messages)
         return None
 
-    def get_agent_registry(self, channel_name: str | None = None) -> AgentRegistry:
+    def get_agent_factory(self, channel_name: str | None = None) -> AgentFactory:
         if channel_name is None:
-            return self.agent_registry
+            return self.agent_factory
         else:
-            return self.agent_registries.get(channel_name, self.agent_registry)
+            return self.agent_factories.get(channel_name, self.agent_factory)
 
     def create_session(self, id: str, gateway: Gateway, channel_name: str | None = None) -> Session:
-        return Session(id, gateway, self.get_agent_registry(channel_name), session_factory=self)
+        return Session(id, gateway, self.get_agent_factory(channel_name), session_factory=self)

@@ -133,12 +133,12 @@ class SlackCommandHandler:
     async def handle_agents(self, ack, body, respond):
         await ack()
 
-        agent_registry = self.context.session_factory.get_agent_registry(body.get("channel_name"))
+        agent_factory = self.context.session_factory.get_agent_factory(body.get("channel_name"))
 
         agent_lines = []
-        for config in sorted(agent_registry.get_configs(), key=lambda x: x.name):
-            emoji = config.emoji or "robot_face"
-            agent_lines.append(f"- :{emoji}: `{config.name}`: {config.description}")
+        for info in sorted(agent_factory.subagent_infos(), key=lambda x: x.name):
+            emoji = info.emoji or "robot_face"
+            agent_lines.append(f"- :{emoji}: `{info.name}`: {info.description}")
 
         if agent_lines:
             agents_text = "\n".join(agent_lines)

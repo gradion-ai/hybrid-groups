@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass, field
 
-from hylabs.agent.registry import AgentRegistry
+from hylabs.agent.registry import AgentFactory
 
 from hygroup.agent import PermissionRequest
 from hygroup.gateway.slack.utils import download_attachment
@@ -22,8 +22,8 @@ class SlackThread:
         return self.session.id
 
     @property
-    def agent_registry(self) -> AgentRegistry:
-        return self.session.agent_registry
+    def agent_factory(self) -> AgentFactory:
+        return self.session.agent_factory
 
     async def handle_message(self, msg: dict):
         sender = msg["sender"]

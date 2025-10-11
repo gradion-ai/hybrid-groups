@@ -4,7 +4,8 @@ import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
-from examples.registry import example_registry
+from examples.registry import create_registry
+from hylabs.agent import AgentFactory
 from hylabs.logging import setup_logging, shutdown_logging
 
 from hygroup.channel import RequestServer, RichConsoleHandler
@@ -25,8 +26,6 @@ async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
         raise ValueError("Invalid configuration: --user-channel=slack requires --gateway=slack")
 
-    settings_store = SettingsStore(root_path=args.settings_store)
-
     secrets_store = SecretsStore(root_path=args.secrets_store)
     await secrets_store.unlock(args.secrets_store_password)
 
@@ -36,6 +35,9 @@ async def main(args):
     composio_connector = ComposioConnector(secrets_store=secrets_store)
     composio_config = await composio_connector.load_config()
     composio_config.set_env_vars()
+
+    settings_store = SettingsStore(root_path=args.settings_store)
+    agent_factory: AgentFactory = create_registry(secrets_store)
 
     request_handler: RichConsoleHandler | RequestServer
     match args.user_channel:
@@ -52,7 +54,7 @@ async def main(args):
         settings_store=settings_store,
         secrets_store=secrets_store,
         request_handler=request_handler,
-        agent_registry=example_registry(),
+        agent_factory=agent_factory,
     )
 
     gateway: Gateway
