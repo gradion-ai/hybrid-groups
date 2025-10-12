@@ -23,7 +23,7 @@ class SlackResponseHandler:
         self.wip_update_interval = wip_update_interval
         self.wip_update_max = wip_update_max
 
-    async def handle_agent_activation(self, activation: AgentActivation, thread_id: str):
+    async def handle_agent_activation(self, activation: AgentActivation, sender: str, receiver: str, thread_id: str):
         """Handle agent activation with emoji reactions and WIP messages."""
         thread = self.context.threads[thread_id]
         if activation.request_id:
@@ -34,7 +34,7 @@ class SlackResponseHandler:
             )
 
         if activation.request_id:
-            response = await self._send_wip_message(thread, activation.agent_name)
+            response = await self._send_wip_message(thread, sender, receiver)
             response_id = response.data["ts"]
 
             thread.response_ids[activation.request_id] = response_id
@@ -42,7 +42,8 @@ class SlackResponseHandler:
             if self.wip_update:
                 wip_coro = self._update_wip_message(
                     thread=thread,
-                    sender=activation.agent_name,
+                    sender=sender,
+                    receiver=receiver,
                     message_id=response_id,
                 )
                 thread.response_upd[activation.request_id] = asyncio.create_task(wip_coro)
@@ -95,17 +96,21 @@ class SlackResponseHandler:
         ]
         await self.context.send_slack_message(thread, text, sender, blocks=blocks)
 
-    async def _update_wip_message(self, thread: SlackThread, sender: str, message_id: str):
+    async def _update_wip_message(self, thread: SlackThread, sender: str, receiver: str, message_id: str):
         try:
             for i in range(2, self.wip_update_max):
                 await asyncio.sleep(self.wip_update_interval)
-                await self._send_wip_message(thread, sender, i, ts=message_id)
+                await self._send_wip_message(thread, sender, receiver, i, ts=message_id)
         except asyncio.CancelledError:
             pass
 
-    async def _send_wip_message(self, thread: SlackThread, sender: str, progress: int = 1, **kwargs):
+    async def _send_wip_message(self, thread: SlackThread, sender: str, receiver: str, progress: int = 1, **kwargs):
         beers = f":{self.wip_emoji}:" * progress
-        text = f"{beers} *brewing ...*"
+
+        receiver_resolved = self.context.resolve_slack_user_id(receiver)
+        receiver_resolved_formatted = f"<@{receiver_resolved}>"
+
+        text = f"{beers} *Brewing for* {receiver_resolved_formatted}"
         blocks = [
             {
                 "type": "section",

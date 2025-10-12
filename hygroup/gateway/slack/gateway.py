@@ -99,8 +99,8 @@ class SlackGateway(Gateway, RequestHandler):
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
         await self.permission_handler.handle_permission_request(request, sender, receiver, session_id)
 
-    async def handle_agent_activation(self, activation: AgentActivation, session_id: str):
-        await self.response_handler.handle_agent_activation(activation, session_id)
+    async def handle_agent_activation(self, activation: AgentActivation, sender: str, receiver: str, session_id: str):
+        await self.response_handler.handle_agent_activation(activation, sender, receiver, session_id)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         await self.response_handler.handle_agent_response(response, sender, receiver, session_id)

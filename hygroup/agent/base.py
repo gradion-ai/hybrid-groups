@@ -5,7 +5,6 @@ from typing import Any
 
 @dataclass
 class AgentActivation:
-    agent_name: str
     request_id: str | None = None
 
 

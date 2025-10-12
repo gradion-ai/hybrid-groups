@@ -56,15 +56,22 @@ class Session:
             attachments=attachments,
             request_id=request_id,
         )
+
+        await self.handle_agent_activation(
+            sender="system",
+            receiver=message.sender,
+            session_id=self.session.id,
+            request_id=request_id,
+        )
+
         preferences = await self.settings_store.get_preferences(message.sender)
         execution = self.session.handle(message, preferences=preferences)
 
-        # complete system agent execution in a separate task
-        create_task(self._complete(message.request_id, execution))
+        create_task(self._complete(execution))
 
-    async def handle_agent_activation(self, request_id: str, session_id: str):
-        agent_activation = AgentActivation(agent_name="system", request_id=request_id)
-        coro = self.gateway.handle_agent_activation(agent_activation, session_id)
+    async def handle_agent_activation(self, sender: str, receiver: str, session_id: str, request_id: str | None):
+        agent_activation = AgentActivation(request_id=request_id)
+        coro = self.gateway.handle_agent_activation(agent_activation, sender, receiver, session_id)
         await self._handler_queue.put(coro)
 
     async def handle_agent_response(self, message: Message, session_id: str):
@@ -99,8 +106,7 @@ class Session:
         elif permission == 3:
             await self.session_factory.settings_store.set_permission(receiver, request.tool_name, None)
 
-    async def _complete(self, request_id: str, execution: Execution):
-        await self.handle_agent_activation(request_id=request_id, session_id=self.session.id)
+    async def _complete(self, execution: Execution):
         async for elem in execution.stream():
             match elem:
                 case Approval():

@@ -286,7 +286,7 @@ class GithubGateway(Gateway):
             text=text,
         )
 
-    async def handle_agent_activation(self, activation: AgentActivation, session_id: str):
+    async def handle_agent_activation(self, activation: AgentActivation, sender: str, receiver: str, session_id: str):
         conversation = self._conversations.get(session_id)
         if conversation is None:
             logger.warning("Conversation for session not found (session_id='%s')", session_id)
