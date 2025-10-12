@@ -3,7 +3,7 @@ import re
 from asyncio import Future, Queue, Task, create_task
 from pathlib import Path
 
-from hylabs.agent import AgentFactory, Execution
+from hylabs.agent import AgentRegistry, Execution
 from hylabs.datastore import DataStore
 from hylabs.message import Approval, Attachment, Message, Thread
 from hylabs.session import GroupSession
@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class Session:
-    def __init__(self, id: str, gateway: Gateway, agent_factory: AgentFactory, session_factory: "SessionFactory"):
+    def __init__(self, id: str, gateway: Gateway, agent_registry: AgentRegistry, session_factory: "SessionFactory"):
         self.gateway = gateway
         self.session_factory = session_factory
-        self.session = GroupSession(id, agent_factory, session_factory.data_store)
+        self.session = GroupSession(id, agent_registry, session_factory.data_store)
 
         self._handler_queue: Queue = Queue()
         self._handler_task: Task = create_task(self._handler_worker(self._handler_queue))
@@ -35,8 +35,8 @@ class Session:
         return self.session_factory.settings_store
 
     @property
-    def agent_factory(self) -> AgentFactory:
-        return self.session.agent_factory
+    def agent_registry(self) -> AgentRegistry:
+        return self.session.agent_registry
 
     async def request_ids(self) -> set[str]:
         return await self.session.request_ids()
@@ -180,15 +180,15 @@ class SessionFactory:
         settings_store: SettingsStore,
         secrets_store: SecretsStore,
         request_handler: RequestHandler,
-        agent_factory: AgentFactory,
-        agent_factories: dict[str, AgentFactory] = {},
+        agent_registry: AgentRegistry,
+        agent_registries: dict[str, AgentRegistry] = {},
         root_path: Path = Path(".data", "sessions"),
     ):
         self.settings_store = settings_store
         self.secrets_store = secrets_store
         self.request_handler = request_handler
-        self.agent_factory = agent_factory
-        self.agent_factories = agent_factories
+        self.agent_registry = agent_registry
+        self.agent_registries = agent_registries
         self.data_store = DataStore(root_path=root_path)
 
     async def load_threads(self, session_ids: list[str]) -> list[Thread]:
@@ -204,11 +204,11 @@ class SessionFactory:
                 return Thread(id=session_id, messages=messages)
         return None
 
-    def get_agent_factory(self, channel_name: str | None = None) -> AgentFactory:
+    def get_agent_registry(self, channel_name: str | None = None) -> AgentRegistry:
         if channel_name is None:
-            return self.agent_factory
+            return self.agent_registry
         else:
-            return self.agent_factories.get(channel_name, self.agent_factory)
+            return self.agent_registries.get(channel_name, self.agent_registry)
 
     def create_session(self, id: str, gateway: Gateway, channel_name: str | None = None) -> Session:
-        return Session(id, gateway, self.get_agent_factory(channel_name), session_factory=self)
+        return Session(id, gateway, self.get_agent_registry(channel_name), session_factory=self)

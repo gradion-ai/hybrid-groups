@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from examples.registry import create_registry
-from hylabs.agent import AgentFactory
+from hylabs.agent import AgentRegistry
 from hylabs.logging import setup_logging, shutdown_logging
 
 from hygroup.channel import RequestServer, RichConsoleHandler
@@ -37,7 +37,7 @@ async def main(args):
     composio_config.set_env_vars()
 
     settings_store = SettingsStore(root_path=args.settings_store)
-    agent_factory: AgentFactory = create_registry(secrets_store)
+    agent_registry: AgentRegistry = create_registry(secrets_store)
 
     request_handler: RichConsoleHandler | RequestServer
     match args.user_channel:
@@ -54,7 +54,7 @@ async def main(args):
         settings_store=settings_store,
         secrets_store=secrets_store,
         request_handler=request_handler,
-        agent_factory=agent_factory,
+        agent_registry=agent_registry,
     )
 
     gateway: Gateway
