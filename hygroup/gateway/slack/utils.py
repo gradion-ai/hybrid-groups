@@ -1,43 +1,37 @@
-import io
-import os
-import uuid
-from pathlib import Path
+from asyncio import CancelledError, Queue, Task, create_task, sleep
+from typing import Awaitable, Callable, Generic, TypeVar
 
-import aiofiles
-import aiofiles.os
-import aiohttp
-from hylabs.message import Attachment
-from hylabs.utils import arun
-from PIL import Image
+T = TypeVar("T")
 
 
-async def download_attachment(file, target_dir: Path, max_image_size: int = 1024) -> Attachment:
-    mimetype = file.get("mimetype", "application/octet-stream")
-    filetype = file.get("filetype", "bin")
-    name = file.get("name", "")
+class BurstBuffer(Generic[T]):
+    def __init__(self, callback: Callable[[list[T]], Awaitable[None]], min_interval: float = 2) -> None:
+        self.callback = callback
+        self.min_interval = min_interval
+        self._queue: Queue[T] = Queue()
+        self._task: Task = create_task(self._work())
 
-    download_url = file.get("url_private_download")
+    def cancel(self) -> None:
+        self._task.cancel()
 
-    attachment_id = uuid.uuid5(uuid.NAMESPACE_URL, download_url).hex[:8]
-    attachment_path = target_dir / f"attachment-{attachment_id}.{filetype}"
-    attachment = Attachment(path=str(attachment_path), name=name, media_type=mimetype)
+    def update(self, elem: T) -> None:
+        self._queue.put_nowait(elem)
 
-    if await aiofiles.os.path.exists(attachment_path):
-        return attachment
+    async def _drain(self) -> list[T]:
+        elems = []
+        while not self._queue.empty():
+            item = self._queue.get_nowait()
+            elems.append(item)
+        return elems
 
-    async with aiohttp.ClientSession() as session:
-        headers = {"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}"}
-        async with session.get(download_url, headers=headers) as response:
-            response.raise_for_status()
-
-            if mimetype.startswith("image/"):
-                image_bytes = await response.content.read()
-                with Image.open(io.BytesIO(image_bytes)) as img:
-                    img.thumbnail((max_image_size, max_image_size), resample=Image.Resampling.LANCZOS)
-                    await arun(img.save, attachment_path)
+    async def _work(self):
+        while True:
+            try:
+                elem = await self._queue.get()
+            except CancelledError:
+                break
             else:
-                async with aiofiles.open(attachment_path, "wb") as f:
-                    async for chunk in response.content.iter_chunked(8192):
-                        await f.write(chunk)
-
-        return attachment
+                elems = await self._drain()
+                elems.insert(0, elem)
+                await self.callback(elems)
+                await sleep(self.min_interval)

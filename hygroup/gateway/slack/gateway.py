@@ -7,7 +7,7 @@ from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
-from hygroup.agent import AgentActivation, AgentResponse, PermissionRequest
+from hygroup.agent import AgentActivation, AgentResponse, AgentUpdate, PermissionRequest
 from hygroup.channel import RequestHandler
 from hygroup.connect.composio import ComposioConnector
 from hygroup.gateway.base import Gateway
@@ -25,10 +25,8 @@ class SlackGateway(Gateway, RequestHandler):
         session_factory: SessionFactory,
         composio_connector: ComposioConnector,
         handle_permission_requests: bool = False,
+        wip_update_interval: float = 3.0,
         wip_emoji: str = "beer",
-        wip_update: bool | None = None,
-        wip_update_interval: float = 10.0,
-        wip_update_max: int = 10,
     ):
         # original request handler, always used for feedback requests
         self.delegate_handler = session_factory.request_handler
@@ -50,19 +48,10 @@ class SlackGateway(Gateway, RequestHandler):
         )
         self._handler = AsyncSocketModeHandler(self.app, os.environ["SLACK_APP_TOKEN"])
 
-        # sensible default for wip_update if not defined.
-        wip_update = not handle_permission_requests if wip_update is None else wip_update
-
         # Create handlers with their specific dependencies
         self.command_handler = SlackCommandHandler(self._context, composio_connector)
         self.permission_handler = SlackPermissionHandler(self._context)
-        self.response_handler = SlackResponseHandler(
-            self._context,
-            wip_emoji=wip_emoji,
-            wip_update=wip_update,
-            wip_update_interval=wip_update_interval,
-            wip_update_max=wip_update_max,
-        )
+        self.response_handler = SlackResponseHandler(self._context, wip_emoji, wip_update_interval)
 
         # register message handler
         self._context.app.message("")(self.handle_slack_message)
@@ -101,6 +90,9 @@ class SlackGateway(Gateway, RequestHandler):
 
     async def handle_agent_activation(self, activation: AgentActivation, sender: str, receiver: str, session_id: str):
         await self.response_handler.handle_agent_activation(activation, sender, receiver, session_id)
+
+    async def handle_agent_update(self, update: AgentUpdate, sender: str, receiver: str, session_id: str):
+        await self.response_handler.handle_agent_update(update, sender, receiver, session_id)
 
     async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
         await self.response_handler.handle_agent_response(response, sender, receiver, session_id)

@@ -8,7 +8,7 @@ from hylabs.datastore import DataStore
 from hylabs.message import Approval, Attachment, Message, Thread
 from hylabs.session import GroupSession
 
-from hygroup.agent import AgentActivation, AgentResponse, PermissionRequest
+from hygroup.agent import AgentActivation, AgentResponse, AgentUpdate, PermissionRequest
 from hygroup.channel import RequestHandler
 from hygroup.gateway import Gateway
 from hygroup.user.secrets import SecretsStore
@@ -67,11 +67,16 @@ class Session:
         preferences = await self.settings_store.get_preferences(message.sender)
         execution = self.session.handle(message, preferences=preferences)
 
-        create_task(self._complete(execution))
+        create_task(self._complete(execution, request_id=request_id))
 
     async def handle_agent_activation(self, sender: str, receiver: str, session_id: str, request_id: str | None):
         agent_activation = AgentActivation(request_id=request_id)
         coro = self.gateway.handle_agent_activation(agent_activation, sender, receiver, session_id)
+        await self._handler_queue.put(coro)
+
+    async def handle_agent_update(self, approval: Approval, session_id: str, request_id: str | None):
+        agent_update = AgentUpdate(approval.tool_name, approval.tool_kwargs, request_id=request_id)
+        coro = self.gateway.handle_agent_update(agent_update, approval.sender, approval.receiver, session_id)
         await self._handler_queue.put(coro)
 
     async def handle_agent_response(self, message: Message, session_id: str):
@@ -106,7 +111,7 @@ class Session:
         elif permission == 3:
             await self.session_factory.settings_store.set_permission(receiver, request.tool_name, None)
 
-    async def _complete(self, execution: Execution):
+    async def _complete(self, execution: Execution, request_id: str | None = None):
         async for elem in execution.stream():
             match elem:
                 case Approval():
@@ -115,6 +120,11 @@ class Session:
                         sender=elem.sender,
                         receiver=elem.receiver,
                         session_id=self.session.id,
+                    )
+                    await self.handle_agent_update(
+                        approval=elem,
+                        session_id=self.session.id,
+                        request_id=request_id,
                     )
                 case Message():
                     await self.handle_agent_response(

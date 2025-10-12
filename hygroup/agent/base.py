@@ -9,6 +9,13 @@ class AgentActivation:
 
 
 @dataclass
+class AgentUpdate:
+    tool_name: str
+    tool_kwargs: dict[str, Any]
+    request_id: str | None = None
+
+
+@dataclass
 class AgentResponse:
     text: str
     final: bool = True

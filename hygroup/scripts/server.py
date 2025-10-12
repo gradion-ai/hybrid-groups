@@ -65,7 +65,6 @@ async def main(args):
                 session_factory=factory,
                 composio_connector=composio_connector,
                 handle_permission_requests=args.user_channel == args.gateway,
-                wip_update=False,
             )
             handlers = SlackHomeHandlers(
                 client=gateway.client,
