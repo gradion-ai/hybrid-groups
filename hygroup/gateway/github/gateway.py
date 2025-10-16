@@ -9,11 +9,14 @@ from typing import Callable
 import uvicorn
 from github import Auth, GithubIntegration
 
-from hygroup.agent import (
+from hygroup.gateway import (
     AgentActivation,
     AgentResponse,
+    AgentUpdate,
+    Gateway,
+    MessageAck,
+    MessageIgnore,
 )
-from hygroup.gateway import Gateway
 from hygroup.gateway.github.events import (
     GithubEvent,
     IssueCommentCreated,
@@ -162,7 +165,6 @@ class GithubGateway(Gateway):
                 conversation_id = self._conversation_id(opened_event)
 
                 session = self._session_factory.create_session(id=conversation_id, gateway=self)
-
                 conversation = self._register_conversation(conversation_id, opened_event, session)
 
                 if opened_event.description is not None:
@@ -242,71 +244,67 @@ class GithubGateway(Gateway):
         session = self._session_factory.create_session(id=conversation_id, gateway=self)
         return self._register_conversation(conversation_id, event, session)
 
-    async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
-        logger.info(
-            "Sending agent response (sender='%s', receiver='%s', text='%s')",
-            sender,
-            receiver,
-            response.text[:50] + "..." if len(response.text) > 50 else response.text,
-        )
-
-        conversation = self._conversations.get(session_id)
-        if conversation is None:
-            logger.warning("Conversation for session not found (session_id='%s')", session_id)
-            return
-
-        emoji = "rocket" if response.text else "+1"
-
-        if response.request_id == "issue-description":
+    async def _add_reaction(self, conversation: GithubConversation, request_id: str, emoji: str):
+        if request_id == "issue-description":
             await self._github_service.add_reaction_to_issue_description(
                 repository_name=conversation.repository.repository_full_name,
                 issue_number=conversation.issue.issue_number,
                 reaction=emoji,
             )
-        elif response.request_id and response.request_id.startswith("issue-comment"):
+        elif request_id.startswith("issue-comment"):
             await self._github_service.add_reaction_to_issue_comment(
                 repository_name=conversation.repository.repository_full_name,
                 issue_number=conversation.issue.issue_number,
-                comment_id=int(response.request_id.split("__")[1]),
+                comment_id=int(request_id.split("__")[1]),
                 reaction=emoji,
             )
 
-        if not response.text:
+    async def handle_message_ack(self, notification: MessageAck):
+        conversation = self._conversations.get(notification.session_id)
+        if conversation is None:
+            logger.warning("Conversation for session not found (session_id='%s')", notification.session_id)
             return
 
-        receiver_resolved = self._resolve_github_user_id(receiver)
-        sender_resolved = self._resolve_github_user_id(sender)
+        if request_id := notification.request_id:
+            await self._add_reaction(conversation, request_id, "eyes")
+
+    async def handle_message_ignore(self, notification: MessageIgnore):
+        conversation = self._conversations.get(notification.session_id)
+        if conversation is None:
+            logger.warning("Conversation for session not found (session_id='%s')", notification.session_id)
+            return
+
+        if request_id := notification.request_id:
+            await self._add_reaction(conversation, request_id, "+1")
+
+    async def handle_agent_activation(self, notification: AgentActivation): ...
+
+    async def handle_agent_update(self, notification: AgentUpdate): ...
+
+    async def handle_agent_response(self, notification: AgentResponse):
+        logger.info(
+            "Sending agent response (sender='%s', receiver='%s', text='%s')",
+            notification.sender,
+            notification.receiver,
+            notification.text[:50] + "..." if len(notification.text) > 50 else notification.text,
+        )
+
+        conversation = self._conversations.get(notification.session_id)
+        if conversation is None:
+            logger.warning("Conversation for session not found (session_id='%s')", notification.session_id)
+            return
+
+        if request_id := notification.request_id:
+            await self._add_reaction(conversation, request_id, "rocket")
+
+        receiver_resolved = self._resolve_github_user_id(notification.receiver)
+        sender_resolved = self._resolve_github_user_id(notification.sender)
 
         text = f"[{sender_resolved}] " if sender_resolved != self._github_app_username else ""
-        text += f"@{receiver_resolved} {response.text}"
+        text += f"@{receiver_resolved} {notification.text}"
 
         await self._github_service.create_issue_comment(
             repository_name=conversation.repository.repository_full_name,
             issue_number=conversation.issue.issue_number,
             text=text,
         )
-
-    async def handle_agent_activation(self, activation: AgentActivation, sender: str, receiver: str, session_id: str):
-        conversation = self._conversations.get(session_id)
-        if conversation is None:
-            logger.warning("Conversation for session not found (session_id='%s')", session_id)
-            return
-
-        if not activation.request_id:
-            return
-
-        emoji = "eyes"
-
-        if activation.request_id == "issue-description":
-            await self._github_service.add_reaction_to_issue_description(
-                repository_name=conversation.repository.repository_full_name,
-                issue_number=conversation.issue.issue_number,
-                reaction=emoji,
-            )
-        elif activation.request_id.startswith("issue-comment"):
-            await self._github_service.add_reaction_to_issue_comment(
-                repository_name=conversation.repository.repository_full_name,
-                issue_number=conversation.issue.issue_number,
-                comment_id=int(activation.request_id.split("__")[1]),
-                reaction=emoji,
-            )

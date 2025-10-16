@@ -13,7 +13,8 @@ from hylabs.message import Attachment
 from hylabs.utils import arun
 from PIL import Image
 
-from hygroup.agent import AgentUpdate, PermissionRequest
+from hygroup.agent import PermissionRequest
+from hygroup.gateway import AgentUpdate
 from hygroup.gateway.slack.utils import BurstBuffer
 from hygroup.session import Session
 

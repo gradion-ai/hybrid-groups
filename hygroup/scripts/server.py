@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--user-channel",
         type=str,
-        default=None,
+        default="slack",
         choices=["slack", "terminal"],
         help="Channel for permission requests. If not provided, requests are auto-approved.",
     )
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     listener = setup_logging(
         config={
             __name__: logging.INFO,
-            "hylabs": logging.INFO,
+            "hylabs": logging.DEBUG,
             "hygroup": logging.INFO,
         },
     )

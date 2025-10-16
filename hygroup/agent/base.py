@@ -4,34 +4,11 @@ from typing import Any
 
 
 @dataclass
-class AgentActivation:
-    request_id: str | None = None
-
-
-@dataclass
-class AgentUpdate:
-    tool_name: str
-    tool_kwargs: dict[str, Any]
-    request_id: str | None = None
-
-
-@dataclass
-class AgentResponse:
-    text: str
-    final: bool = True
-    request_id: str | None = None
-
-
-@dataclass
 class PermissionRequest:
     tool_name: str
     tool_args: tuple
     tool_kwargs: dict[str, Any]
     ftr: Future
-
-    # Set to True by an agent if the tool is an MCP
-    # tool, executed by a user with its own secrets.
-    as_user: bool = False
 
     @property
     def call(self) -> str:

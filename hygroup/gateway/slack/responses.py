@@ -1,6 +1,12 @@
 from markdown_to_mrkdwn import SlackMarkdownConverter
 
-from hygroup.agent import AgentActivation, AgentResponse, AgentUpdate
+from hygroup.gateway import (
+    AgentActivation,
+    AgentResponse,
+    AgentUpdate,
+    MessageAck,
+    MessageIgnore,
+)
 from hygroup.gateway.slack.context import SlackContext
 from hygroup.gateway.slack.thread import SlackThread
 from hygroup.gateway.slack.utils import BurstBuffer
@@ -19,18 +25,31 @@ class SlackResponseHandler:
         self.wip_emoji = wip_emoji
         self.wip_update_interval = wip_update_interval
 
-    async def handle_agent_activation(self, activation: AgentActivation, sender: str, receiver: str, thread_id: str):
-        """Handle agent activation with emoji reactions and WIP messages."""
-        thread = self.context.threads[thread_id]
-        if activation.request_id:
+    async def handle_message_ack(self, notification: MessageAck):
+        thread = self.context.threads[notification.session_id]
+
+        if request_id := notification.request_id:
             await self.context.client.reactions_add(
                 channel=thread.channel_id,
-                timestamp=activation.request_id,
+                timestamp=request_id,
                 name="eyes",
             )
 
-        if request_id := activation.request_id:
-            response = await self._send_wip_message(thread, sender, receiver)
+    async def handle_message_ignore(self, notification: MessageIgnore):
+        thread = self.context.threads[notification.session_id]
+
+        if request_id := notification.request_id:
+            await self.context.client.reactions_add(
+                channel=thread.channel_id,
+                timestamp=request_id,
+                name="ballot_box_with_check",
+            )
+
+    async def handle_agent_activation(self, notification: AgentActivation):
+        thread = self.context.threads[notification.session_id]
+
+        if request_id := notification.request_id:
+            response = await self._send_wip_message(thread, notification.sender, notification.receiver)
             wip_message_id = response.data["ts"]
 
             num_sub_calls: int = 0
@@ -48,8 +67,8 @@ class SlackResponseHandler:
 
                 await self._send_wip_message(
                     thread=thread,
-                    sender=sender,
-                    receiver=receiver,
+                    sender=notification.sender,
+                    receiver=notification.receiver,
                     num_sub_calls=num_sub_calls,
                     num_tool_calls=num_tool_calls,
                     ts=wip_message_id,
@@ -58,25 +77,25 @@ class SlackResponseHandler:
             thread.wip_message_ids[request_id] = wip_message_id
             thread.wip_update_buffers[request_id] = BurstBuffer(update_wip_message, self.wip_update_interval)
 
-    async def handle_agent_update(self, update: AgentUpdate, sender: str, receiver: str, thread_id: str):
+    async def handle_agent_update(self, notification: AgentUpdate):
         """Handle agent update messages."""
 
-        if request_id := update.request_id:
-            thread = self.context.threads[thread_id]
+        if request_id := notification.request_id:
+            thread = self.context.threads[notification.session_id]
             buffer = thread.wip_update_buffers[request_id]
-            buffer.update(update)
+            buffer.update(notification)
 
-    async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, thread_id: str):
+    async def handle_agent_response(self, notification: AgentResponse):
         """Handle agent response messages."""
-        thread = self.context.threads[thread_id]
-        if response.request_id:
+        thread = self.context.threads[notification.session_id]
+
+        if request_id := notification.request_id:
             await self.context.client.reactions_add(
                 channel=thread.channel_id,
-                timestamp=response.request_id,
-                name="robot_face" if response.text else "ballot_box_with_check",
+                timestamp=notification.request_id,
+                name="robot_face",
             )
 
-        if request_id := response.request_id:
             if buffer := thread.wip_update_buffers.pop(request_id, None):
                 buffer.cancel()
 
@@ -87,13 +106,10 @@ class SlackResponseHandler:
                     ts=response_id,
                 )
 
-        if not response.text:
-            return
-
-        receiver_resolved = self.context.resolve_slack_user_id(receiver)
+        receiver_resolved = self.context.resolve_slack_user_id(notification.receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
-        text = f"{receiver_resolved_formatted} {response.text}"
+        text = f"{receiver_resolved_formatted} {notification.text}"
 
         # Truncate message if it exceeds Slack's character limit
         if len(text) > 2990:
@@ -108,7 +124,7 @@ class SlackResponseHandler:
                 },
             },
         ]
-        await self.context.send_slack_message(thread, text, sender, blocks=blocks)
+        await self.context.send_slack_message(thread, text, notification.sender, blocks=blocks)
 
     async def _send_wip_message(
         self,
@@ -124,7 +140,7 @@ class SlackResponseHandler:
         receiver_resolved = self.context.resolve_slack_user_id(receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
-        update_text = f"- `{num_sub_calls}` subagent delgations \n- `{num_tool_calls}` actions executed"
+        update_text = f"- `{num_sub_calls}` subagent calls \n- `{num_tool_calls}` tools calls"
         text = f"{beer} *Brewing for* {receiver_resolved_formatted}\n\n{update_text}"
         blocks = [
             {

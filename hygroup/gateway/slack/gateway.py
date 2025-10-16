@@ -7,10 +7,17 @@ from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
 from slack_bolt.async_app import AsyncApp
 from slack_sdk.web.async_client import AsyncWebClient
 
-from hygroup.agent import AgentActivation, AgentResponse, AgentUpdate, PermissionRequest
+from hygroup.agent import PermissionRequest
 from hygroup.channel import RequestHandler
 from hygroup.connect.composio import ComposioConnector
-from hygroup.gateway.base import Gateway
+from hygroup.gateway import (
+    AgentActivation,
+    AgentResponse,
+    AgentUpdate,
+    Gateway,
+    MessageAck,
+    MessageIgnore,
+)
 from hygroup.gateway.slack.commands import SlackCommandHandler
 from hygroup.gateway.slack.context import SlackContext
 from hygroup.gateway.slack.permissions import SlackPermissionHandler
@@ -88,14 +95,20 @@ class SlackGateway(Gateway, RequestHandler):
     async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
         await self.permission_handler.handle_permission_request(request, sender, receiver, session_id)
 
-    async def handle_agent_activation(self, activation: AgentActivation, sender: str, receiver: str, session_id: str):
-        await self.response_handler.handle_agent_activation(activation, sender, receiver, session_id)
+    async def handle_message_ack(self, notification: MessageAck):
+        await self.response_handler.handle_message_ack(notification)
 
-    async def handle_agent_update(self, update: AgentUpdate, sender: str, receiver: str, session_id: str):
-        await self.response_handler.handle_agent_update(update, sender, receiver, session_id)
+    async def handle_message_ignore(self, notification: MessageIgnore):
+        await self.response_handler.handle_message_ignore(notification)
 
-    async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
-        await self.response_handler.handle_agent_response(response, sender, receiver, session_id)
+    async def handle_agent_activation(self, notification: AgentActivation):
+        await self.response_handler.handle_agent_activation(notification)
+
+    async def handle_agent_update(self, notification: AgentUpdate):
+        await self.response_handler.handle_agent_update(notification)
+
+    async def handle_agent_response(self, notification: AgentResponse):
+        await self.response_handler.handle_agent_response(notification)
 
     async def handle_slack_message(self, message):
         msg = self._parse_slack_message(message)

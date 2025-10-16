@@ -17,8 +17,8 @@ class SlackPermissionHandler:
         self.context.app.action("always_button")(self._handle_permission_response)
         self.context.app.action("deny_button")(self._handle_permission_response)
 
-    async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, thread_id: str):
-        thread = self.context.threads[thread_id]
+    async def handle_permission_request(self, request: PermissionRequest, sender: str, receiver: str, session_id: str):
+        thread = self.context.threads[session_id]
         corr_id = str(uuid4())
 
         thread.permission_requests[corr_id] = request

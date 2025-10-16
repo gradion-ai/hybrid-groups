@@ -2,15 +2,23 @@ import logging
 import re
 from asyncio import Future, Queue, Task, create_task
 from pathlib import Path
+from typing import AsyncIterator
 
-from hylabs.agent import AgentRegistry, Execution
+from hylabs.agent import AgentRegistry, Decision
 from hylabs.datastore import DataStore
 from hylabs.message import Approval, Attachment, Message, Thread
-from hylabs.session import GroupSession
+from hylabs.session import Execution, GroupSession
 
-from hygroup.agent import AgentActivation, AgentResponse, AgentUpdate, PermissionRequest
+from hygroup.agent import PermissionRequest
 from hygroup.channel import RequestHandler
-from hygroup.gateway import Gateway
+from hygroup.gateway import (
+    AgentActivation,
+    AgentResponse,
+    AgentUpdate,
+    Gateway,
+    MessageAck,
+    MessageIgnore,
+)
 from hygroup.user.secrets import SecretsStore
 from hygroup.user.settings import CommandNotFoundError, SettingsStore
 
@@ -57,34 +65,68 @@ class Session:
             request_id=request_id,
         )
 
-        await self.handle_agent_activation(
-            sender="system",
-            receiver=message.sender,
-            session_id=self.session.id,
-            request_id=request_id,
-        )
+        await self.send_message_ack(receiver=sender, request_id=request_id)
 
         preferences = await self.settings_store.get_preferences(message.sender)
         execution = self.session.handle(message, preferences=preferences)
 
-        create_task(self._complete(execution, request_id=request_id))
+        create_task(self._complete(execution, request=message))
 
-    async def handle_agent_activation(self, sender: str, receiver: str, session_id: str, request_id: str | None):
-        agent_activation = AgentActivation(request_id=request_id)
-        coro = self.gateway.handle_agent_activation(agent_activation, sender, receiver, session_id)
+    async def send_message_ack(self, receiver: str, request_id: str | None = None):
+        notification = MessageAck(
+            sender="system",
+            receiver=receiver,
+            session_id=self.id,
+            request_id=request_id,
+        )
+        coro = self.gateway.handle_message_ack(notification)
         await self._handler_queue.put(coro)
 
-    async def handle_agent_update(self, approval: Approval, session_id: str, request_id: str | None):
-        agent_update = AgentUpdate(approval.tool_name, approval.tool_kwargs, request_id=request_id)
-        coro = self.gateway.handle_agent_update(agent_update, approval.sender, approval.receiver, session_id)
+    async def send_message_ignore(self, receiver: str, request_id: str | None = None):
+        notification = MessageIgnore(
+            sender="system",
+            receiver=receiver,
+            session_id=self.id,
+            request_id=request_id,
+        )
+        coro = self.gateway.handle_message_ignore(notification)
         await self._handler_queue.put(coro)
 
-    async def handle_agent_response(self, message: Message, session_id: str):
-        agent_response = AgentResponse(text=message.content, request_id=message.request_id, final=True)
-        coro = self.gateway.handle_agent_response(agent_response, message.sender, message.receiver, session_id)
+    async def send_agent_activation(self, receiver: str, request_id: str | None = None):
+        notification = AgentActivation(
+            sender="system",
+            receiver=receiver,
+            session_id=self.id,
+            request_id=request_id,
+        )
+        coro = self.gateway.handle_agent_activation(notification)
         await self._handler_queue.put(coro)
 
-    async def handle_permission_request(self, approval: Approval, sender: str, receiver: str, session_id: str):
+    async def send_agent_update(self, approval: Approval, receiver: str, request_id: str | None = None):
+        notification = AgentUpdate(
+            sender=approval.sender,
+            receiver=receiver,
+            session_id=self.id,
+            request_id=request_id,
+            tool_name=approval.tool_name,
+            tool_kwargs=approval.tool_kwargs,
+        )
+        coro = self.gateway.handle_agent_update(notification)
+        await self._handler_queue.put(coro)
+
+    async def send_agent_response(self, message: Message):
+        notification = AgentResponse(
+            sender=message.sender,
+            receiver=message.receiver,
+            session_id=self.id,
+            request_id=message.request_id,
+            text=message.content,
+            final=True,
+        )
+        coro = self.gateway.handle_agent_response(notification)
+        await self._handler_queue.put(coro)
+
+    async def send_permission_request(self, approval: Approval, receiver: str):
         if await self.session_factory.settings_store.get_permission(receiver, approval.tool_name, self.id):
             approval.approve()
             return
@@ -96,7 +138,7 @@ class Session:
             ftr=Future[int](),
         )
         coro = self.session_factory.request_handler.handle_permission_request(
-            request, sender=sender, receiver=receiver, session_id=session_id
+            request, sender=approval.sender, receiver=receiver, session_id=self.id
         )
         await self._handler_queue.put(coro)
 
@@ -111,25 +153,47 @@ class Session:
         elif permission == 3:
             await self.session_factory.settings_store.set_permission(receiver, request.tool_name, None)
 
-    async def _complete(self, execution: Execution, request_id: str | None = None):
-        async for elem in execution.stream():
+    async def _complete(self, execution: Execution, request: Message):
+        try:
+            await self._complete_stream(execution.stream(), request)
+        except Exception as e:
+            logger.exception(e)
+            response = Message(
+                content=f"Agent execution error: {e}",
+                sender="system",
+                receiver=request.sender,
+                request_id=request.request_id,
+            )
+            await self.send_agent_response(
+                message=response,
+            )
+
+    async def _complete_stream(self, stream: AsyncIterator[Decision | Approval | Message], request: Message):
+        async for elem in stream:
             match elem:
-                case Approval():
-                    await self.handle_permission_request(
-                        approval=elem,
-                        sender=elem.sender,
-                        receiver=elem.receiver,
-                        session_id=self.session.id,
+                case Decision.IGNORE:
+                    await self.send_message_ignore(
+                        receiver=request.sender,
+                        request_id=request.request_id,
                     )
-                    await self.handle_agent_update(
+                case Decision.DELEGATE:
+                    await self.send_agent_activation(
+                        receiver=request.sender,
+                        request_id=request.request_id,
+                    )
+                case Approval():
+                    await self.send_permission_request(
                         approval=elem,
-                        session_id=self.session.id,
-                        request_id=request_id,
+                        receiver=request.sender,
+                    )
+                    await self.send_agent_update(
+                        approval=elem,
+                        receiver=request.sender,
+                        request_id=request.request_id,
                     )
                 case Message():
-                    await self.handle_agent_response(
+                    await self.send_agent_response(
                         message=elem,
-                        session_id=self.session.id,
                     )
 
     async def _expand_command(self, query: str, sender: str) -> str:

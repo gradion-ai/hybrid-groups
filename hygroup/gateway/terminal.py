@@ -16,8 +16,14 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.text import Text
 
-from hygroup.agent import AgentActivation, AgentResponse
-from hygroup.gateway import Gateway
+from hygroup.gateway import (
+    AgentActivation,
+    AgentResponse,
+    AgentUpdate,
+    Gateway,
+    MessageAck,
+    MessageIgnore,
+)
 from hygroup.session import Session, SessionFactory
 
 
@@ -117,14 +123,18 @@ class TerminalGateway(Gateway):
         await self._session.handle(text=content, sender=sender)
         await self.send_message(content, sender, agent=False)
 
-    async def handle_agent_activation(
-        self, activation: AgentActivation, sender: str, receiver: str, session_id: str
-    ): ...
+    async def handle_message_ack(self, notification: MessageAck): ...
 
-    async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, session_id: str):
-        if response.text:
-            content = f"@{receiver} {response.text}"
-            await self.send_message(content, sender, agent=True)
+    async def handle_message_ignore(self, notification: MessageIgnore): ...
+
+    async def handle_agent_activation(self, notification: AgentActivation): ...
+
+    async def handle_agent_update(self, notification: AgentUpdate): ...
+
+    async def handle_agent_response(self, notification: AgentResponse):
+        receiver = f"@{notification.receiver} " if notification.receiver else ""
+        content = f"{receiver}{notification.text}"
+        await self.send_message(content, notification.sender, agent=True)
 
     async def send_message(self, content: str, sender: str, agent: bool = False):
         message = {
