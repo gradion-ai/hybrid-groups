@@ -29,7 +29,12 @@ class Session:
     def __init__(self, id: str, gateway: Gateway, agent_registry: AgentRegistry, session_factory: "SessionFactory"):
         self.gateway = gateway
         self.session_factory = session_factory
-        self.session = GroupSession(id, agent_registry, session_factory.data_store)
+        self.session = GroupSession(
+            id=id,
+            agent_registry=agent_registry,
+            data_store=session_factory.data_store,
+            preferences_source=session_factory.settings_store,
+        )
 
         self._handler_queue: Queue = Queue()
         self._handler_task: Task = create_task(self._handler_worker(self._handler_queue))
@@ -66,10 +71,7 @@ class Session:
         )
 
         await self.send_message_ack(receiver=sender, request_id=request_id)
-
-        preferences = await self.settings_store.get_preferences(message.sender)
-        execution = self.session.handle(message, preferences=preferences)
-
+        execution = self.session.handle(message)
         create_task(self._complete(execution, request=message))
 
     async def send_message_ack(self, receiver: str, request_id: str | None = None):

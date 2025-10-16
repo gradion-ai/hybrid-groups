@@ -5,6 +5,7 @@ from typing import Any
 
 import aiofiles
 import aiofiles.os
+from hylabs.preferences import PreferencesSource
 
 
 class CommandNotFoundError(Exception):
@@ -13,7 +14,7 @@ class CommandNotFoundError(Exception):
         self.command_name = command_name
 
 
-class SettingsStore:
+class SettingsStore(PreferencesSource):
     SAFE_NAME_PATTERN = r"^[a-zA-Z0-9_-]+$"
 
     def __init__(self, root_path: Path = Path(".data", "users"), allowed_tools: list[str] | None = None):

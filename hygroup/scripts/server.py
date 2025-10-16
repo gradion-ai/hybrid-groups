@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--user-channel",
         type=str,
-        default="slack",
+        default=None,
         choices=["slack", "terminal"],
         help="Channel for permission requests. If not provided, requests are auto-approved.",
     )
