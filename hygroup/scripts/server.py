@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from examples.registry import create_registry
 from hylabs.agent import AgentRegistry
-from hylabs.logging import setup_logging, shutdown_logging
+from hylabs.logging import configure_logging
 
 from hygroup.channel import RequestServer, RichConsoleHandler
 from hygroup.connect.composio import ComposioConnector
@@ -118,14 +118,11 @@ if __name__ == "__main__":
         help="Channel for permission requests. If not provided, requests are auto-approved.",
     )
 
-    args = parser.parse_args()
+    levels = {
+        __name__: logging.INFO,
+        "hylabs": logging.DEBUG,
+        "hygroup": logging.INFO,
+    }
 
-    listener = setup_logging(
-        config={
-            __name__: logging.INFO,
-            "hylabs": logging.DEBUG,
-            "hygroup": logging.INFO,
-        },
-    )
-    asyncio.run(main(args=args))
-    shutdown_logging(listener)
+    with configure_logging(levels=levels):
+        asyncio.run(main(args=parser.parse_args()))
