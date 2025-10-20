@@ -4,9 +4,9 @@ from asyncio import Future, Queue, Task, create_task
 from pathlib import Path
 from typing import AsyncIterator
 
-from hylabs.agent import AgentRegistry, Decision
+from hylabs.agent import AgentRegistry, Approval, Decision
 from hylabs.datastore import DataStore
-from hylabs.message import Approval, Attachment, Message, Thread
+from hylabs.message import Attachment, Message, Thread
 from hylabs.session import Execution, GroupSession
 
 from hygroup.agent import PermissionRequest
