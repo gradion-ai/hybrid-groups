@@ -5,8 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from examples.registry import create_registry
-from hylabs.agent import AgentRegistry
-from hylabs.logging import configure_logging
+from group_genie.agent import AgentRegistry
+from group_genie.logging import configure_logging
 
 from hygroup.channel import RequestServer, RichConsoleHandler
 from hygroup.connect.composio import ComposioConnector
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     levels = {
         __name__: logging.INFO,
-        "hylabs": logging.DEBUG,
+        "group_genie": logging.DEBUG,
         "hygroup": logging.INFO,
     }
 

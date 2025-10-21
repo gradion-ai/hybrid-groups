@@ -82,7 +82,6 @@ class SlackCommandHandler:
         await respond(blocks=[block])
 
     async def _handle_command(self, text: str, user: str) -> str:
-        # TODO: add hylabs
         settings_store = self.context.session_factory.settings_store
 
         if not text or text == "list":

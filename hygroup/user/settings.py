@@ -5,7 +5,7 @@ from typing import Any
 
 import aiofiles
 import aiofiles.os
-from hylabs.preferences import PreferencesSource
+from group_genie.preferences import PreferencesSource
 
 
 class CommandNotFoundError(Exception):

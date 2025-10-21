@@ -8,9 +8,9 @@ from pathlib import Path
 import aiofiles
 import aiofiles.os
 import aiohttp
-from hylabs.agent.registry import AgentRegistry
-from hylabs.message import Attachment
-from hylabs.utils import arun
+from group_genie.agent.registry import AgentRegistry
+from group_genie.message import Attachment
+from group_genie.utils import arun
 from PIL import Image
 
 from hygroup.agent import PermissionRequest
