@@ -86,7 +86,6 @@ nav:
     - Introduction: index.md
     - Installation: installation.md
     - Tutorial: tutorial.md
-    - Agent registry: agent-registry.md
     - Application server: application-server.md
     - Service connectors: service-connectors.md
 

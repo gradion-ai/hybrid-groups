@@ -73,11 +73,15 @@ def create_system_agent(
 ) -> Agent:
     from examples.prompts.system.prompt import system_prompt
 
-    claude_code_mcp_server = MCPServerStdio(
-        command="claude",
-        args=["mcp", "serve"],
-        env={},
-    ).filtered(ToolFilter(included=["WebSearch", "WebFetch"]))
+    vars = os.environ | secrets
+
+    brave_mcp_server = MCPServerStdio(
+        command="npx",
+        args=["-y", "@modelcontextprotocol/server-brave-search"],
+        env={
+            "BRAVE_API_KEY": vars.get("BRAVE_API_KEY", ""),
+        },
+    )
 
     tools = [get_weather_forecast, extra_tools["run_subagent"]]
     if tool := extra_tools.get("get_group_chat_messages"):
@@ -92,7 +96,7 @@ def create_system_agent(
                 "include_thoughts": True,
             }
         ),
-        toolsets=[claude_code_mcp_server],
+        toolsets=[brave_mcp_server],
         tools=tools,
     )
 

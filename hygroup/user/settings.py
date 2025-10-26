@@ -21,7 +21,7 @@ class SettingsStore(PreferencesSource):
         self.root_path = root_path
         self.root_path.mkdir(parents=True, exist_ok=True)
         self.allowed_tools = allowed_tools or [
-            "run_agent",
+            "run_subagent",
             "ask_user",
             "final_result",
         ]

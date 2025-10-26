@@ -139,6 +139,7 @@ if __name__ == "__main__":
 
     levels = {
         __name__: logging.INFO,
+        "group_sense": logging.INFO,
         "group_genie": logging.DEBUG,
         "hygroup": logging.INFO,
     }
