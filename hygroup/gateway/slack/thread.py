@@ -8,7 +8,7 @@ from pathlib import Path
 import aiofiles
 import aiofiles.os
 import aiohttp
-from group_genie.agent.registry import AgentRegistry
+from group_genie.agent import AgentFactory
 from group_genie.message import Attachment
 from group_genie.utils import arun
 from PIL import Image
@@ -34,8 +34,8 @@ class SlackThread:
         return self.session.id
 
     @property
-    def agent_registry(self) -> AgentRegistry:
-        return self.session.agent_registry
+    def agent_factory(self) -> AgentFactory:
+        return self.session.agent_factory
 
     async def handle_message(self, msg: dict):
         sender = msg["sender"]

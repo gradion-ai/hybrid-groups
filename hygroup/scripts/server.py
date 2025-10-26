@@ -4,10 +4,10 @@ import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
-from examples.registry import create_registry
-from group_genie.agent import AgentRegistry
+from group_genie.agent import AgentFactory, GroupReasonerFactory
 from group_genie.logging import configure_logging
 
+from factory.factory import create_agent_factory, create_group_reasoner_factory
 from hygroup.channel import RequestServer, RichConsoleHandler
 from hygroup.connect.composio import ComposioConnector
 from hygroup.connect.notion import NotionAuth
@@ -37,7 +37,8 @@ async def main(args):
     composio_config.set_env_vars()
 
     settings_store = SettingsStore(root_path=args.settings_store)
-    agent_registry: AgentRegistry = create_registry(secrets_store)
+    agent_factory: AgentFactory = create_agent_factory(secrets_store)
+    group_reasoner_factory: GroupReasonerFactory = create_group_reasoner_factory(secrets_store)
 
     request_handler: RichConsoleHandler | RequestServer
     match args.user_channel:
@@ -54,7 +55,8 @@ async def main(args):
         settings_store=settings_store,
         secrets_store=secrets_store,
         request_handler=request_handler,
-        agent_registry=agent_registry,
+        group_reasoner_factory=group_reasoner_factory,
+        agent_factory=agent_factory,
     )
 
     gateway: Gateway

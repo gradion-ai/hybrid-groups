@@ -4,7 +4,7 @@ from asyncio import Future, Queue, Task, create_task
 from pathlib import Path
 from typing import AsyncIterator
 
-from group_genie.agent import AgentRegistry, Approval, Decision
+from group_genie.agent import AgentFactory, Approval, Decision, GroupReasonerFactory
 from group_genie.datastore import DataStore
 from group_genie.message import Attachment, Message, Thread
 from group_genie.session import Execution, GroupSession
@@ -26,12 +26,20 @@ logger = logging.getLogger(__name__)
 
 
 class Session:
-    def __init__(self, id: str, gateway: Gateway, agent_registry: AgentRegistry, session_factory: "SessionFactory"):
+    def __init__(
+        self,
+        id: str,
+        gateway: Gateway,
+        group_reasoner_factory: GroupReasonerFactory,
+        agent_factory: AgentFactory,
+        session_factory: "SessionFactory",
+    ):
         self.gateway = gateway
         self.session_factory = session_factory
         self.session = GroupSession(
             id=id,
-            agent_registry=agent_registry,
+            group_reasoner_factory=group_reasoner_factory,
+            agent_factory=agent_factory,
             data_store=session_factory.data_store,
             preferences_source=session_factory.settings_store,
         )
@@ -48,8 +56,8 @@ class Session:
         return self.session_factory.settings_store
 
     @property
-    def agent_registry(self) -> AgentRegistry:
-        return self.session.agent_registry
+    def agent_factory(self) -> AgentFactory:
+        return self.session.agent_factory
 
     async def request_ids(self) -> set[str]:
         return await self.session.request_ids()
@@ -262,15 +270,19 @@ class SessionFactory:
         settings_store: SettingsStore,
         secrets_store: SecretsStore,
         request_handler: RequestHandler,
-        agent_registry: AgentRegistry,
-        agent_registries: dict[str, AgentRegistry] = {},
+        group_reasoner_factory: GroupReasonerFactory,
+        agent_factory: AgentFactory,
+        group_reasoner_factories: dict[str, GroupReasonerFactory] = {},
+        agent_factories: dict[str, AgentFactory] = {},
         root_path: Path = Path(".data", "sessions"),
     ):
         self.settings_store = settings_store
         self.secrets_store = secrets_store
         self.request_handler = request_handler
-        self.agent_registry = agent_registry
-        self.agent_registries = agent_registries
+        self.group_reasoner_factory = group_reasoner_factory
+        self.group_reasoner_factories = group_reasoner_factories
+        self.agent_factory = agent_factory
+        self.agent_factories = agent_factories
         self.data_store = DataStore(root_path=root_path)
 
     async def load_threads(self, session_ids: list[str]) -> list[Thread]:
@@ -286,11 +298,23 @@ class SessionFactory:
                 return Thread(id=session_id, messages=messages)
         return None
 
-    def get_agent_registry(self, channel_name: str | None = None) -> AgentRegistry:
+    def get_agent_factory(self, channel_name: str | None = None) -> AgentFactory:
         if channel_name is None:
-            return self.agent_registry
+            return self.agent_factory
         else:
-            return self.agent_registries.get(channel_name, self.agent_registry)
+            return self.agent_factories.get(channel_name, self.agent_factory)
+
+    def get_group_reasoner_factory(self, channel_name: str | None = None) -> GroupReasonerFactory:
+        if channel_name is None:
+            return self.group_reasoner_factory
+        else:
+            return self.group_reasoner_factories.get(channel_name, self.group_reasoner_factory)
 
     def create_session(self, id: str, gateway: Gateway, channel_name: str | None = None) -> Session:
-        return Session(id, gateway, self.get_agent_registry(channel_name), session_factory=self)
+        return Session(
+            id=id,
+            gateway=gateway,
+            agent_factory=self.get_agent_factory(channel_name),
+            group_reasoner_factory=self.get_group_reasoner_factory(channel_name),
+            session_factory=self,
+        )
