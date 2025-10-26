@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import importlib
 import logging
 from pathlib import Path
 
@@ -7,7 +8,6 @@ from dotenv import load_dotenv
 from group_genie.agent import AgentFactory, GroupReasonerFactory
 from group_genie.logging import configure_logging
 
-from factory.factory import create_agent_factory, create_group_reasoner_factory
 from hygroup.channel import RequestServer, RichConsoleHandler
 from hygroup.connect.composio import ComposioConnector
 from hygroup.connect.notion import NotionAuth
@@ -20,6 +20,18 @@ from hygroup.user.secrets import SecretsStore
 from hygroup.user.settings import SettingsStore
 
 logger = logging.getLogger(__name__)
+
+
+def load_factories(module_name: str, secrets_store) -> tuple[GroupReasonerFactory, AgentFactory]:
+    module = importlib.import_module(module_name)
+
+    create_group_reasoner_factory = getattr(module, "create_group_reasoner_factory")
+    create_agent_factory = getattr(module, "create_agent_factory")
+
+    group_reasoner_factory = create_group_reasoner_factory(secrets_store)
+    agent_factory = create_agent_factory(secrets_store)
+
+    return group_reasoner_factory, agent_factory
 
 
 async def main(args):
@@ -37,8 +49,7 @@ async def main(args):
     composio_config.set_env_vars()
 
     settings_store = SettingsStore(root_path=args.settings_store)
-    agent_factory: AgentFactory = create_agent_factory(secrets_store)
-    group_reasoner_factory: GroupReasonerFactory = create_group_reasoner_factory(secrets_store)
+    group_reasoner_factory, agent_factory = load_factories(args.factory_module, secrets_store)
 
     request_handler: RichConsoleHandler | RequestServer
     match args.user_channel:
@@ -118,6 +129,12 @@ if __name__ == "__main__":
         default=None,
         choices=["slack", "terminal"],
         help="Channel for permission requests. If not provided, requests are auto-approved.",
+    )
+    parser.add_argument(
+        "--factory-module",
+        type=str,
+        default="hygroup.factory.example",
+        help="Module containing the agent and group reasoner factories.",
     )
 
     levels = {
