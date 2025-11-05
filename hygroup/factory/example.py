@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
 
-from group_genie.agent import Agent, AgentFactory, AgentInfo, AsyncTool, GroupReasoner, GroupReasonerFactory
+from group_genie.agent import Agent, AgentFactory, AgentInfo, AsyncTool
 from group_genie.agent.provider.pydantic_ai import DefaultAgent, DefaultGroupReasoner, ToolFilter
+from group_genie.reasoner import GroupReasoner, GroupReasonerFactory
 from group_genie.secrets import SecretsProvider
 from pydantic_ai.mcp import MCPServerStdio, MCPServerStreamableHTTP
 from pydantic_ai.models.google import GoogleModelSettings

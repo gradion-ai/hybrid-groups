@@ -207,7 +207,7 @@ async def test_get_permission_no_permissions(settings_store: SettingsStore):
 async def test_get_permission_default_allowed_tools(settings_store: SettingsStore):
     """Test that default allowed tools return True without explicit permissions."""
     # Default allowed tools should return True even without stored permissions
-    assert await settings_store.get_permission("alice", "run_agent", "session123") is True
+    assert await settings_store.get_permission("alice", "run_subagent", "session123") is True
     assert await settings_store.get_permission("alice", "ask_user", "session123") is True
     assert await settings_store.get_permission("alice", "final_result", "session123") is True
 
@@ -244,7 +244,7 @@ async def test_get_permission_custom_allowed_tools():
 async def test_get_permission_allowed_tools_override_explicit_permissions(settings_store: SettingsStore):
     """Test that allowed tools return True even if no explicit permission is set."""
     # Even though we haven't set any permissions for run_agent, it should return True
-    assert await settings_store.get_permission("alice", "run_agent", "session123") is True
+    assert await settings_store.get_permission("alice", "run_subagent", "session123") is True
 
     # But if we set explicit permission for a non-allowed tool, that should work too
     await settings_store.set_permission("alice", "bash", "session123")

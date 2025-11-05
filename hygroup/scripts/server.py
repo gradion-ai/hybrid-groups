@@ -5,8 +5,9 @@ import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
-from group_genie.agent import AgentFactory, GroupReasonerFactory
+from group_genie.agent import AgentFactory
 from group_genie.logging import configure_logging
+from group_genie.reasoner import GroupReasonerFactory
 
 from hygroup.channel import RequestServer, RichConsoleHandler
 from hygroup.connect.composio import ComposioConnector
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--factory-module",
         type=str,
-        default="hygroup.factory.example",
+        default="demo.factory.default",
         help="Module containing the agent and group reasoner factories.",
     )
 

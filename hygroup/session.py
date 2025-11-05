@@ -4,9 +4,10 @@ from asyncio import Future, Queue, Task, create_task
 from pathlib import Path
 from typing import AsyncIterator
 
-from group_genie.agent import AgentFactory, Approval, Decision, GroupReasonerFactory
+from group_genie.agent import AgentFactory, Approval, Decision
 from group_genie.datastore import DataStore
 from group_genie.message import Attachment, Message, Thread
+from group_genie.reasoner import GroupReasonerFactory
 from group_genie.session import Execution, GroupSession
 
 from hygroup.agent import PermissionRequest

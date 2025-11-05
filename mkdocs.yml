@@ -60,7 +60,7 @@ plugins:
             signature_crossrefs: true
             separate_signature: true
             merge_init_into_class: true
-          import:
+          inventories:
             - url: https://docs.python.org/3/objects.inv
               domains: [py, std]
 

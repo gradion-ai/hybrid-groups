@@ -1043,7 +1043,10 @@ dev = [
     { name = "types-aiofiles", specifier = ">=25.1.0.20251011,<26" },
 ]
 docs = [
+    { name = "click", specifier = "<=8.2.1" },
+    { name = "griffe-pydantic", specifier = ">=1.1.8" },
     { name = "mkdocs", specifier = ">=1.6.1,<2" },
+    { name = "mkdocs-llmstxt", specifier = ">=0.4.0" },
     { name = "mkdocs-material", specifier = ">=9.5.48,<10" },
     { name = "mkdocstrings-python", specifier = ">=1.12.2,<2" },
 ]
@@ -1069,7 +1072,10 @@ dev = [
     { name = "types-aiofiles", specifier = ">=25.1.0.20251011,<26" },
 ]
 docs = [
+    { name = "click", specifier = "<=8.2.1" },
+    { name = "griffe-pydantic", specifier = ">=1.1.8" },
     { name = "mkdocs", specifier = ">=1.6.1,<2" },
+    { name = "mkdocs-llmstxt", specifier = ">=0.4.0" },
     { name = "mkdocs-material", specifier = ">=9.5.48,<10" },
     { name = "mkdocstrings-python", specifier = ">=1.12.2,<2" },
 ]
