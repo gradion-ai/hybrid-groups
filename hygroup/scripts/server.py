@@ -35,6 +35,25 @@ def load_factories(module_name: str, secrets_store) -> tuple[GroupReasonerFactor
     return group_reasoner_factory, agent_factory
 
 
+def load_channel_factories(
+    channel_factory_specs: list[str] | None, secrets_store
+) -> tuple[dict[str, GroupReasonerFactory], dict[str, AgentFactory]]:
+    group_reasoner_factories: dict[str, GroupReasonerFactory] = {}
+    agent_factories: dict[str, AgentFactory] = {}
+
+    for spec in channel_factory_specs or []:
+        if ":" not in spec:
+            raise ValueError(f"Invalid channel factory spec '{spec}'. Expected format: 'channel_name:module.path'")
+
+        channel_name, module_name = spec.split(":", 1)
+        group_reasoner_factory, agent_factory = load_factories(module_name, secrets_store)
+
+        group_reasoner_factories[channel_name] = group_reasoner_factory
+        agent_factories[channel_name] = agent_factory
+
+    return group_reasoner_factories, agent_factories
+
+
 async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
         raise ValueError("Invalid configuration: --user-channel=slack requires --gateway=slack")
@@ -51,6 +70,7 @@ async def main(args):
 
     settings_store = SettingsStore(root_path=args.settings_store)
     group_reasoner_factory, agent_factory = load_factories(args.factory_module, secrets_store)
+    group_reasoner_factories, agent_factories = load_channel_factories(args.channel_factory_module, secrets_store)
 
     request_handler: RichConsoleHandler | RequestServer
     match args.user_channel:
@@ -69,6 +89,8 @@ async def main(args):
         request_handler=request_handler,
         group_reasoner_factory=group_reasoner_factory,
         agent_factory=agent_factory,
+        group_reasoner_factories=group_reasoner_factories,
+        agent_factories=agent_factories,
     )
 
     gateway: Gateway
@@ -135,7 +157,13 @@ if __name__ == "__main__":
         "--factory-module",
         type=str,
         default="demo.factory.default",
-        help="Module containing the agent and group reasoner factories.",
+        help="Default agent and group reasoner factory module in format 'module.path'.",
+    )
+    parser.add_argument(
+        "--channel-factory-module",
+        type=str,
+        action="append",
+        help="Channel-specific agent and group reasoner factory module in format 'channel_name:module.path'. Can be specified multiple times.",
     )
 
     levels = {

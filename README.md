@@ -8,7 +8,7 @@
     <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/gradion-ai/hybrid-groups?color=blueviolet"></a>
 </p>
 
-[*Hybrid Groups*](https://gradion-ai.github.io/hybrid-groups/) is an application of *Group Genie*, which enables existing single-user AI agents to participate in group chat conversations without requiring modification to the agents themselves. While many AI agents excel at responding to direct queries from individual users, they typically cannot handle multi-party conversations where relevant information emerges from complex exchanges between multiple participants. *Group Genie* solves this by combining intelligent pattern detection with a flexible agent integration layer. It monitors group chats, detects conversation patterns, and reformulates multi-party exchanges into self-contained queries that AI agents can process.
+[*Hybrid Groups*](https://gradion-ai.github.io/hybrid-groups/) integrates *Group Genie* into Slack and GitHub. It enables existing single-user AI agents to participate in group chat conversations without requiring modification to the agents themselves. While many AI agents excel at responding to direct queries from individual users, they typically cannot handle multi-party conversations where relevant information emerges from complex exchanges between multiple participants. *Hybrid Groups* solves this by combining intelligent pattern detection with a flexible agent integration layer. It monitors group chats, detects conversation patterns, and reformulates multi-party exchanges into self-contained queries that AI agents can process.
 
 <div align="left">
   <a href="https://www.youtube.com/watch?v=OxOmRsNin4o">
@@ -16,7 +16,7 @@
   </a>
 </div>
 
-*Hybrid Groups* brings *Group Genie* to Slack and GitHub. It supports user-specific credentials and preferences, session persistence for resuming conversations after restarts, service connectors for accessing 250+ external services (Gmail, Notion, Figma, etc.), media attachment support, action approval workflows, and custom commands. Agents act on behalf of individual team members using their personal credentials and preferences, enabling users to securely access their private resources while maintaining proper access boundaries to other users.
+*Hybrid Groups* supports user-specific credentials and preferences, session persistence for resuming conversations after restarts, service connectors for accessing 250+ external services (Gmail, Notion, Figma, etc.), media attachment support, action approval workflows, and custom commands. Agents act on behalf of individual team members using their personal credentials and preferences, enabling users to securely access their private resources while maintaining proper access boundaries to other users.
 
 > [!TIP]
 > Check the [tutorial](https://gradion-ai.github.io/hybrid-groups/tutorial) for a feature overview with examples.

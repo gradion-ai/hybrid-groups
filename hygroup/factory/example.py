@@ -132,7 +132,7 @@ def create_agent_factory(secrets_provider: SecretsProvider | None = None):
 
 
 def create_group_reasoner(secrets: dict[str, str], owner: str) -> GroupReasoner:
-    return DefaultGroupReasoner(system_prompt=load_system_prompt("group").format(owner=owner))
+    return DefaultGroupReasoner(system_prompt=load_system_prompt("reasoner").format(owner=owner))
 
 
 def create_group_reasoner_factory(secrets_provider: SecretsProvider | None = None):

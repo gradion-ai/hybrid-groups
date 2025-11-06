@@ -48,13 +48,12 @@ Adding a `BRAVE_API_KEY` to `.env` enables all users to use this key for web sea
 
 ## Example agents
 
-*Hybrid Groups* comes with some predefined example agents defined in the [`hygroup.factory.example`](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/example.py) module:
+*Hybrid Groups* comes with example agents and a group reasoner defined in the [`hygroup.factory.example`](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/example.py) module:
 
-- A group reasoner that monitors group chat messages and decides whether to stay silent or generate a query for the `system` agent. It transforms group chat utterances to agent instructions, depending on criteria and rules defined in its [system prompt](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/prompts/group.md).
-
-- A `system` agent that receives instructions from the group reasoner. It is configured with a [Brave Search MCP server](https://github.com/brave/brave-search-mcp-server), a [weather forecast](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/weather.py) tool and can use the `math` and `office` agents as subagents.
-- A `math` agent that can execute Python code for calculations, data analysis, and visualizations. It is configured with an [ipybox MCP server](https://gradion-ai.github.io/ipybox/mcp-server/) for secure code execution in a sandbox.
-- An `office` agent that can manage a user's Gmail, Google Calendar, and Google Drive. It uses [service connectors](#service-connectors) to access these services on behalf of individual users. The `office` agent requires an `OPENAI_API_KEY` in `.env` as it uses `openai:gpt-5-mini` as model.
+- The group reasoner monitors group chats and decides whether to stay silent or generate a query for the `system` agent. It transforms group chat utterances to agent instructions, depending on criteria and rules defined in its [system prompt](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/prompts/reasoner.md).
+- The `system` agent receives instructions from the group reasoner. It is configured with a [Brave Search MCP server](https://github.com/brave/brave-search-mcp-server), a [weather forecast](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/weather.py) tool and can use the `math` and `office` agents as subagents.
+- The `math` agent can execute Python code for calculations, data analysis, and visualizations. It is configured with an [ipybox MCP server](https://gradion-ai.github.io/ipybox/mcp-server/) for secure code execution in a sandbox.
+- The `office` agent can manage a user's Gmail, Google Calendar, and Google Drive. It uses [service connectors](#service-connectors) to access these services on behalf of individual users. The `office` agent requires an `OPENAI_API_KEY` in `.env` as it uses `openai:gpt-5-mini` as model.
 
     ```env title=".env"
     OPENAI_API_KEY=...
@@ -62,7 +61,7 @@ Adding a `BRAVE_API_KEY` to `.env` enables all users to use this key for web sea
 
 !!! Info "Using your own agents"
 
-    To use your own agents, provide their module name as argument to the `--factory-module` command line option when starting the [application server](#application-server).
+    To use your own agents and group reasoner, provide their factory module name as argument to the `--factory-module` command line option when starting the [application server](#application-server). You can also configure [channel-specific](application-server.md#channel-specific-agents) agents and group reasoners with the `--channel-factory-module` option.
 
 ## Application server
 
