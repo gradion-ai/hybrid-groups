@@ -14,7 +14,7 @@
         <link rel="prev" href="../installation/">
       
       
-        <link rel="next" href="../agent-registry/">
+        <link rel="next" href="../application-server/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -498,9 +498,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#agent-registration" class="md-nav__link">
+  <a href="#example-agents" class="md-nav__link">
     <span class="md-ellipsis">
-      Agent registration
+      Example agents
     </span>
   </a>
   
@@ -510,15 +510,6 @@
   <a href="#application-server" class="md-nav__link">
     <span class="md-ellipsis">
       Application server
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#verify-registration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Verify registration
     </span>
   </a>
   
@@ -591,29 +582,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../agent-registry/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Agent registry
-    
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -750,9 +718,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#agent-registration" class="md-nav__link">
+  <a href="#example-agents" class="md-nav__link">
     <span class="md-ellipsis">
-      Agent registration
+      Example agents
     </span>
   </a>
   
@@ -762,15 +730,6 @@
   <a href="#application-server" class="md-nav__link">
     <span class="md-ellipsis">
       Application server
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#verify-registration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Verify registration
     </span>
   </a>
   
@@ -859,7 +818,7 @@
 
 
 <h1 id="tutorial">Tutorial</h1>
-<p>This tutorial demonstrates how to install and use the <em>Hybrid Groups</em> Slack app, and provides an overview of its main features.</p>
+<p>This tutorial demonstrates how to install and use the <em>Hybrid Groups</em> Slack app.</p>
 <h2 id="initial-setup">Initial setup</h2>
 <h3 id="python-package">Python package</h3>
 <p>Create a minimal <code>hybrid-groups-tutorial</code> project and install the <code>hybrid-groups</code> package:</p>
@@ -885,49 +844,40 @@
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>BRAVE_API_KEY=...  # optional
 </span></code></pre></div>
 <p>Adding a <code>BRAVE_API_KEY</code> to <code>.env</code> enables all users to use this key for web search via the Brave Search API. Alternatively, users can add a <code>BRAVE_API_KEY</code> to their <a href="#personal-settings">secrets</a> in the Slack app's home view, for searching with their personal API keys.</p>
-<h2 id="agent-registration">Agent registration</h2>
-<p>Add some predefined <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/agents.py">example agents</a> to the <a href="../agent-registry/">agent registry</a> with:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.examples.agents
-</span></code></pre></div>
-<p>This creates an agent registry at <code>.data/agents/registry.json</code> with the following agents:</p>
+<h2 id="example-agents">Example agents</h2>
+<p><em>Hybrid Groups</em> comes with example agents and a group reasoner defined in the <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/example.py"><code>hygroup.factory.example</code></a> module:</p>
 <ul>
+<li>The group reasoner monitors group chats and decides whether to stay silent or generate a query for the <code>system</code> agent. It transforms group chat utterances to agent instructions, depending on criteria and rules defined in its <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/prompts/reasoner.md">system prompt</a>.</li>
+<li>The <code>system</code> agent receives instructions from the group reasoner. It is configured with a <a href="https://github.com/brave/brave-search-mcp-server">Brave Search MCP server</a>, a <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/weather.py">weather forecast</a> tool and can use the <code>math</code> and <code>office</code> agents as subagents.</li>
+<li>The <code>math</code> agent can execute Python code for calculations, data analysis, and visualizations. It is configured with an <a href="https://gradion-ai.github.io/ipybox/mcp-server/">ipybox MCP server</a> for secure code execution in a sandbox.</li>
 <li>
-<p>A <code>system</code> agent that monitors all messages in a <a href="#group-sessions">group session</a>. It may decide to stay silent or respond to a message, depending on message content, context and <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/agent/system/prompt.md">system instructions</a>. It is configured with a <a href="https://github.com/brave/brave-search-mcp-server">Brave Search MCP server</a>, a <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/weather.py">weather forecast</a> tool.</p>
-<div class="admonition info">
-<p class="admonition-title">Subagents</p>
-<p>The <code>system</code> agent can also invoke other agents as subagents. See <a href="#group-sessions">group sessions</a> and <a href="#service-connectors">service connectors</a> for examples.</p>
-</div>
-</li>
-<li>
-<p>A <code>math</code> agent that can execute Python code for calculations, data analysis, and visualizations. It is configured with an <a href="https://gradion-ai.github.io/ipybox/mcp-server/">ipybox MCP server</a> for secure code execution in a sandbox.</p>
-</li>
-<li>
-<p>An <code>office</code> agent that can manage a user's Gmail, Google Calendar, and Google Drive. It uses <a href="#service-connectors">service connectors</a> to access these services on behalf of individual users. The <code>office</code> agent requires an <code>OPENAI_API_KEY</code> in <code>.env</code> as it uses <code>openai:gpt-5-mini</code> as model.</p>
-<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>OPENAI_API_KEY=...
+<p>The <code>office</code> agent can manage a user's Gmail, Google Calendar, and Google Drive. It uses <a href="#service-connectors">service connectors</a> to access these services on behalf of individual users. The <code>office</code> agent requires an <code>OPENAI_API_KEY</code> in <code>.env</code> as it uses <code>openai:gpt-5-mini</code> as model.</p>
+<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>OPENAI_API_KEY=...
 </span></code></pre></div>
 </li>
 </ul>
+<div class="admonition info">
+<p class="admonition-title">Using your own agents</p>
+<p>To use your own agents and group reasoner, provide their factory module name as argument to the <code>--factory-module</code> command line option when starting the <a href="#application-server">application server</a>. You can also configure <a href="../application-server/#channel-specific-agents">channel-specific</a> agents and group reasoners with the <code>--channel-factory-module</code> option.</p>
+</div>
 <h2 id="application-server">Application server</h2>
 <p>Start the Slack <a href="../application-server/">application server</a> with:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example
 </span></code></pre></div>
-<h2 id="verify-registration">Verify registration</h2>
-<p>In the created <a href="#slack-channel">Slack channel</a>, start typing <code>/hy</code> in the message box, select the <code>/hygroup-agents</code> slash command and press <code>Enter</code>:</p>
+<p>To list the example agents, start typing <code>/hy</code> in the message box of the created <a href="#slack-channel">Slack channel</a>, select the <code>/hygroup-agents</code> slash command and press <code>Enter</code>:</p>
 <p><img alt="Slash command for listing registered agents" src="../images/tutorial/commands/cmd-agents.png" /></p>
-<p>You should see a list with the registered example agents:</p>
+<p>You should see a list of registered agents (except the group reasoner):</p>
 <p><img alt="List of registered example agents" src="../images/tutorial/commands/cmd-agents-result.png" /></p>
 <h2 id="personal-settings">Personal settings</h2>
 <p>Click on the <code>Hybrid Groups</code> app in Slack, then the <code>Home</code> tab to see your personal settings. These are your preferences (agent response style, ...) and your secrets (API keys, ...). In this example, the user provides his own <code>BRAVE_API_KEY</code> which takes precedence over the default <code>BRAVE_API_KEY</code> in the <code>.env</code> file.</p>
 <p><img alt="Personal settings" src="../images/tutorial/home-view.png" /></p>
 <h2 id="group-sessions">Group sessions</h2>
-<p>Users and agents collaborate in group sessions, corresponding to <a href="https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions">threads</a> in Slack. Each thread runs its own instances of agents.
-The system agent, displayed as <code>Hybrid Groups</code> app, monitors <img alt="👀" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f440.svg" title=":eyes:" /> all messages and decides whether to respond <img alt="🤖" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f916.svg" title=":robot:" /> or stay silent <img alt="☑" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/2611.svg" title=":ballot_box_with_check:" />. It can also run other agents as subagents.</p>
+<p>Users and agents collaborate in group sessions, corresponding to <a href="https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions">threads</a> in Slack. The group reasoner monitors <img alt="👀" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f440.svg" title=":eyes:" /> all messages and decides whether to delegate to the <code>system</code> agent <img alt="🤖" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f916.svg" title=":robot:" /> or stay silent <img alt="☑" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/2611.svg" title=":ballot_box_with_check:" />.</p>
 <p><img alt="System agent" src="../images/tutorial/session-1.png" /></p>
-<p>Users can also invoke an agent directly by mentioning it. For example, starting a message with <code>@math</code> invokes the <code>math</code> agent directly, bypassing the system agent.
-Starting a message  with <code>@Hybrid Groups</code> invokes the system agent. When the system agent is mentioned, it must generate a response <img alt="🤖" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f916.svg" title=":robot:" />.</p>
-<p><img alt="Mentioned agents" src="../images/tutorial/session-2.png" /></p>
 <h2 id="session-persistence">Session persistence</h2>
-<p>Group messages and agent states are persisted. After an <a href="#application-server">application server</a> restart, group sessions can be resumed. During an application server downtime, new messages added to Slack threads are processed when the server is up again.</p>
+<p>Group messages and agent states are persisted. After an <a href="#application-server">application server</a> restart, group sessions can be resumed. New messages added to Slack threads during an application server downtime are processed when the server is up again.</p>
 <h2 id="service-connectors">Service connectors</h2>
 <div class="admonition note">
 <p class="admonition-title">Composio integration</p>
@@ -950,7 +900,7 @@ Starting a message  with <code>@Hybrid Groups</code> invokes the system agent. W
 <p><img alt="Media attachments" src="../images/tutorial/attachments.png" /></p>
 <h2 id="action-approval">Action approval</h2>
 <p>Users can be requested to approve actions that are executed on their behalf by starting the application server with the <code>--user-channel slack</code> option:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack<span class="w"> </span>--user-channel<span class="w"> </span>slack
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack<span class="w"> </span>--user-channel<span class="w"> </span>slack
 </span></code></pre></div>
 <p>Approval requests are sent to the initiating user as <a href="https://docs.slack.dev/messaging/#ephemeral">ephemeral messages</a>, visible only to that user. Users can choose to approve an action once, for the current session, always, or deny execution. Relevant for an action is the tool name only, not the arguments.</p>
 <p><img alt="Action approval" src="../images/tutorial/approval.png" /></p>
@@ -965,7 +915,7 @@ Starting a message  with <code>@Hybrid Groups</code> invokes the system agent. W
 <p><img alt="Execute magic command" src="../images/tutorial/commands/cmd-command-exec.png" /></p>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
-<p>Magic commands in <em>Hybrid Groups</em> are conceptually similar to <a href="https://docs.anthropic.com/en/docs/claude-code/slash-commands#custom-slash-commands">custom slash commands</a> in Claude Code.</p>
+<p>Magic commands in <em>Hybrid Groups</em> are similar to <a href="https://docs.anthropic.com/en/docs/claude-code/slash-commands#custom-slash-commands">custom slash commands</a> in Claude Code.</p>
 </div>
 
 
