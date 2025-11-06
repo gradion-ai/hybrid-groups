@@ -34,16 +34,14 @@ jobs:
           uv pip list
 
       - name: Automatic PR Review
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           timeout_minutes: "60"
+          claude_args: "--allowed-tools *"
 
-          # Allow Claude to run specific commands
-          allowed_tools: "*"
-
-          # Direct prompt for automatic review
-          direct_prompt: |
+          # Unified prompt with configuration
+          prompt: |
             Please review this pull request and provide comprehensive feedback.
 
             IMPORTANT: This is a research prototype. While code quality is important, production-readiness is not the current focus.
