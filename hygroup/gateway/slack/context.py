@@ -5,14 +5,14 @@ from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.async_slack_response import AsyncSlackResponse
 
 from hygroup.gateway.slack.thread import SlackThread
-from hygroup.session import SessionManager
+from hygroup.session import SessionFactory
 
 
 @dataclass
 class SlackContext:
     app: AsyncApp
     client: AsyncWebClient
-    session_manager: SessionManager
+    session_factory: SessionFactory
     slack_user_mapping: dict[str, str]
     system_user_mapping: dict[str, str]
     threads: dict[str, SlackThread] = field(default_factory=dict)
@@ -36,10 +36,11 @@ class SlackContext:
         if sender == "system":
             sender_kwargs = {}
         else:
-            sender_emoji = thread.session.agent_registries.get_registry(name=thread.channel_name).get_emoji(sender)
+            sender_stem = sender.split(":")[0]  # strip instance identifier
+            sender_emoji = thread.agent_factory.agent_info(sender_stem).emoji or "robot_face"
             sender_kwargs = {
                 "username": sender,
-                "icon_emoji": f":{sender_emoji or 'robot_face'}:",
+                "icon_emoji": f":{sender_emoji}:",
             }
 
         return await coro(

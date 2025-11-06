@@ -5,6 +5,7 @@ from typing import Any
 
 import aiofiles
 import aiofiles.os
+from group_genie.preferences import PreferencesSource
 
 
 class CommandNotFoundError(Exception):
@@ -13,14 +14,14 @@ class CommandNotFoundError(Exception):
         self.command_name = command_name
 
 
-class SettingsStore:
+class SettingsStore(PreferencesSource):
     SAFE_NAME_PATTERN = r"^[a-zA-Z0-9_-]+$"
 
     def __init__(self, root_path: Path = Path(".data", "users"), allowed_tools: list[str] | None = None):
         self.root_path = root_path
         self.root_path.mkdir(parents=True, exist_ok=True)
         self.allowed_tools = allowed_tools or [
-            "run_agent",
+            "run_subagent",
             "ask_user",
             "final_result",
         ]

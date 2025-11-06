@@ -1,150 +1,116 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
 
-from hygroup.connect import ComposioConnector
 from hygroup.gateway.slack import SlackGateway
-from hygroup.session import SessionManager
 
 
 @pytest.fixture
-def session_manager():
-    """Create a mock session manager for testing."""
-    manager = MagicMock(spec=SessionManager)
-    manager.request_handler = MagicMock()
-
-    # Mock settings_store and get_mapping
-    settings_store = MagicMock()
-    user_mapping = {
+def user_mapping():
+    """Create a user mapping for testing."""
+    return {
         "U04P0E9BQ73": "martin",
         "U123": "alice",
         "U456": "bob",
         "UBOT": "bot",
         "UASSIST": "assistant",
     }
-    settings_store.get_mapping.return_value = user_mapping
-    manager.settings_store = settings_store
-
-    return manager
 
 
 @pytest.fixture
-def composio_connector():
-    """Create a mock composio connector for testing."""
-    connector = MagicMock(spec=ComposioConnector)
-    return connector
+def resolver(user_mapping):
+    """Create a resolver function based on user mapping."""
 
+    def resolve(user_id: str) -> str:
+        return user_mapping.get(user_id, user_id)
 
-@pytest.fixture
-def slack_gateway(session_manager, composio_connector, monkeypatch):
-    """Create a SlackGateway instance with test user mappings."""
-    # Set required environment variables
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "test-bot-token")
-    monkeypatch.setenv("SLACK_APP_TOKEN", "test-app-token")
-    monkeypatch.setenv("SLACK_APP_USER_ID", "test-app-user-id")
-
-    # Mock the AsyncApp and AsyncSocketModeHandler to avoid real Slack connections
-    with (
-        patch("hygroup.gateway.slack.gateway.AsyncApp"),
-        patch("hygroup.gateway.slack.gateway.AsyncWebClient"),
-        patch("hygroup.gateway.slack.gateway.AsyncSocketModeHandler"),
-    ):
-        gateway = SlackGateway(
-            session_manager=session_manager,
-            composio_connector=composio_connector,
-            handle_permission_requests=False,
-        )
-        return gateway
+    return resolve
 
 
 class TestSlackResolverMentions:
-    """Test SlackGateway._resolve_mentions method for Slack-specific mention formats."""
+    """Test SlackGateway.resolve_mentions static method for Slack-specific mention formats."""
 
-    def test_basic_slack_userid_format(self, slack_gateway):
+    def test_basic_slack_userid_format(self, resolver):
         """Test basic <@userid> format resolution."""
-        assert slack_gateway._resolve_mentions("<@U04P0E9BQ73>") == "@martin"
-        assert slack_gateway._resolve_mentions("<@U123>") == "@alice"
-        assert slack_gateway._resolve_mentions("<@U456>") == "@bob"
+        assert SlackGateway.resolve_mentions("<@U04P0E9BQ73>", resolver) == "@martin"
+        assert SlackGateway.resolve_mentions("<@U123>", resolver) == "@alice"
+        assert SlackGateway.resolve_mentions("<@U456>", resolver) == "@bob"
 
-    def test_slack_userid_in_context(self, slack_gateway):
+    def test_slack_userid_in_context(self, resolver):
         """Test <@userid> mentions within text."""
-        assert slack_gateway._resolve_mentions("blah <@U04P0E9BQ73> blah") == "blah @martin blah"
-        assert slack_gateway._resolve_mentions("<@U123> hello") == "@alice hello"
-        assert slack_gateway._resolve_mentions("hello <@U456>") == "hello @bob"
+        assert SlackGateway.resolve_mentions("blah <@U04P0E9BQ73> blah", resolver) == "blah @martin blah"
+        assert SlackGateway.resolve_mentions("<@U123> hello", resolver) == "@alice hello"
+        assert SlackGateway.resolve_mentions("hello <@U456>", resolver) == "hello @bob"
 
-    def test_multiple_slack_mentions(self, slack_gateway):
+    def test_multiple_slack_mentions(self, resolver):
         """Test multiple <@userid> mentions in one message."""
-        assert slack_gateway._resolve_mentions("<@U123> and <@U456>") == "@alice and @bob"
-        assert slack_gateway._resolve_mentions("<@UBOT> please help <@U123>") == "@bot please help @alice"
-        assert slack_gateway._resolve_mentions("<@U123> ping <@UBOT>") == "@alice ping @bot"
+        assert SlackGateway.resolve_mentions("<@U123> and <@U456>", resolver) == "@alice and @bob"
+        assert SlackGateway.resolve_mentions("<@UBOT> please help <@U123>", resolver) == "@bot please help @alice"
+        assert SlackGateway.resolve_mentions("<@U123> ping <@UBOT>", resolver) == "@alice ping @bot"
 
-    def test_unknown_slack_users(self, slack_gateway):
+    def test_unknown_slack_users(self, resolver):
         """Test <@userid> mentions for users not in mapping."""
-        assert slack_gateway._resolve_mentions("hello <@U999>") == "hello @U999"
-        assert slack_gateway._resolve_mentions("<@UNKNOWN>") == "@UNKNOWN"
-        assert slack_gateway._resolve_mentions("<@U123> hello <@U999>") == "@alice hello @U999"
+        assert SlackGateway.resolve_mentions("hello <@U999>", resolver) == "hello @U999"
+        assert SlackGateway.resolve_mentions("<@UNKNOWN>", resolver) == "@UNKNOWN"
+        assert SlackGateway.resolve_mentions("<@U123> hello <@U999>", resolver) == "@alice hello @U999"
 
-    def test_empty_and_none_cases(self, slack_gateway):
-        """Test empty and None inputs."""
-        assert slack_gateway._resolve_mentions("") == ""
-        assert slack_gateway._resolve_mentions(None) == ""
-        assert slack_gateway._resolve_mentions("no mentions here") == "no mentions here"
+    def test_empty_cases(self, resolver):
+        """Test empty inputs."""
+        assert SlackGateway.resolve_mentions("", resolver) == ""
+        assert SlackGateway.resolve_mentions("no mentions here", resolver) == "no mentions here"
 
-    def test_malformed_slack_mentions(self, slack_gateway):
+    def test_malformed_slack_mentions(self, resolver):
         """Test malformed mention patterns that should not match."""
-        assert slack_gateway._resolve_mentions("<@>") == "<@>"  # Empty brackets
-        assert slack_gateway._resolve_mentions("@U123") == "@U123"  # Missing brackets
-        assert slack_gateway._resolve_mentions("<U123>") == "<U123>"  # Missing @
-        assert slack_gateway._resolve_mentions("< @U123>") == "< @U123>"  # Space after <
+        assert SlackGateway.resolve_mentions("<@>", resolver) == "<@>"  # Empty brackets
+        assert SlackGateway.resolve_mentions("@U123", resolver) == "@U123"  # Missing brackets
+        assert SlackGateway.resolve_mentions("<U123>", resolver) == "<U123>"  # Missing @
+        assert SlackGateway.resolve_mentions("< @U123>", resolver) == "< @U123>"  # Space after <
 
-    def test_emails_remain_intact(self, slack_gateway):
+    def test_emails_remain_intact(self, resolver):
         """Test that email addresses are not modified."""
-        assert slack_gateway._resolve_mentions("first.last@example.com") == "first.last@example.com"
-        assert slack_gateway._resolve_mentions("user+tag@domain.co.uk") == "user+tag@domain.co.uk"
-        assert slack_gateway._resolve_mentions("test@sub.domain.org") == "test@sub.domain.org"
-        assert slack_gateway._resolve_mentions("admin@company-name.com") == "admin@company-name.com"
+        assert SlackGateway.resolve_mentions("first.last@example.com", resolver) == "first.last@example.com"
+        assert SlackGateway.resolve_mentions("user+tag@domain.co.uk", resolver) == "user+tag@domain.co.uk"
+        assert SlackGateway.resolve_mentions("test@sub.domain.org", resolver) == "test@sub.domain.org"
+        assert SlackGateway.resolve_mentions("admin@company-name.com", resolver) == "admin@company-name.com"
 
-    def test_mixed_emails_and_mentions(self, slack_gateway):
+    def test_mixed_emails_and_mentions(self, resolver):
         """Test text containing both emails and Slack mentions."""
         assert (
-            slack_gateway._resolve_mentions("Contact <@UASSIST> at help@company.com")
+            SlackGateway.resolve_mentions("Contact <@UASSIST> at help@company.com", resolver)
             == "Contact @assistant at help@company.com"
         )
         assert (
-            slack_gateway._resolve_mentions("Email me@company.com or ping <@U123>")
+            SlackGateway.resolve_mentions("Email me@company.com or ping <@U123>", resolver)
             == "Email me@company.com or ping @alice"
         )
         assert (
-            slack_gateway._resolve_mentions("<@UBOT> please send to user@domain.com")
+            SlackGateway.resolve_mentions("<@UBOT> please send to user@domain.com", resolver)
             == "@bot please send to user@domain.com"
         )
 
-    def test_whitespace_preservation(self, slack_gateway):
+    def test_whitespace_preservation(self, resolver):
         """Test that whitespace is preserved correctly."""
-        assert slack_gateway._resolve_mentions("  <@U123>  ") == "  @alice  "
-        assert slack_gateway._resolve_mentions("\t<@U456>\n") == "\t@bob\n"
-        assert slack_gateway._resolve_mentions("<@U123>\n\n<@U456>") == "@alice\n\n@bob"
+        assert SlackGateway.resolve_mentions("  <@U123>  ", resolver) == "  @alice  "
+        assert SlackGateway.resolve_mentions("\t<@U456>\n", resolver) == "\t@bob\n"
+        assert SlackGateway.resolve_mentions("<@U123>\n\n<@U456>", resolver) == "@alice\n\n@bob"
 
-    def test_special_characters_around_mentions(self, slack_gateway):
+    def test_special_characters_around_mentions(self, resolver):
         """Test mentions with special characters in surrounding text."""
-        assert slack_gateway._resolve_mentions("!<@U123>!") == "!@alice!"
-        assert slack_gateway._resolve_mentions("#<@U456>$") == "#@bob$"
-        assert slack_gateway._resolve_mentions("(<@UBOT>)") == "(@bot)"
-        assert slack_gateway._resolve_mentions("[<@U123>]") == "[@alice]"
-        assert slack_gateway._resolve_mentions("'<@U456>'") == "'@bob'"
-        assert slack_gateway._resolve_mentions('"<@UBOT>"') == '"@bot"'
+        assert SlackGateway.resolve_mentions("!<@U123>!", resolver) == "!@alice!"
+        assert SlackGateway.resolve_mentions("#<@U456>$", resolver) == "#@bob$"
+        assert SlackGateway.resolve_mentions("(<@UBOT>)", resolver) == "(@bot)"
+        assert SlackGateway.resolve_mentions("[<@U123>]", resolver) == "[@alice]"
+        assert SlackGateway.resolve_mentions("'<@U456>'", resolver) == "'@bob'"
+        assert SlackGateway.resolve_mentions('"<@UBOT>"', resolver) == '"@bot"'
 
-    def test_complex_message_with_multiple_elements(self, slack_gateway):
+    def test_complex_message_with_multiple_elements(self, resolver):
         """Test complex message with multiple mentions and various text elements."""
         text = "Hey <@UBOT>, can you help <@U123> and <@U456> with <@U999>?"
         expected = "Hey @bot, can you help @alice and @bob with @U999?"
-        assert slack_gateway._resolve_mentions(text) == expected
+        assert SlackGateway.resolve_mentions(text, resolver) == expected
 
-    def test_slack_userid_with_special_chars(self, slack_gateway):
+    def test_slack_userid_with_special_chars(self, user_mapping, resolver):
         """Test that user IDs with slashes and hyphens are handled correctly."""
         # Add a user with special characters in the ID
-        slack_gateway.context.slack_user_mapping["U-TEST/123"] = "testuser"
-        slack_gateway.context.system_user_mapping["testuser"] = "U-TEST/123"
+        user_mapping["U-TEST/123"] = "testuser"
 
-        assert slack_gateway._resolve_mentions("<@U-TEST/123>") == "@testuser"
-        assert slack_gateway._resolve_mentions("Hello <@U-TEST/123>!") == "Hello @testuser!"
+        assert SlackGateway.resolve_mentions("<@U-TEST/123>", resolver) == "@testuser"
+        assert SlackGateway.resolve_mentions("Hello <@U-TEST/123>!", resolver) == "Hello @testuser!"

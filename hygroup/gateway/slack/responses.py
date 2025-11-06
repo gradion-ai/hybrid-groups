@@ -1,10 +1,15 @@
-import asyncio
-
 from markdown_to_mrkdwn import SlackMarkdownConverter
 
-from hygroup.agent import AgentActivation, AgentResponse
+from hygroup.gateway import (
+    AgentActivation,
+    AgentResponse,
+    AgentUpdate,
+    MessageAck,
+    MessageIgnore,
+)
 from hygroup.gateway.slack.context import SlackContext
 from hygroup.gateway.slack.thread import SlackThread
+from hygroup.gateway.slack.utils import BurstBuffer
 
 
 class SlackResponseHandler:
@@ -12,73 +17,99 @@ class SlackResponseHandler:
         self,
         context: SlackContext,
         wip_emoji: str = "beer",
-        wip_update: bool = True,
-        wip_update_interval: float = 10.0,
-        wip_update_max: int = 10,
+        wip_update_interval: float = 3.0,
     ):
         self.converter = SlackMarkdownConverter()
         self.context = context
-        self.wip_emoji = wip_emoji
-        self.wip_update = wip_update
-        self.wip_update_interval = wip_update_interval
-        self.wip_update_max = wip_update_max
 
-    async def handle_agent_activation(self, activation: AgentActivation, thread_id: str):
-        """Handle agent activation with emoji reactions and WIP messages."""
-        thread = self.context.threads[thread_id]
-        if activation.message_id:
+        self.wip_emoji = wip_emoji
+        self.wip_update_interval = wip_update_interval
+
+    async def handle_message_ack(self, notification: MessageAck):
+        thread = self.context.threads[notification.session_id]
+
+        if request_id := notification.request_id:
             await self.context.client.reactions_add(
                 channel=thread.channel_id,
-                timestamp=activation.message_id,
+                timestamp=request_id,
                 name="eyes",
             )
 
-        if activation.request_id:
-            response = await self._send_wip_message(thread, activation.agent_name)
-            response_id = response.data["ts"]
+    async def handle_message_ignore(self, notification: MessageIgnore):
+        thread = self.context.threads[notification.session_id]
 
-            thread.response_ids[activation.request_id] = response_id
-
-            if self.wip_update:
-                wip_coro = self._update_wip_message(
-                    thread=thread,
-                    sender=activation.agent_name,
-                    message_id=response_id,
-                )
-                thread.response_upd[activation.request_id] = asyncio.create_task(wip_coro)
-
-    async def handle_agent_response(self, response: AgentResponse, sender: str, receiver: str, thread_id: str):
-        """Handle agent response messages."""
-        thread = self.context.threads[thread_id]
-        if response.message_id:
+        if request_id := notification.request_id:
             await self.context.client.reactions_add(
                 channel=thread.channel_id,
-                timestamp=response.message_id,
-                name="robot_face" if response.text else "ballot_box_with_check",
+                timestamp=request_id,
+                name="ballot_box_with_check",
             )
 
-        if request_id := response.request_id:
-            if wip_task := thread.response_upd.pop(request_id, None):
-                wip_task.cancel()
-                try:
-                    await wip_task
-                except asyncio.CancelledError:
-                    pass
+    async def handle_agent_activation(self, notification: AgentActivation):
+        thread = self.context.threads[notification.session_id]
 
-            if response_id := thread.response_ids.pop(request_id, None):
+        if request_id := notification.request_id:
+            response = await self._send_wip_message(thread, notification.sender, notification.receiver)
+            wip_message_id = response.data["ts"]
+
+            num_sub_calls: int = 0
+            num_tool_calls: int = 0
+
+            async def update_wip_message(updates: list[AgentUpdate]):
+                nonlocal num_sub_calls
+                nonlocal num_tool_calls
+
+                for update in updates:
+                    if update.tool_name == "run_subagent":
+                        num_sub_calls += 1
+                    else:
+                        num_tool_calls += 1
+
+                await self._send_wip_message(
+                    thread=thread,
+                    sender=notification.sender,
+                    receiver=notification.receiver,
+                    num_sub_calls=num_sub_calls,
+                    num_tool_calls=num_tool_calls,
+                    ts=wip_message_id,
+                )
+
+            thread.wip_message_ids[request_id] = wip_message_id
+            thread.wip_update_buffers[request_id] = BurstBuffer(update_wip_message, self.wip_update_interval)
+
+    async def handle_agent_update(self, notification: AgentUpdate):
+        """Handle agent update messages."""
+
+        if request_id := notification.request_id:
+            thread = self.context.threads[notification.session_id]
+            buffer = thread.wip_update_buffers[request_id]
+            buffer.update(notification)
+
+    async def handle_agent_response(self, notification: AgentResponse):
+        """Handle agent response messages."""
+        thread = self.context.threads[notification.session_id]
+
+        if request_id := notification.request_id:
+            await self.context.client.reactions_add(
+                channel=thread.channel_id,
+                timestamp=notification.request_id,
+                name="robot_face",
+            )
+
+            if buffer := thread.wip_update_buffers.pop(request_id, None):
+                buffer.cancel()
+
+            if response_id := thread.wip_message_ids.pop(request_id, None):
                 await self.context.client.chat_delete(
                     channel=thread.channel_id,
                     thread_ts=thread.id,
                     ts=response_id,
                 )
 
-        if not response.text:
-            return
-
-        receiver_resolved = self.context.resolve_slack_user_id(receiver)
+        receiver_resolved = self.context.resolve_slack_user_id(notification.receiver)
         receiver_resolved_formatted = f"<@{receiver_resolved}>"
 
-        text = f"{receiver_resolved_formatted} {response.text}"
+        text = f"{receiver_resolved_formatted} {notification.text}"
 
         # Truncate message if it exceeds Slack's character limit
         if len(text) > 2990:
@@ -93,19 +124,24 @@ class SlackResponseHandler:
                 },
             },
         ]
-        await self.context.send_slack_message(thread, text, sender, blocks=blocks)
+        await self.context.send_slack_message(thread, text, notification.sender, blocks=blocks)
 
-    async def _update_wip_message(self, thread: SlackThread, sender: str, message_id: str):
-        try:
-            for i in range(2, self.wip_update_max):
-                await asyncio.sleep(self.wip_update_interval)
-                await self._send_wip_message(thread, sender, i, ts=message_id)
-        except asyncio.CancelledError:
-            pass
+    async def _send_wip_message(
+        self,
+        thread: SlackThread,
+        sender: str,
+        receiver: str,
+        num_sub_calls: int = 0,
+        num_tool_calls: int = 0,
+        **kwargs,
+    ):
+        beer = f":{self.wip_emoji}:"
 
-    async def _send_wip_message(self, thread: SlackThread, sender: str, progress: int = 1, **kwargs):
-        beers = f":{self.wip_emoji}:" * progress
-        text = f"{beers} *brewing ...*"
+        receiver_resolved = self.context.resolve_slack_user_id(receiver)
+        receiver_resolved_formatted = f"<@{receiver_resolved}>"
+
+        update_text = f"- `{num_sub_calls}` subagent calls \n- `{num_tool_calls}` tools calls"
+        text = f"{beer} *Brewing for* {receiver_resolved_formatted}\n\n{update_text}"
         blocks = [
             {
                 "type": "section",

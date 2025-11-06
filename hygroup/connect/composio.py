@@ -51,6 +51,10 @@ class ComposioConfig:
 
         return vars
 
+    def set_env_vars(self):
+        for k, v in self.mcp_config_vars().items():
+            os.environ[k] = v
+
 
 class ComposioConnector:
     def __init__(

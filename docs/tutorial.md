@@ -1,6 +1,6 @@
 # Tutorial
 
-This tutorial demonstrates how to install and use the *Hybrid Groups* Slack app, and provides an overview of its main features.
+This tutorial demonstrates how to install and use the *Hybrid Groups* Slack app.
 
 ## Initial setup
 
@@ -46,44 +46,38 @@ BRAVE_API_KEY=...  # optional
 
 Adding a `BRAVE_API_KEY` to `.env` enables all users to use this key for web search via the Brave Search API. Alternatively, users can add a `BRAVE_API_KEY` to their [secrets](#personal-settings) in the Slack app's home view, for searching with their personal API keys.
 
-## Agent registration
+## Example agents
 
-Add some predefined [example agents](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/agents.py) to the [agent registry](agent-registry.md) with:
+*Hybrid Groups* comes with example agents and a group reasoner defined in the [`hygroup.factory.example`](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/example.py) module:
 
-```shell
-uv run python -m hygroup.examples.agents
-```
-
-This creates an agent registry at `.data/agents/registry.json` with the following agents:
-
-- A `system` agent that monitors all messages in a [group session](#group-sessions). It may decide to stay silent or respond to a message, depending on message content, context and [system instructions](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/agent/system/prompt.md). It is configured with a [Brave Search MCP server](https://github.com/brave/brave-search-mcp-server), a [weather forecast](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/weather.py) tool.
-  
-    !!! Info "Subagents"
-
-        The `system` agent can also invoke other agents as subagents. See [group sessions](#group-sessions) and [service connectors](#service-connectors) for examples.
-
-- A `math` agent that can execute Python code for calculations, data analysis, and visualizations. It is configured with an [ipybox MCP server](https://gradion-ai.github.io/ipybox/mcp-server/) for secure code execution in a sandbox.
-- An `office` agent that can manage a user's Gmail, Google Calendar, and Google Drive. It uses [service connectors](#service-connectors) to access these services on behalf of individual users. The `office` agent requires an `OPENAI_API_KEY` in `.env` as it uses `openai:gpt-5-mini` as model.
+- The group reasoner monitors group chats and decides whether to stay silent or generate a query for the `system` agent. It transforms group chat utterances to agent instructions, depending on criteria and rules defined in its [system prompt](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/prompts/reasoner.md).
+- The `system` agent receives instructions from the group reasoner. It is configured with a [Brave Search MCP server](https://github.com/brave/brave-search-mcp-server), a [weather forecast](https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/examples/weather.py) tool and can use the `math` and `office` agents as subagents.
+- The `math` agent can execute Python code for calculations, data analysis, and visualizations. It is configured with an [ipybox MCP server](https://gradion-ai.github.io/ipybox/mcp-server/) for secure code execution in a sandbox.
+- The `office` agent can manage a user's Gmail, Google Calendar, and Google Drive. It uses [service connectors](#service-connectors) to access these services on behalf of individual users. The `office` agent requires an `OPENAI_API_KEY` in `.env` as it uses `openai:gpt-5-mini` as model.
 
     ```env title=".env"
     OPENAI_API_KEY=...
     ```
+
+!!! Info "Using your own agents"
+
+    To use your own agents and group reasoner, provide their factory module name as argument to the `--factory-module` command line option when starting the [application server](#application-server). You can also configure [channel-specific](application-server.md#channel-specific-agents) agents and group reasoners with the `--channel-factory-module` option.
 
 ## Application server
 
 Start the Slack [application server](application-server.md) with:
 
 ```shell
-uv run python -m hygroup.scripts.server --gateway slack
+uv run python -m hygroup.scripts.server \
+  --gateway slack \
+  --factory-module hygroup.factory.example
 ```
 
-## Verify registration
-
- In the created [Slack channel](#slack-channel), start typing `/hy` in the message box, select the `/hygroup-agents` slash command and press `Enter`:
+To list the example agents, start typing `/hy` in the message box of the created [Slack channel](#slack-channel), select the `/hygroup-agents` slash command and press `Enter`:
  
  ![Slash command for listing registered agents](images/tutorial/commands/cmd-agents.png)
  
- You should see a list with the registered example agents:
+ You should see a list of registered agents (except the group reasoner):
 
 ![List of registered example agents](images/tutorial/commands/cmd-agents-result.png)
 
@@ -95,19 +89,13 @@ Click on the `Hybrid Groups` app in Slack, then the `Home` tab to see your perso
 
 ## Group sessions
 
-Users and agents collaborate in group sessions, corresponding to [threads](https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions) in Slack. Each thread runs its own instances of agents.
-The system agent, displayed as `Hybrid Groups` app, monitors :eyes: all messages and decides whether to respond :robot: or stay silent :ballot_box_with_check:. It can also run other agents as subagents.
+Users and agents collaborate in group sessions, corresponding to [threads](https://slack.com/help/articles/115000769927-Use-threads-to-organize-discussions) in Slack. The group reasoner monitors :eyes: all messages and decides whether to delegate to the `system` agent :robot: or stay silent :ballot_box_with_check:.
 
 ![System agent](images/tutorial/session-1.png)
 
-Users can also invoke an agent directly by mentioning it. For example, starting a message with `@math` invokes the `math` agent directly, bypassing the system agent.
-Starting a message  with `@Hybrid Groups` invokes the system agent. When the system agent is mentioned, it must generate a response :robot:.
-
-![Mentioned agents](images/tutorial/session-2.png)
-
 ## Session persistence
 
-Group messages and agent states are persisted. After an [application server](#application-server) restart, group sessions can be resumed. During an application server downtime, new messages added to Slack threads are processed when the server is up again.
+Group messages and agent states are persisted. After an [application server](#application-server) restart, group sessions can be resumed. New messages added to Slack threads during an application server downtime are processed when the server is up again.
 
 ## Service connectors
 
@@ -173,4 +161,4 @@ For executing a magic command, start a message with `%` followed by the command 
 
 !!! Info
 
-    Magic commands in *Hybrid Groups* are conceptually similar to [custom slash commands](https://docs.anthropic.com/en/docs/claude-code/slash-commands#custom-slash-commands) in Claude Code.
+    Magic commands in *Hybrid Groups* are similar to [custom slash commands](https://docs.anthropic.com/en/docs/claude-code/slash-commands#custom-slash-commands) in Claude Code.

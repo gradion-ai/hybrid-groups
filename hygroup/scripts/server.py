@@ -1,32 +1,63 @@
 import argparse
 import asyncio
+import importlib
+import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
+from group_genie.agent import AgentFactory
+from group_genie.logging import configure_logging
+from group_genie.reasoner import GroupReasonerFactory
 
-from hygroup.agent.registry import AgentRegistries
-from hygroup.channel import (
-    RequestHandler,
-    RequestServer,
-    RichConsoleHandler,
-)
+from hygroup.channel import RequestServer, RichConsoleHandler
 from hygroup.connect.composio import ComposioConnector
 from hygroup.connect.notion import NotionAuth
 from hygroup.gateway import Gateway
 from hygroup.gateway.github import GithubGateway
 from hygroup.gateway.slack import SlackGateway, SlackHomeHandlers
 from hygroup.gateway.terminal import TerminalGateway
-from hygroup.session import SessionManager
+from hygroup.session import SessionFactory
 from hygroup.user.secrets import SecretsStore
 from hygroup.user.settings import SettingsStore
+
+logger = logging.getLogger(__name__)
+
+
+def load_factories(module_name: str, secrets_store) -> tuple[GroupReasonerFactory, AgentFactory]:
+    module = importlib.import_module(module_name)
+
+    create_group_reasoner_factory = getattr(module, "create_group_reasoner_factory")
+    create_agent_factory = getattr(module, "create_agent_factory")
+
+    group_reasoner_factory = create_group_reasoner_factory(secrets_store)
+    agent_factory = create_agent_factory(secrets_store)
+
+    return group_reasoner_factory, agent_factory
+
+
+def load_channel_factories(
+    channel_factory_specs: list[str] | None, secrets_store
+) -> tuple[dict[str, GroupReasonerFactory], dict[str, AgentFactory]]:
+    group_reasoner_factories: dict[str, GroupReasonerFactory] = {}
+    agent_factories: dict[str, AgentFactory] = {}
+
+    for spec in channel_factory_specs or []:
+        if ":" not in spec:
+            raise ValueError(f"Invalid channel factory spec '{spec}'. Expected format: 'channel_name:module.path'")
+
+        channel_name, module_name = spec.split(":", 1)
+        group_reasoner_factory, agent_factory = load_factories(module_name, secrets_store)
+
+        group_reasoner_factories[channel_name] = group_reasoner_factory
+        agent_factories[channel_name] = agent_factory
+
+    return group_reasoner_factories, agent_factories
 
 
 async def main(args):
     if args.user_channel == "slack" and args.gateway != "slack":
         raise ValueError("Invalid configuration: --user-channel=slack requires --gateway=slack")
 
-    agent_registries = AgentRegistries(root_path=args.agent_registries)
-    settings_store = SettingsStore(root_path=args.settings_store)
     secrets_store = SecretsStore(root_path=args.secrets_store)
     await secrets_store.unlock(args.secrets_store_password)
 
@@ -35,8 +66,13 @@ async def main(args):
 
     composio_connector = ComposioConnector(secrets_store=secrets_store)
     composio_config = await composio_connector.load_config()
+    composio_config.set_env_vars()
 
-    request_handler: RequestHandler
+    settings_store = SettingsStore(root_path=args.settings_store)
+    group_reasoner_factory, agent_factory = load_factories(args.factory_module, secrets_store)
+    group_reasoner_factories, agent_factories = load_channel_factories(args.channel_factory_module, secrets_store)
+
+    request_handler: RichConsoleHandler | RequestServer
     match args.user_channel:
         case "terminal":
             request_handler = RequestServer()
@@ -47,12 +83,14 @@ async def main(args):
                 default_confirmation_response=True,
             )
 
-    manager = SessionManager(
-        agent_registries=agent_registries,
-        secrets_store=secrets_store,
+    factory = SessionFactory(
         settings_store=settings_store,
+        secrets_store=secrets_store,
         request_handler=request_handler,
-        composio_config=composio_config,
+        group_reasoner_factory=group_reasoner_factory,
+        agent_factory=agent_factory,
+        group_reasoner_factories=group_reasoner_factories,
+        agent_factories=agent_factories,
     )
 
     gateway: Gateway
@@ -60,10 +98,9 @@ async def main(args):
     match args.gateway:
         case "slack":
             gateway = SlackGateway(
-                session_manager=manager,
+                session_factory=factory,
                 composio_connector=composio_connector,
                 handle_permission_requests=args.user_channel == args.gateway,
-                wip_update=False,
             )
             handlers = SlackHomeHandlers(
                 client=gateway.client,
@@ -73,9 +110,9 @@ async def main(args):
             )
             handlers.register()
         case "github":
-            gateway = GithubGateway(session_manager=manager)
+            gateway = GithubGateway(session_factory=factory)
         case "terminal":
-            gateway = TerminalGateway(session_manager=manager)
+            gateway = TerminalGateway(session_factory=factory)
 
     await gateway.start(join=True)
 
@@ -90,12 +127,6 @@ if __name__ == "__main__":
         default="slack",
         choices=["github", "slack", "terminal"],
         help="The communication platform to use.",
-    )
-    parser.add_argument(
-        "--agent-registries",
-        type=Path,
-        default=Path(".data", "agents"),
-        help="Path to the agent registries directory.",
     )
     parser.add_argument(
         "--settings-store",
@@ -122,6 +153,25 @@ if __name__ == "__main__":
         choices=["slack", "terminal"],
         help="Channel for permission requests. If not provided, requests are auto-approved.",
     )
+    parser.add_argument(
+        "--factory-module",
+        type=str,
+        default="demo.factory.default",
+        help="Default agent and group reasoner factory module in format 'module.path'.",
+    )
+    parser.add_argument(
+        "--channel-factory-module",
+        type=str,
+        action="append",
+        help="Channel-specific agent and group reasoner factory module in format 'channel_name:module.path'. Can be specified multiple times.",
+    )
 
-    args = parser.parse_args()
-    asyncio.run(main(args=args))
+    levels = {
+        __name__: logging.INFO,
+        "group_sense": logging.INFO,
+        "group_genie": logging.DEBUG,
+        "hygroup": logging.INFO,
+    }
+
+    with configure_logging(levels=levels):
+        asyncio.run(main(args=parser.parse_args()))

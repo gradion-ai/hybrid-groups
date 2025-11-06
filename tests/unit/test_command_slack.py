@@ -8,17 +8,17 @@ import pytest_asyncio
 
 from hygroup.connect import ComposioConnector
 from hygroup.gateway.slack import SlackGateway
-from hygroup.session import SessionManager
+from hygroup.session import SessionFactory
 from hygroup.user.settings import CommandNotFoundError, SettingsStore
 
 
 @pytest.fixture
-def session_manager(command_store):
-    """Create a mock session manager for testing."""
-    manager = MagicMock(spec=SessionManager)
-    manager.request_handler = MagicMock()
-    manager.settings_store = command_store
-    return manager
+def session_factory(command_store):
+    """Create a mock session factory for testing."""
+    factory = MagicMock(spec=SessionFactory)
+    factory.request_handler = MagicMock()
+    factory.settings_store = command_store
+    return factory
 
 
 @pytest.fixture
@@ -32,17 +32,17 @@ def composio_connector():
 def command_store():
     """Create a mock command store for testing."""
     store = AsyncMock(spec=SettingsStore)
-    # Mock get_mapping to return test user mapping
+    # Mock get_mapping to return test user mapping (synchronous method)
     user_mapping = {
         "U123": "alice",
         "U456": "bob",
     }
-    store.get_mapping.return_value = user_mapping
+    store.get_mapping = MagicMock(return_value=user_mapping)
     return store
 
 
 @pytest.fixture
-def slack_gateway(session_manager, composio_connector, monkeypatch):
+def slack_gateway(session_factory, composio_connector, monkeypatch):
     """Create a SlackGateway instance with test user mappings."""
     # Set required environment variables
     monkeypatch.setenv("SLACK_BOT_TOKEN", "test-bot-token")
@@ -56,7 +56,7 @@ def slack_gateway(session_manager, composio_connector, monkeypatch):
         patch("hygroup.gateway.slack.gateway.AsyncSocketModeHandler"),
     ):
         gateway = SlackGateway(
-            session_manager=session_manager,
+            session_factory=session_factory,
             composio_connector=composio_connector,
             handle_permission_requests=False,
         )

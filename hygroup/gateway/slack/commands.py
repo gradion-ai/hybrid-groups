@@ -82,7 +82,7 @@ class SlackCommandHandler:
         await respond(blocks=[block])
 
     async def _handle_command(self, text: str, user: str) -> str:
-        settings_store = self.context.session_manager.settings_store
+        settings_store = self.context.session_factory.settings_store
 
         if not text or text == "list":
             command_names = await settings_store.get_command_names(user)
@@ -132,17 +132,12 @@ class SlackCommandHandler:
     async def handle_agents(self, ack, body, respond):
         await ack()
 
-        channel_name = body.get("channel_name")
-
-        registry = self.context.session_manager.agent_registries.get_registry(name=channel_name)
-
-        descriptions = registry.get_descriptions()
+        agent_factory = self.context.session_factory.get_agent_factory(body.get("channel_name"))
 
         agent_lines = []
-        for name, description in sorted(descriptions.items()):
-            emoji = registry.get_emoji(name)
-            emoji_str = f":{emoji}:" if emoji else ":robot_face:"
-            agent_lines.append(f"- {emoji_str} `{name}`: {description}")
+        for info in sorted(agent_factory.agent_infos(), key=lambda x: x.name):
+            emoji = info.emoji or "robot_face"
+            agent_lines.append(f"- :{emoji}: `{info.name}`: {info.description}")
 
         if agent_lines:
             agents_text = "\n".join(agent_lines)
