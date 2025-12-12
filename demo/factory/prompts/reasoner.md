@@ -1,0 +1,1 @@
+../../../hygroup/factory/prompts/reasoner.md
