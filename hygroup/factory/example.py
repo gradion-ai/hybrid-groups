@@ -72,7 +72,7 @@ def create_system_agent(
     extra_tools: dict[str, AsyncTool],
     agent_infos: list[AgentInfo],
 ) -> Agent:
-    from examples.prompts.system.prompt import system_prompt
+    from hygroup.factory.prompts.system.prompt import system_prompt
 
     vars = os.environ | secrets
 

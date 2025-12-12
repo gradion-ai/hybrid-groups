@@ -156,7 +156,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--factory-module",
         type=str,
-        default="demo.factory.default",
+        default="hygroup.factory.example",
         help="Default agent and group reasoner factory module in format 'module.path'.",
     )
     parser.add_argument(
