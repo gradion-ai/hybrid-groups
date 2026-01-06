@@ -1,6 +1,7 @@
 import logging
 import re
 from asyncio import Future, Queue, Task, create_task
+from dataclasses import replace
 from pathlib import Path
 from typing import AsyncIterator
 
@@ -203,6 +204,8 @@ class Session:
                         request_id=request.request_id,
                     )
                 case Message():
+                    if elem.receiver is None:
+                        elem = replace(elem, receiver=request.sender)
                     await self.send_agent_response(
                         message=elem,
                     )
