@@ -27,7 +27,7 @@ def create_math_agent(secrets: dict[str, str]) -> Agent:
         model="gemini-2.5-flash",
         model_settings=GoogleModelSettings(
             google_thinking_config={
-                "thinking_budget": 0,
+                "thinking_level": "minimal",
                 "include_thoughts": False,
             }
         ),
@@ -93,7 +93,7 @@ def create_system_agent(
         model="gemini-2.5-flash",
         model_settings=GoogleModelSettings(
             google_thinking_config={
-                "thinking_budget": -1,
+                "thinking_level": "high",
                 "include_thoughts": True,
             }
         ),

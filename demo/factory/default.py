@@ -24,10 +24,10 @@ def create_math_agent(secrets: dict[str, str]) -> Agent:
 
     return DefaultAgent(
         system_prompt="You are an expert in solving mathematical problems. Always generate and execute code for solving the problems.",
-        model="gemini-2.5-flash",
+        model="google-gla:gemini-3-flash-preview",
         model_settings=GoogleModelSettings(
             google_thinking_config={
-                "thinking_budget": -1,
+                "thinking_level": "high",
                 "include_thoughts": True,
             }
         ),
@@ -62,7 +62,7 @@ def create_zotero_agent(secrets: dict[str, str]) -> Agent:
 
     return DefaultAgent(
         system_prompt=load_system_prompt("zotero"),
-        model="gemini-2.5-flash",
+        model="google-gla:gemini-3-flash-preview",
         toolsets=[zotero_mcp_server],
     )
 
@@ -85,7 +85,7 @@ def create_reader_agent(secrets: dict[str, str]) -> Agent:
 
     return DefaultAgent(
         system_prompt=load_system_prompt("reader"),
-        model="gemini-2.5-flash",
+        model="google-gla:gemini-3-flash-preview",
         toolsets=[reader_mcp_server],
     )
 
@@ -110,7 +110,7 @@ def create_notes_agent(secrets: dict[str, str]) -> Agent:
 
     return DefaultAgent(
         system_prompt=load_system_prompt("notes"),
-        model="anthropic:claude-sonnet-4-5",
+        model="google-gla:gemini-3-flash-preview",
         toolsets=[notion_mcp_server],
     )
 
@@ -137,7 +137,7 @@ def create_office_agent(secrets: dict[str, str]) -> Agent:
 
     return DefaultAgent(
         system_prompt=load_system_prompt("office"),
-        model="anthropic:claude-sonnet-4-5",
+        model="google-gla:gemini-3-flash-preview",
         toolsets=[gmail_mcp_server, googlecalendar_mcp_server, claude_mcp_server],
     )
 
@@ -161,10 +161,10 @@ def create_system_agent(
 
     return DefaultAgent(
         system_prompt=system_prompt(agent_infos),
-        model="gemini-2.5-flash",
+        model="google-gla:gemini-3-flash-preview",
         model_settings=GoogleModelSettings(
             google_thinking_config={
-                "thinking_budget": -1,
+                "thinking_level": "high",
                 "include_thoughts": True,
             }
         ),
