@@ -43,12 +43,14 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira:300,300i,400,400i,700,700i%7CFira+Code:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Fira";--md-code-font:"Fira Code"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
       
     
     
       <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
       <link rel="stylesheet" href="../css/custom.css">
     
@@ -64,12 +66,10 @@
   
     
     
-      
     
     
     
-    
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
   
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -94,8 +94,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="Hybrid Groups" class="md-header__button md-logo" aria-label="Hybrid Groups" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -120,43 +119,7 @@
     </div>
     
       
-        <form class="md-header__option" data-md-component="palette">
-  
     
-    
-    
-    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
-    
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg>
-      </label>
-    
-  
-    
-    
-    
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
-    
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
-      </label>
-    
-  
-    
-    
-    
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
-    
-      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
-      </label>
-    
-  
-</form>
-      
-    
-    
-      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
     
     
     
@@ -275,8 +238,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="Hybrid Groups" class="md-nav__button md-logo" aria-label="Hybrid Groups" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     Hybrid Groups
@@ -822,27 +784,27 @@
 <h2 id="initial-setup">Initial setup</h2>
 <h3 id="python-package">Python package</h3>
 <p>Create a minimal <code>hybrid-groups-tutorial</code> project and install the <code>hybrid-groups</code> package:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>init<span class="w"> </span>--bare<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.11<span class="w"> </span>hybrid-groups-tutorial
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>hybrid-groups-tutorial
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>add<span class="w"> </span>hybrid-groups
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>init<span class="w"> </span>--bare<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.11<span class="w"> </span>hybrid-groups-tutorial
+<span class="nb">cd</span><span class="w"> </span>hybrid-groups-tutorial
+uv<span class="w"> </span>add<span class="w"> </span>hybrid-groups
+</code></pre></div>
 <h3 id="slack-app">Slack app</h3>
 <p>Install the <em>Hybrid Groups</em> Slack app in a Slack workspace by launching the installation wizard and following the instructions on the screen.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.setup.apps<span class="w"> </span>slack
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.setup.apps<span class="w"> </span>slack
+</code></pre></div>
 <p>After installation, you should see the following variables in a <code>.env</code> file:</p>
-<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>SLACK_BOT_TOKEN=...
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>SLACK_BOT_ID=...
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>SLACK_APP_TOKEN=...
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>SLACK_APP_USER_ID=...
-</span></code></pre></div>
+<div class="highlight"><span class="filename">.env</span><pre><span></span><code>SLACK_BOT_TOKEN=...
+SLACK_BOT_ID=...
+SLACK_APP_TOKEN=...
+SLACK_APP_USER_ID=...
+</code></pre></div>
 <h3 id="slack-channel">Slack channel</h3>
 <p>Go to the Slack workspace where you installed the app and create a channel. In the channel's menu, <code>Open channel details</code> -&gt; <code>Integrations</code> -&gt; <code>Add apps</code>, and select the <code>Hybrid Groups</code> app. </p>
 <h3 id="api-keys">API keys</h3>
 <p>Add a <a href="https://aistudio.google.com/apikey">Gemini API key</a> and a <a href="https://api-dashboard.search.brave.com/app/keys">Brave Search API key</a> to the <code>.env</code> file:</p>
-<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>GEMINI_API_KEY=...  # required
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>BRAVE_API_KEY=...  # optional
-</span></code></pre></div>
+<div class="highlight"><span class="filename">.env</span><pre><span></span><code>GEMINI_API_KEY=...  # required
+BRAVE_API_KEY=...  # optional
+</code></pre></div>
 <p>Adding a <code>BRAVE_API_KEY</code> to <code>.env</code> enables all users to use this key for web search via the Brave Search API. Alternatively, users can add a <code>BRAVE_API_KEY</code> to their <a href="#personal-settings">secrets</a> in the Slack app's home view, for searching with their personal API keys.</p>
 <h2 id="example-agents">Example agents</h2>
 <p><em>Hybrid Groups</em> comes with example agents and a group reasoner defined in the <a href="https://github.com/gradion-ai/hybrid-groups/blob/main/hygroup/factory/example.py"><code>hygroup.factory.example</code></a> module:</p>
@@ -852,8 +814,8 @@
 <li>The <code>math</code> agent can execute Python code for calculations, data analysis, and visualizations. It is configured with an <a href="https://gradion-ai.github.io/ipybox/mcp-server/">ipybox MCP server</a> for secure code execution in a sandbox.</li>
 <li>
 <p>The <code>office</code> agent can manage a user's Gmail, Google Calendar, and Google Drive. It uses <a href="#service-connectors">service connectors</a> to access these services on behalf of individual users. The <code>office</code> agent requires an <code>OPENAI_API_KEY</code> in <code>.env</code> as it uses <code>openai:gpt-5-mini</code> as model.</p>
-<div class="language-text highlight"><span class="filename">.env</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>OPENAI_API_KEY=...
-</span></code></pre></div>
+<div class="highlight"><span class="filename">.env</span><pre><span></span><code>OPENAI_API_KEY=...
+</code></pre></div>
 </li>
 </ul>
 <div class="admonition info">
@@ -862,10 +824,10 @@
 </div>
 <h2 id="application-server">Application server</h2>
 <p>Start the Slack <a href="../application-server/">application server</a> with:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example
+</code></pre></div>
 <p>To list the example agents, start typing <code>/hy</code> in the message box of the created <a href="#slack-channel">Slack channel</a>, select the <code>/hygroup-agents</code> slash command and press <code>Enter</code>:</p>
 <p><img alt="Slash command for listing registered agents" src="../images/tutorial/commands/cmd-agents.png" /></p>
 <p>You should see a list of registered agents (except the group reasoner):</p>
@@ -900,8 +862,8 @@
 <p><img alt="Media attachments" src="../images/tutorial/attachments.png" /></p>
 <h2 id="action-approval">Action approval</h2>
 <p>Users can be requested to approve actions that are executed on their behalf by starting the application server with the <code>--user-channel slack</code> option:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack<span class="w"> </span>--user-channel<span class="w"> </span>slack
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span>--gateway<span class="w"> </span>slack<span class="w"> </span>--user-channel<span class="w"> </span>slack
+</code></pre></div>
 <p>Approval requests are sent to the initiating user as <a href="https://docs.slack.dev/messaging/#ephemeral">ephemeral messages</a>, visible only to that user. Users can choose to approve an action once, for the current session, always, or deny execution. Relevant for an action is the tool name only, not the arguments.</p>
 <p><img alt="Action approval" src="../images/tutorial/approval.png" /></p>
 <h2 id="magic-commands">Magic commands</h2>
@@ -952,7 +914,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2025 Gradion AI
+      Copyright &copy; 2025-2026 Gradion AI
     </div>
   
   

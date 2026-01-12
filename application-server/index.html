@@ -43,12 +43,14 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira:300,300i,400,400i,700,700i%7CFira+Code:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Fira";--md-code-font:"Fira Code"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
       
     
     
       <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
       <link rel="stylesheet" href="../css/custom.css">
     
@@ -64,12 +66,10 @@
   
     
     
-      
     
     
     
-    
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
   
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -94,8 +94,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="Hybrid Groups" class="md-header__button md-logo" aria-label="Hybrid Groups" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -120,43 +119,7 @@
     </div>
     
       
-        <form class="md-header__option" data-md-component="palette">
-  
     
-    
-    
-    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
-    
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4a5 5 0 0 0 5-5 5 5 0 0 0-5-5"/></svg>
-      </label>
-    
-  
-    
-    
-    
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
-    
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
-      </label>
-    
-  
-    
-    
-    
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
-    
-      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
-      </label>
-    
-  
-</form>
-      
-    
-    
-      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
     
     
     
@@ -275,8 +238,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="Hybrid Groups" class="md-nav__button md-logo" aria-label="Hybrid Groups" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     Hybrid Groups
@@ -640,39 +602,39 @@
 <h1 id="application-server">Application server</h1>
 <h2 id="slack">Slack</h2>
 <p>To serve the Slack app with the provided example agents and group reasoner, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example
+</code></pre></div>
 <h3 id="channel-specific-agents">Channel-specific agents</h3>
 <p>Channel-specifc agents and group reasoners can be configured with the <code>--channel-factory-module</code> option. For example, to use specialized agents and group reasoner in a <code>customer-support</code> channel while using the default configuration elsewhere:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>--channel-factory-module<span class="w"> </span>customer-support:myproject.factory.support
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--channel-factory-module<span class="w"> </span>customer-support:myproject.factory.support
+</code></pre></div>
 <p>The <code>--channel-factory-module</code> option accepts the format <code>channel_name:module.path</code> and can be specified multiple times for different channels. Channels without specific configuration will use the agents and group reasoner from the default <code>--factory-module</code>.</p>
 <h3 id="manual-action-approval">Manual action approval</h3>
 <p>To enable manual approval of agent actions via <a href="https://api.slack.com/surfaces/messages#ephemeral">ephemeral messages</a>, use the <code>--user-channel slack</code> option:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>--user-channel<span class="w"> </span>slack
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gateway<span class="w"> </span>slack<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user-channel<span class="w"> </span>slack
+</code></pre></div>
 <h2 id="github">GitHub</h2>
 <p>To serve the GitHub app with the provided example agents and group reasoner, run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--gateway<span class="w"> </span>github<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>hygroup.scripts.server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gateway<span class="w"> </span>github<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--factory-module<span class="w"> </span>hygroup.factory.example
+</code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Channel-specific configuration not available</p>
 <p>The <code>--channel-factory-module</code> option is only available for Slack integrations, not for GitHub.</p>
 </div>
 <p>The GitHub app server additionally requires a <a href="https://smee.io/">smee.io</a> channel for webhook payload delivery to the local server. A channel is generated during the <a href="../installation/#github-app">GitHub app setup</a>  and stored in the <code>.env</code> file as <code>GITHUB_APP_WEBHOOK_URL</code>. To connect to the channel, install the <a href="https://github.com/probot/smee-client">smee client</a> and run:</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">source</span><span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="o">&amp;&amp;</span><span class="w"> </span>smee<span class="w"> </span>-u<span class="w"> </span><span class="nv">$GITHUB_APP_WEBHOOK_URL</span><span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
-</span></code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nb">source</span><span class="w"> </span>.env<span class="w"> </span><span class="se">\</span>
+<span class="o">&amp;&amp;</span><span class="w"> </span>smee<span class="w"> </span>-u<span class="w"> </span><span class="nv">$GITHUB_APP_WEBHOOK_URL</span><span class="w"> </span>-t<span class="w"> </span>http://127.0.0.1:8000/api/v1/github-webhook
+</code></pre></div>
 
 
 
@@ -708,7 +670,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2025 Gradion AI
+      Copyright &copy; 2025-2026 Gradion AI
     </div>
   
   
