@@ -12,5 +12,6 @@ __pycache__
 .claude/
 .secrets/
 extra
+demo/scripts
 sandbox*
 site
