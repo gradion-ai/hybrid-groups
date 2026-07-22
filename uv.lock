@@ -1165,28 +1165,28 @@ wheels = [
 
 [[package]]
 name = "group-genie"
-version = "0.0.3"
+version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
     { name = "group-sense" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e5/83/c467ff26dc19316108fb42292cc4473d0b0f4e9658201d86417a94288e82/group_genie-0.0.3.tar.gz", hash = "sha256:eee0ac48655f377a6b68f14624a463f577f4a4be86539ac8b484e20f06fbe0e9", size = 31976, upload-time = "2026-02-05T12:34:46.736Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/9d/c95a71ebf545d1db13ce791e1a9cf99aba726b3b8fdcaaec569c0d3195e4/group_genie-0.0.4.tar.gz", hash = "sha256:5f5e376f97977c85f195f8b836f58bbfd53f49c35c6e775920f533a3fa42785b", size = 31970, upload-time = "2026-07-22T16:35:05.395Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/2d/172f23e507cf6eabd782007ac205d752c5ccdfedf58cffdebd512babecdd/group_genie-0.0.3-py3-none-any.whl", hash = "sha256:7230a52769a6f0b980dd1488de0c7bb5ff343754e294a40236d3de75845e73bf", size = 44845, upload-time = "2026-02-05T12:34:45.634Z" },
+    { url = "https://files.pythonhosted.org/packages/11/26/4330872723800300117c5d300661856b5b45fe25d576eef2713704a13ebd/group_genie-0.0.4-py3-none-any.whl", hash = "sha256:5180baf4abee8c4d25e30b9500ed209e347a1134d82a8825aea19c780221762e", size = 44824, upload-time = "2026-07-22T16:35:04.298Z" },
 ]
 
 [[package]]
 name = "group-sense"
-version = "0.0.5"
+version = "0.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-genai" },
     { name = "pydantic-ai" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/00/cd7915a4e1acdde2bd841fd5f2fc12a520bed9ff1f29af26954daa352d30/group_sense-0.0.5.tar.gz", hash = "sha256:cc65749bd725a3efb251244706d6b667f3b09ec65bb13b409b8c002c7fbca9b2", size = 12228, upload-time = "2026-02-05T12:12:01.591Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/a0/4de9b4a9be267e9fbadaa64bf6723c5e81d04909dcb0672988f9bfc4895a/group_sense-0.0.6.tar.gz", hash = "sha256:f1be7219c3a35cab41a2c951c735e53d0ae6cad743514686c2eb50581a64d156", size = 12227, upload-time = "2026-07-22T16:15:12.108Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/36/2d8e012bc40e1245d9adbe6fb79451cd283c3f16ef7eb70ec7e0bc170e35/group_sense-0.0.5-py3-none-any.whl", hash = "sha256:20a98891f2d14452eb1fdc118c86aaa260405e0e102ee786839321b9ed0fa99e", size = 14936, upload-time = "2026-02-05T12:12:00.055Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/30/97a9ef3b9a1823bd26889302d515db3dc4856f48dbb316640b002f8187de/group_sense-0.0.6-py3-none-any.whl", hash = "sha256:fcdf0566943c2dd2303b577634c4d92fb812672d520901d2b3d985e0abe4ea65", size = 14933, upload-time = "2026-07-22T16:15:11.089Z" },
 ]
 
 [[package]]
@@ -1322,6 +1322,7 @@ dependencies = [
     { name = "markdown-to-mrkdwn" },
     { name = "mcp" },
     { name = "pillow" },
+    { name = "pydantic-ai" },
     { name = "pygithub" },
     { name = "rich" },
     { name = "slack-bolt" },
@@ -1354,11 +1355,12 @@ requires-dist = [
     { name = "datasets", specifier = ">=3.6.0,<4" },
     { name = "fastapi", extras = ["all"], specifier = ">=0.115.12,<0.116" },
     { name = "gitingest", specifier = ">=0.1.4,<0.2" },
-    { name = "google-genai", specifier = ">=1.21.1,<2" },
-    { name = "group-genie", specifier = ">=0.0.3,<0.1" },
+    { name = "google-genai", specifier = ">=1.56.0,<2" },
+    { name = "group-genie", specifier = ">=0.0.4,<0.1" },
     { name = "markdown-to-mrkdwn", specifier = ">=0.2.0,<0.3" },
     { name = "mcp", specifier = ">=1.13.0,<2" },
     { name = "pillow", specifier = ">=11.3.0,<12" },
+    { name = "pydantic-ai", specifier = ">=1.36.0,<2" },
     { name = "pygithub", specifier = ">=2.6.1,<3" },
     { name = "rich", specifier = ">=14.0.0,<15" },
     { name = "slack-bolt", specifier = ">=1.23.0,<2" },

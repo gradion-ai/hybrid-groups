@@ -24,7 +24,7 @@ def create_math_agent(secrets: dict[str, str]) -> Agent:
 
     return DefaultAgent(
         system_prompt="You are a computational mathematician. For every math problem, write and execute Python code to calculate the answer.",
-        model="gemini-2.5-flash",
+        model="gemini-3.6-flash",
         model_settings=GoogleModelSettings(
             google_thinking_config={
                 "thinking_level": "minimal",
@@ -90,7 +90,7 @@ def create_system_agent(
 
     return DefaultAgent(
         system_prompt=system_prompt(agent_infos),
-        model="gemini-2.5-flash",
+        model="gemini-3.6-flash",
         model_settings=GoogleModelSettings(
             google_thinking_config={
                 "thinking_level": "high",
